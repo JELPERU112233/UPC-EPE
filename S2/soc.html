@@ -1,0 +1,325 @@
+
+<style>
+  #kr { font-family: var(--font-sans, sans-serif); background: #0a0a0a; border-radius: 16px; padding: 0; min-height: 560px; position: relative; overflow: hidden; }
+  #kr::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 20% 0%, rgba(0,120,255,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 100%, rgba(255,60,0,0.10) 0%, transparent 60%); pointer-events:none; border-radius:16px; }
+
+  .ks { display:none; flex-direction:column; align-items:center; padding: 2.5rem 1.5rem; position:relative; z-index:1; }
+  .ks.on { display:flex; }
+
+  /* Header */
+  .kh { width:100%; max-width:580px; display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .kpill { font-size:12px; font-weight:500; padding:5px 12px; border-radius:20px; }
+  .kpill-score { background:#111; border:1px solid #1a5fff; color:#4d8fff; }
+  .kpill-num { background:#111; border:1px solid #333; color:#888; font-size:12px; padding:5px 12px; border-radius:20px; }
+
+  /* Progress */
+  .kpbar { width:100%; max-width:580px; height:3px; background:#1a1a1a; border-radius:2px; margin-bottom:1.75rem; }
+  .kpfill { height:100%; border-radius:2px; background: linear-gradient(90deg,#1a5fff,#00b4ff); transition:width .4s ease; }
+
+  /* Timer */
+  .ktimer { position:relative; width:68px; height:68px; flex-shrink:0; }
+  .ktimer svg { transform:rotate(-90deg); }
+  .kr-bg { fill:none; stroke:#1a1a1a; stroke-width:5; }
+  .kr-fill { fill:none; stroke-width:5; stroke-linecap:round; transition: stroke-dashoffset 1s linear, stroke .5s; }
+  .ktn { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; }
+
+  /* Question */
+  .kqbox { background:#111; border:1px solid #1e1e1e; border-radius:14px; padding:1.5rem 1.75rem; max-width:580px; width:100%; text-align:center; margin-bottom:1.5rem; min-height:80px; display:flex; align-items:center; justify-content:center; }
+  .kqtext { font-size:17px; font-weight:500; color:#f0f0f0; line-height:1.55; }
+
+  /* Options grid */
+  .kopts { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:580px; }
+  .kopt { border:none; border-radius:12px; padding:0; cursor:pointer; display:flex; align-items:stretch; transition:transform .12s, opacity .2s, filter .2s; position:relative; overflow:hidden; min-height:72px; }
+  .kopt:hover:not(.klocked) { transform:scale(1.03); filter:brightness(1.12); }
+  .kopt:active:not(.klocked) { transform:scale(0.98); }
+  .kopt-inner { display:flex; align-items:center; gap:12px; padding:14px 16px; width:100%; }
+  .kicon { width:36px; height:36px; border-radius:8px; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#fff; flex-shrink:0; }
+  .klabel { font-size:14px; font-weight:500; color:#fff; line-height:1.35; text-align:left; }
+
+  .ka { background:#cc0000; }
+  .kb { background:#0044cc; }
+  .kc { background:#cc6600; }
+  .kd { background:#006600; }
+
+  .kopt.correct { outline:3px solid #00ff88; filter:brightness(1.2); }
+  .kopt.wrong { filter:brightness(0.4) saturate(0.3); }
+  .kopt.dim { filter:brightness(0.25) saturate(0.2); opacity:0.5; }
+  .kopt.klocked { cursor:default; }
+
+  /* Feedback */
+  .kfb { margin-top:1rem; font-size:13px; font-weight:500; color:#ccc; background:#111; border:1px solid #1e1e1e; border-radius:10px; padding:10px 16px; max-width:580px; width:100%; min-height:44px; text-align:center; line-height:1.45; }
+  .kfb.correct { border-color:#00ff88; color:#00ff88; background:#001a0d; }
+  .kfb.wrong { border-color:#ff4444; color:#ff6666; background:#1a0000; }
+
+  /* Next button */
+  .knext { margin-top:1.25rem; padding:11px 32px; border-radius:10px; background:#1a5fff; color:#fff; border:none; font-size:15px; font-weight:500; cursor:pointer; transition:background .15s, transform .1s; }
+  .knext:hover { background:#2266ff; }
+  .knext:active { transform:scale(0.97); }
+
+  /* Start screen */
+  .kstart-icon { width:64px; height:64px; border-radius:18px; background:#111; border:1px solid #1a5fff; display:flex; align-items:center; justify-content:center; margin-bottom:1.5rem; }
+  .kstart-title { font-size:24px; font-weight:500; color:#f0f0f0; margin-bottom:.5rem; text-align:center; }
+  .kstart-sub { font-size:14px; color:#666; margin-bottom:2rem; text-align:center; }
+  .kchips { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:2rem; }
+  .kchip { font-size:12px; padding:4px 12px; border-radius:20px; border:1px solid #222; color:#555; background:#0d0d0d; }
+  .kplay { padding:13px 40px; border-radius:10px; background:#cc0000; color:#fff; border:none; font-size:16px; font-weight:500; cursor:pointer; transition:background .15s, transform .1s; letter-spacing:.3px; }
+  .kplay:hover { background:#dd1111; }
+  .kplay:active { transform:scale(0.97); }
+
+  /* Result */
+  .kres-title { font-size:26px; font-weight:500; color:#f0f0f0; text-align:center; margin-bottom:.25rem; }
+  .kres-pts { font-size:54px; font-weight:500; color:#1a5fff; margin:.75rem 0; }
+  .kres-sub { font-size:14px; color:#666; text-align:center; margin-bottom:1.5rem; }
+  .kbars { width:100%; max-width:440px; display:flex; flex-direction:column; gap:10px; margin-bottom:1.5rem; }
+  .kbar-row { display:flex; align-items:center; gap:10px; font-size:12px; }
+  .kbr-q { flex:1; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .kbr-bar { flex:2; height:6px; border-radius:3px; background:#1a1a1a; overflow:hidden; }
+  .kbr-fill { height:100%; border-radius:3px; }
+  .kbr-mark { width:16px; text-align:center; flex-shrink:0; font-weight:700; }
+  .kres-btns { display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .kbtn2 { padding:10px 28px; border-radius:10px; background:#111; color:#888; border:1px solid #222; font-size:14px; cursor:pointer; transition:background .15s; }
+  .kbtn2:hover { background:#181818; color:#aaa; }
+</style>
+
+<div id="kr">
+
+  <div id="ks-start" class="ks on">
+    <div class="kstart-icon">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1a5fff" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    <p class="kstart-title">Quiz System on Chip (SoC)</p>
+    <p class="kstart-sub">5 preguntas · 20 segundos cada una · tipo Kahoot</p>
+    <div class="kchips">
+      <span class="kchip">SoC vs PC</span>
+      <span class="kchip">Apple Silicon</span>
+      <span class="kchip">Snapdragon</span>
+      <span class="kchip">Chiplets</span>
+      <span class="kchip">SBC</span>
+    </div>
+    <button class="kplay" onclick="kStart()">Iniciar quiz</button>
+  </div>
+
+  <div id="ks-quiz" class="ks">
+    <div class="kh">
+      <span class="kpill kpill-score" id="k-score">Puntos: 0</span>
+      <div class="ktimer">
+        <svg width="68" height="68" viewBox="0 0 68 68">
+          <circle class="kr-bg" cx="34" cy="34" r="28"/>
+          <circle class="kr-fill" id="k-ring" cx="34" cy="34" r="28" stroke-dasharray="175.9" stroke-dashoffset="0" stroke="#1a5fff"/>
+        </svg>
+        <span class="ktn" id="k-tnum" style="color:#f0f0f0;">20</span>
+      </div>
+      <span class="kpill-num" id="k-counter">1 / 5</span>
+    </div>
+    <div class="kpbar"><div class="kpfill" id="k-pbar" style="width:0%"></div></div>
+    <div class="kqbox"><p class="kqtext" id="k-q"></p></div>
+    <div class="kopts" id="k-opts"></div>
+    <div class="kfb" id="k-fb"></div>
+    <button class="knext" id="k-next" onclick="kNext()" style="display:none;">Siguiente</button>
+  </div>
+
+  <div id="ks-result" class="ks">
+    <p class="kres-title" id="kr-title"></p>
+    <div class="kres-pts" id="kr-pts"></div>
+    <p class="kres-sub" id="kr-sub"></p>
+    <div class="kbars" id="kr-bars"></div>
+    <div class="kres-btns">
+      <button class="kplay" onclick="kStart()" style="background:#0044cc;">Jugar de nuevo</button>
+      <button class="kbtn2" onclick="sendPrompt('Explícame detalladamente las respuestas correctas del quiz de SoC con ejemplos prácticos')">Ver explicaciones en detalle ↗</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const QS = [
+  {
+    t: "¿Qué es un System on Chip (SoC)?",
+    o: [
+      "Un sistema operativo embebido en memoria flash",
+      "Un circuito integrado que agrupa CPU, GPU, RAM y otros componentes en un solo chip",
+      "Un protocolo de comunicación entre chips de distintos fabricantes",
+      "Una tarjeta de expansión PCIe para servidores de alto rendimiento"
+    ],
+    c: 1,
+    e: "Un SoC integra CPU, GPU, controladores E/S, módems y procesadores especializados en un único chip, a diferencia del PC tradicional donde están separados."
+  },
+  {
+    t: "¿Cuál es la principal ventaja del diseño de 'memoria unificada' de Apple Silicon (M1/M2/M3)?",
+    o: [
+      "Permite instalar más módulos DDR5 en la placa madre",
+      "Aumenta la frecuencia del reloj de la CPU a más de 5 GHz",
+      "CPU y GPU comparten el mismo pool de memoria eliminando costosas transferencias de datos",
+      "Reduce la temperatura del chip al separar físicamente los bancos de memoria"
+    ],
+    c: 2,
+    e: "La memoria unificada de Apple Silicon hace que CPU, GPU y Neural Engine accedan al mismo pool, eliminando copias de datos y logrando altísima eficiencia energética."
+  },
+  {
+    t: "El Apple A17 Pro (iPhone 15 Pro) fue fabricado en proceso de 3nm de TSMC. ¿Qué componente de IA incluye capaz de 35 billones de operaciones por segundo?",
+    o: [
+      "Hexagon NPU",
+      "Adreno 750",
+      "Neural Engine de 16 núcleos",
+      "Secure Enclave de cuarta generación"
+    ],
+    c: 2,
+    e: "El Neural Engine del A17 Pro tiene 16 núcleos y ejecuta 35 billones de operaciones por segundo (TOPS), permitiendo IA local sin necesidad de conexión a la nube."
+  },
+  {
+    t: "¿Qué tecnología futura usarán los SoCs para combinar diferentes nodos de proceso e interconectar bloques funcionales especializados?",
+    o: [
+      "Bus PCIe 6.0 con ancho de banda de 256 GB/s",
+      "Chiplets interconectados mediante interfaces de alta velocidad",
+      "Memoria HBM4 soldada directamente al sustrato del chip",
+      "Arquitectura RISC-V con extensiones para computación cuántica"
+    ],
+    c: 1,
+    e: "La tecnología de chiplets permite combinar diferentes procesos de fabricación (ej: CPU en 3nm, memorias en 7nm) interconectados, maximizando rendimiento y reduciendo costos."
+  },
+  {
+    t: "¿En qué caso de uso se utiliza el NVIDIA DRIVE SoC?",
+    o: [
+      "Televisores inteligentes y dispositivos de streaming 8K",
+      "Computadoras de placa única (SBC) para educación tipo Raspberry Pi",
+      "Conducción autónoma y sistemas ADAS con procesamiento de sensores e IA",
+      "Smartphones de gama media con énfasis en fotografía computacional"
+    ],
+    c: 2,
+    e: "NVIDIA DRIVE está enfocado en conducción autónoma y asistida (ADAS), combinando GPUs potentes con núcleos Tensor para procesar sensores, cámaras y tomar decisiones en tiempo real."
+  }
+];
+
+const CIRC = 2 * Math.PI * 28;
+let qi = 0, score = 0, ans = [], tid = null, tl = 0;
+
+function show(id) {
+  document.querySelectorAll('.ks').forEach(s => s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+function kStart() {
+  qi = 0; score = 0; ans.length = 0;
+  show('ks-quiz');
+  render();
+}
+
+function render() {
+  clearInterval(tid);
+  const q = QS[qi];
+  document.getElementById('k-q').textContent = q.t;
+  document.getElementById('k-counter').textContent = `${qi+1} / 5`;
+  document.getElementById('k-score').textContent = `Puntos: ${score}`;
+  document.getElementById('k-pbar').style.width = `${(qi/5)*100}%`;
+  document.getElementById('k-fb').textContent = '';
+  document.getElementById('k-fb').className = 'kfb';
+  document.getElementById('k-next').style.display = 'none';
+
+  const icons = ['A','B','C','D'];
+  const cls = ['ka','kb','kc','kd'];
+  const opts = document.getElementById('k-opts');
+  opts.innerHTML = q.o.map((o,i) => `
+    <button class="kopt ${cls[i]}" data-i="${i}" onclick="pick(${i})">
+      <div class="kopt-inner">
+        <div class="kicon">${icons[i]}</div>
+        <div class="klabel">${o}</div>
+      </div>
+    </button>`).join('');
+
+  startTim(20);
+}
+
+function startTim(s) {
+  tl = s; upRing(s,s);
+  tid = setInterval(()=>{ tl--; upRing(tl,s); if(tl<=0){clearInterval(tid);expire();} },1000);
+}
+
+function upRing(t,tot) {
+  const r = document.getElementById('k-ring');
+  const n = document.getElementById('k-tnum');
+  const ratio = t/tot;
+  r.style.strokeDashoffset = CIRC*(1-ratio);
+  r.style.stroke = t>10?'#1a5fff':t>5?'#cc6600':'#cc0000';
+  n.textContent = t;
+  n.style.color = t>10?'#f0f0f0':t>5?'#ff9933':'#ff4444';
+}
+
+let answered = false;
+function render2() { answered=false; render(); }
+// Override render to reset answered
+const _origRender = render;
+
+function pick(i) {
+  if(answered) return;
+  answered = true;
+  clearInterval(tid);
+  const q = QS[qi];
+  const ok = i===q.c;
+  const pts = ok ? Math.max(100, 100 + tl*15) : 0;
+  if(ok) score += pts;
+  ans.push({ok, pts});
+
+  document.querySelectorAll('.kopt').forEach((el,idx) => {
+    el.classList.add('klocked');
+    if(idx===q.c) el.classList.add('correct');
+    else if(idx===i && !ok) el.classList.add('wrong');
+    else if(idx!==q.c) el.classList.add('dim');
+  });
+
+  const fb = document.getElementById('k-fb');
+  fb.className = 'kfb '+(ok?'correct':'wrong');
+  fb.textContent = ok ? `Correcto +${pts} pts — ${q.e}` : `Incorrecto — ${q.e}`;
+  document.getElementById('k-score').textContent = `Puntos: ${score}`;
+  document.getElementById('k-next').style.display='inline-block';
+  document.getElementById('k-next').textContent = qi<4?'Siguiente':'Ver resultados';
+}
+
+function expire() {
+  if(answered) return;
+  answered=true;
+  ans.push({ok:false,pts:0});
+  const q=QS[qi];
+  document.querySelectorAll('.kopt').forEach((el,idx)=>{
+    el.classList.add('klocked');
+    if(idx===q.c) el.classList.add('correct');
+    else el.classList.add('dim');
+  });
+  const fb=document.getElementById('k-fb');
+  fb.className='kfb wrong';
+  fb.textContent=`Tiempo agotado — ${q.e}`;
+  document.getElementById('k-next').style.display='inline-block';
+  document.getElementById('k-next').textContent=qi<4?'Siguiente':'Ver resultados';
+}
+
+function kNext() {
+  qi++;
+  if(qi>=QS.length){showResult();return;}
+  answered=false;
+  render();
+}
+
+function showResult() {
+  show('ks-result');
+  const correct=ans.filter(a=>a.ok).length;
+  const pct=Math.round((correct/5)*100);
+  const titles=['Sigue intentándolo','Vas mejorando','Buen trabajo','Muy bien hecho','Experto en SoC'];
+  const ti=Math.min(4,Math.floor(pct/25));
+  document.getElementById('kr-title').textContent=titles[ti];
+  document.getElementById('kr-pts').textContent=score.toLocaleString()+' pts';
+  document.getElementById('kr-sub').textContent=`${correct} de 5 correctas (${pct}%)`;
+  document.getElementById('k-pbar').style.width='100%';
+
+  const bars=document.getElementById('kr-bars');
+  bars.innerHTML=QS.map((q,i)=>{
+    const ok=ans[i]&&ans[i].ok;
+    const color=ok?'#00cc66':'#cc0000';
+    const short=q.t.length>42?q.t.slice(0,42)+'…':q.t;
+    return `<div class="kbar-row">
+      <span class="kbr-q">${i+1}. ${short}</span>
+      <div class="kbr-bar"><div class="kbr-fill" style="width:${ok?100:18}%;background:${color};"></div></div>
+      <span class="kbr-mark" style="color:${color};">${ok?'✓':'✗'}</span>
+    </div>`;
+  }).join('');
+}
+answered=false;
+</script>
