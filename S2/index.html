@@ -1,1 +1,310 @@
 
+<style>
+  :root {
+    --q-red: #E24B4A; --q-red-light: #FCEBEB; --q-red-dark: #791F1F;
+    --q-blue: #378ADD; --q-blue-light: #E6F1FB; --q-blue-dark: #0C447C;
+    --q-green: #639922; --q-green-light: #EAF3DE; --q-green-dark: #27500A;
+    --q-amber: #BA7517; --q-amber-light: #FAEEDA; --q-amber-dark: #633806;
+    --q-purple: #7F77DD; --q-purple-light: #EEEDFE; --q-purple-dark: #3C3489;
+    --q-teal: #1D9E75; --q-teal-light: #E1F5EE; --q-teal-dark: #085041;
+  }
+
+  #qroot { font-family: var(--font-sans, sans-serif); padding: 0; position: relative; min-height: 540px; }
+
+  .screen { display: none; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+  .screen.active { display: flex; }
+
+  .q-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+
+  .q-progress-bar { width: 100%; height: 6px; background: var(--color-border-tertiary); border-radius: 3px; overflow: hidden; margin-bottom: 1.5rem; }
+  .q-progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; background: var(--q-blue); }
+
+  .q-timer-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+  .q-timer-ring svg { transform: rotate(-90deg); }
+  .q-timer-ring .ring-bg { fill: none; stroke: var(--color-border-tertiary); stroke-width: 5; }
+  .q-timer-ring .ring-fill { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+  .q-timer-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500; }
+
+  .q-badge { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: var(--border-radius-md); }
+  .q-score-badge { background: var(--q-blue-light); color: var(--q-blue-dark); }
+
+  .q-text { font-size: 18px; font-weight: 500; text-align: center; color: var(--color-text-primary); max-width: 560px; line-height: 1.5; margin-bottom: 1.5rem; min-height: 72px; }
+
+  .q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 560px; }
+  .q-opt { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.12s, border-color 0.2s, background 0.2s; background: var(--color-background-primary); }
+  .q-opt:hover:not(.locked) { transform: scale(1.02); border-color: var(--color-border-primary); }
+  .q-opt .opt-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; flex-shrink: 0; }
+  .q-opt .opt-text { font-size: 14px; color: var(--color-text-primary); line-height: 1.35; }
+
+  .opt-a .opt-icon { background: var(--q-red-light); color: var(--q-red-dark); }
+  .opt-b .opt-icon { background: var(--q-blue-light); color: var(--q-blue-dark); }
+  .opt-c .opt-icon { background: var(--q-amber-light); color: var(--q-amber-dark); }
+  .opt-d .opt-icon { background: var(--q-green-light); color: var(--q-green-dark); }
+
+  .q-opt.correct { background: var(--q-green-light); border-color: var(--q-green); }
+  .q-opt.correct .opt-text { color: var(--q-green-dark); font-weight: 500; }
+  .q-opt.wrong { background: var(--q-red-light); border-color: var(--q-red); }
+  .q-opt.wrong .opt-text { color: var(--q-red-dark); }
+  .q-opt.dim { opacity: 0.35; }
+  .q-opt.locked { cursor: default; }
+
+  .q-feedback { margin-top: 1rem; font-size: 14px; font-weight: 500; padding: 8px 16px; border-radius: var(--border-radius-md); text-align: center; min-height: 38px; }
+  .q-feedback.correct { background: var(--q-green-light); color: var(--q-green-dark); }
+  .q-feedback.wrong { background: var(--q-red-light); color: var(--q-red-dark); }
+
+  .q-btn { margin-top: 1.5rem; padding: 10px 28px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 15px; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .q-btn:hover { background: var(--color-background-secondary); }
+  .q-btn:active { transform: scale(0.97); }
+  .q-btn.primary { background: var(--q-blue); color: white; border-color: var(--q-blue); font-weight: 500; }
+  .q-btn.primary:hover { background: var(--q-blue-dark); }
+
+  .start-title { font-size: 26px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 0.5rem; text-align: center; }
+  .start-sub { font-size: 15px; color: var(--color-text-secondary); text-align: center; margin-bottom: 2rem; }
+  .start-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 2rem; }
+  .chip { font-size: 12px; padding: 4px 12px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); background: var(--color-background-secondary); }
+
+  .result-title { font-size: 28px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 0.25rem; text-align: center; }
+  .result-score { font-size: 52px; font-weight: 500; margin: 1rem 0; }
+  .result-label { font-size: 15px; color: var(--color-text-secondary); margin-bottom: 1.5rem; text-align: center; }
+  .result-bars { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+  .result-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .result-row .rq { flex: 1; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result-row .rbar { flex: 2; height: 8px; border-radius: 4px; overflow: hidden; background: var(--color-border-tertiary); }
+  .result-row .rbar-fill { height: 100%; border-radius: 4px; }
+  .result-row .rmark { width: 18px; text-align: center; flex-shrink: 0; }
+</style>
+
+<div id="qroot">
+  <div id="start-screen" class="screen active">
+    <div style="width:56px;height:56px;border-radius:16px;background:var(--q-blue-light);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--q-blue)" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    <p class="start-title">Quiz GPU — Arquitectura de Computadoras</p>
+    <p class="start-sub">5 preguntas · 20 segundos cada una · tipo Kahoot</p>
+    <div class="start-chips">
+      <span class="chip">GPU vs CPU</span>
+      <span class="chip">NVIDIA</span>
+      <span class="chip">AMD</span>
+      <span class="chip">Arquitectura</span>
+      <span class="chip">CUDA / ROCm</span>
+    </div>
+    <button class="q-btn primary" onclick="startQuiz()">Iniciar quiz</button>
+  </div>
+
+  <div id="quiz-screen" class="screen">
+    <div class="q-header" style="max-width:560px;margin:0 auto;width:100%;">
+      <span class="q-badge q-score-badge" id="score-display">Puntos: 0</span>
+      <span style="font-size:13px;color:var(--color-text-secondary);" id="q-counter">Pregunta 1/5</span>
+      <div class="q-timer-ring">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle class="ring-bg" cx="32" cy="32" r="27"/>
+          <circle class="ring-fill" id="timer-ring" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="0" stroke="var(--q-blue)"/>
+        </svg>
+        <span class="q-timer-num" id="timer-num">20</span>
+      </div>
+    </div>
+    <div class="q-progress-bar" style="max-width:560px;margin:0 auto 1.5rem;width:100%;">
+      <div class="q-progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <p class="q-text" id="q-text"></p>
+    <div class="q-options" id="q-options"></div>
+    <div class="q-feedback" id="q-feedback"></div>
+    <button class="q-btn" id="next-btn" onclick="nextQuestion()" style="display:none;">Siguiente pregunta</button>
+  </div>
+
+  <div id="result-screen" class="screen">
+    <p class="result-title" id="result-title"></p>
+    <div class="result-score" id="result-score" style="color:var(--q-blue);"></div>
+    <p class="result-label" id="result-label"></p>
+    <div class="result-bars" id="result-bars"></div>
+    <button class="q-btn primary" onclick="restartQuiz()">Jugar de nuevo</button>
+    <button class="q-btn" style="margin-top:8px;" onclick="sendPrompt('Explícame las respuestas correctas del quiz de GPUs con más detalle')">Ver explicaciones detalladas ↗</button>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    text: "¿Cuál es la diferencia fundamental entre CPU y GPU en términos de arquitectura?",
+    opts: [
+      "La CPU tiene miles de núcleos simples; la GPU tiene pocos pero potentes",
+      "La GPU tiene miles de núcleos simples; la CPU tiene pocos pero potentes",
+      "Ambas tienen la misma cantidad de núcleos, solo difiere la frecuencia",
+      "La CPU usa VRAM y la GPU usa RAM del sistema"
+    ],
+    correct: 1,
+    explain: "La GPU tiene miles de núcleos simples (SIMD) para paralelismo masivo; la CPU tiene pocos núcleos complejos optimizados para baja latencia."
+  },
+  {
+    text: "¿Qué plataforma de software es el ecosistema dominante de NVIDIA para computación en GPU?",
+    opts: ["ROCm", "oneAPI", "CUDA", "OpenCL"],
+    correct: 2,
+    explain: "CUDA (Compute Unified Device Architecture) es la plataforma propietaria de NVIDIA, presente en más del 95% de centros de datos de IA."
+  },
+  {
+    text: "¿Cuál de estas GPUs de NVIDIA está diseñada específicamente para centros de datos con IA generativa y cuenta con 80 GB de memoria HBM3?",
+    opts: ["RTX 4090", "NVIDIA H100 (Hopper)", "Quadro RTX 8000", "NVIDIA Titan RTX"],
+    correct: 1,
+    explain: "El NVIDIA H100 (arquitectura Hopper) es el buque insignia para IA/HPC con 80 GB HBM3 y Transformer Engine, siendo ~4.9x más rápido que el A100."
+  },
+  {
+    text: "¿Qué significa la arquitectura SIMD que usan las GPUs?",
+    opts: [
+      "Single Instance Multiple Data — una instrucción en múltiples instancias",
+      "System Integrated Memory Design — diseño de memoria integrada",
+      "Single Instruction Multiple Data — una instrucción procesa múltiples datos simultáneamente",
+      "Simultaneous Instruction Multiple Decode — decodificación paralela"
+    ],
+    correct: 2,
+    explain: "SIMD (Single Instruction, Multiple Data) permite que una sola instrucción opere sobre miles de datos en paralelo, base del poder de las GPUs."
+  },
+  {
+    text: "¿Cuál es la alternativa de AMD a CUDA para computación GPU de propósito general?",
+    opts: ["DirectX Compute", "ROCm (Radeon Open Compute Platform)", "Metal API", "Vulkan Compute"],
+    correct: 1,
+    explain: "ROCm es la plataforma de código abierto de AMD para GPGPU. Incluye HIP para portar código CUDA y MIOpen como alternativa a cuDNN."
+  }
+];
+
+const CIRCUMFERENCE = 2 * Math.PI * 27;
+let currentQ = 0, score = 0, timerInterval = null, timeLeft = 0;
+let answered = false;
+const userAnswers = [];
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startQuiz() {
+  currentQ = 0; score = 0; userAnswers.length = 0;
+  showScreen('quiz-screen');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = QUESTIONS[currentQ];
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-counter').textContent = `Pregunta ${currentQ + 1}/5`;
+  document.getElementById('score-display').textContent = `Puntos: ${score}`;
+  document.getElementById('progress-fill').style.width = `${(currentQ / 5) * 100}%`;
+  document.getElementById('q-feedback').textContent = '';
+  document.getElementById('q-feedback').className = 'q-feedback';
+  document.getElementById('next-btn').style.display = 'none';
+
+  const opts = document.getElementById('q-options');
+  const labels = ['A', 'B', 'C', 'D'];
+  const classes = ['opt-a', 'opt-b', 'opt-c', 'opt-d'];
+  opts.innerHTML = q.opts.map((o, i) => `
+    <div class="q-opt ${classes[i]}" data-i="${i}" onclick="selectAnswer(${i})">
+      <div class="opt-icon">${labels[i]}</div>
+      <div class="opt-text">${o}</div>
+    </div>
+  `).join('');
+
+  startTimer(20);
+}
+
+function startTimer(seconds) {
+  clearInterval(timerInterval);
+  timeLeft = seconds;
+  updateRing(seconds, seconds);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateRing(timeLeft, seconds);
+    if (timeLeft <= 0) { clearInterval(timerInterval); timeExpired(); }
+  }, 1000);
+}
+
+function updateRing(t, total) {
+  const ring = document.getElementById('timer-ring');
+  const num = document.getElementById('timer-num');
+  const ratio = t / total;
+  const offset = CIRCUMFERENCE * (1 - ratio);
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = t > 10 ? 'var(--q-blue)' : t > 5 ? 'var(--q-amber)' : 'var(--q-red)';
+  num.textContent = t;
+  num.style.color = t > 10 ? 'var(--color-text-primary)' : t > 5 ? 'var(--q-amber-dark)' : 'var(--q-red-dark)';
+}
+
+function selectAnswer(i) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const q = QUESTIONS[currentQ];
+  const isCorrect = i === q.correct;
+  const pts = isCorrect ? Math.max(100, Math.round(100 + timeLeft * 15)) : 0;
+  if (isCorrect) score += pts;
+  userAnswers.push({ q: currentQ, chosen: i, correct: isCorrect, pts });
+
+  document.querySelectorAll('.q-opt').forEach((el, idx) => {
+    el.classList.add('locked');
+    if (idx === q.correct) el.classList.add('correct');
+    else if (idx === i && !isCorrect) el.classList.add('wrong');
+    else if (idx !== q.correct) el.classList.add('dim');
+  });
+
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'q-feedback ' + (isCorrect ? 'correct' : 'wrong');
+  fb.textContent = isCorrect
+    ? `Correcto +${pts} pts — ${q.explain}`
+    : `Incorrecto — ${q.explain}`;
+
+  document.getElementById('score-display').textContent = `Puntos: ${score}`;
+  document.getElementById('next-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').textContent = currentQ < 4 ? 'Siguiente pregunta' : 'Ver resultados';
+}
+
+function timeExpired() {
+  if (answered) return;
+  answered = true;
+  userAnswers.push({ q: currentQ, chosen: -1, correct: false, pts: 0 });
+  const q = QUESTIONS[currentQ];
+  document.querySelectorAll('.q-opt').forEach((el, idx) => {
+    el.classList.add('locked');
+    if (idx === q.correct) el.classList.add('correct');
+    else el.classList.add('dim');
+  });
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'q-feedback wrong';
+  fb.textContent = `Tiempo agotado — ${q.explain}`;
+  document.getElementById('next-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').textContent = currentQ < 4 ? 'Siguiente pregunta' : 'Ver resultados';
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= QUESTIONS.length) { showResults(); return; }
+  renderQuestion();
+}
+
+function showResults() {
+  showScreen('result-screen');
+  const pct = Math.round((userAnswers.filter(a => a.correct).length / 5) * 100);
+  const titles = ['Sigue practicando', 'Vas mejorando', 'Buen trabajo', 'Muy bien hecho', 'Experto en GPU'];
+  const idx = Math.min(4, Math.floor(pct / 25));
+  document.getElementById('result-title').textContent = titles[idx];
+  document.getElementById('result-score').textContent = score.toLocaleString() + ' pts';
+  const correct = userAnswers.filter(a => a.correct).length;
+  document.getElementById('result-label').textContent = `${correct} de 5 respuestas correctas (${pct}%)`;
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const bars = document.getElementById('result-bars');
+  bars.innerHTML = QUESTIONS.map((q, i) => {
+    const ua = userAnswers.find(a => a.q === i);
+    const ok = ua && ua.correct;
+    const color = ok ? 'var(--q-green)' : 'var(--q-red)';
+    const mark = ok ? '✓' : '✗';
+    const shortQ = q.text.length > 40 ? q.text.slice(0, 40) + '…' : q.text;
+    return `<div class="result-row">
+      <span class="rq">${i+1}. ${shortQ}</span>
+      <div class="rbar"><div class="rbar-fill" style="width:${ok ? 100 : 20}%;background:${color};"></div></div>
+      <span class="rmark" style="color:${color};font-weight:500;">${mark}</span>
+    </div>`;
+  }).join('');
+}
+
+function restartQuiz() { startQuiz(); }
+</script>
+
