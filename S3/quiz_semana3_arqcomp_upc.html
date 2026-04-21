@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Semana 3 — Arquitectura del Computador | UPC IS277</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+:root{--bg:#0c1222;--bg-card:rgba(15,23,42,0.92);--surface:rgba(30,41,70,0.6);--border:rgba(100,140,200,0.12);--upc-red:#c41e3a;--upc-glow:rgba(196,30,58,0.25);--cyan:#38bdf8;--teal:#2dd4bf;--amber:#fbbf24;--violet:#a78bfa;--rose:#fb7185;--ok:#34d399;--ok-bg:rgba(52,211,153,0.08);--no:#f87171;--no-bg:rgba(248,113,113,0.08);--t1:#e2e8f0;--t2:#94a3b8;--t3:#64748b}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100vh;background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+.amb{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 15% 20%,rgba(56,189,248,0.06) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 85% 70%,rgba(196,30,58,0.05) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 50% 100%,rgba(45,212,191,0.04) 0%,transparent 50%)}
+.grd{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.025;background-image:linear-gradient(rgba(255,255,255,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.3) 1px,transparent 1px);background-size:50px 50px}
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.bar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(12,18,34,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.bar .badge{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--upc-red);background:var(--upc-glow);padding:4px 10px;border-radius:6px;letter-spacing:1px}
+.bar .crs{font-size:12px;color:var(--t3);font-family:'Space Mono',monospace}
+.scr{display:none;width:100%;max-width:780px;animation:su .5s cubic-bezier(.22,1,.36,1)}
+.scr.on{display:flex;flex-direction:column;align-items:center}
+@keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.wc{background:var(--bg-card);border:1px solid var(--border);border-radius:24px;padding:48px 40px;text-align:center;backdrop-filter:blur(16px);position:relative;overflow:hidden;margin-top:60px}
+.wc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--upc-red),var(--cyan),var(--teal))}
+.wc h1{font-family:'Outfit',sans-serif;font-size:clamp(26px,5vw,40px);font-weight:800;background:linear-gradient(135deg,var(--t1),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.wc .sub{font-family:'Space Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.chip{font-family:'Space Mono',monospace;font-size:10px;padding:5px 12px;border-radius:20px;letter-spacing:.5px;border:1px solid;white-space:nowrap}
+.c1{border-color:var(--cyan);color:var(--cyan);background:rgba(56,189,248,0.06)}
+.c2{border-color:var(--violet);color:var(--violet);background:rgba(167,139,250,0.06)}
+.c3{border-color:var(--amber);color:var(--amber);background:rgba(251,191,36,0.06)}
+.c4{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.06)}
+.sts{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;font-family:'Space Mono',monospace;font-size:12px;color:var(--t2)}
+.sts span{display:flex;align-items:center;gap:5px}
+.bgo{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,var(--upc-red),#e63956);border:none;border-radius:14px;padding:16px 52px;cursor:pointer;transition:all .3s;box-shadow:0 4px 24px var(--upc-glow)}
+.bgo:hover{transform:translateY(-2px);box-shadow:0 8px 32px var(--upc-glow)}
+.qh{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;margin-top:60px;font-family:'Space Mono',monospace;font-size:12px}
+.qn{color:var(--cyan);background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.15);padding:5px 12px;border-radius:8px}
+.qp{color:var(--amber);background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);padding:5px 12px;border-radius:8px}
+.tt{width:100%;height:5px;background:rgba(255,255,255,0.04);border-radius:4px;margin-bottom:18px;overflow:hidden}
+.tb{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--teal));transition:width .25s linear}
+.tb.dng{background:linear-gradient(90deg,var(--amber),var(--no))}
+.qc{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:32px 28px 24px;width:100%;backdrop-filter:blur(16px);position:relative;overflow:hidden}
+.qc::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2px;background:linear-gradient(90deg,transparent,var(--violet),transparent)}
+.qm{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:inline-block;padding:3px 10px;border-radius:6px;margin-bottom:6px}
+.qm.fs{color:var(--cyan);background:rgba(56,189,248,0.1)}.qm.vm{color:var(--violet);background:rgba(167,139,250,0.1)}.qm.hdd{color:var(--amber);background:rgba(251,191,36,0.1)}.qm.algo{color:var(--teal);background:rgba(45,212,191,0.1)}
+.qr{font-family:'Space Mono',monospace;font-size:10px;color:var(--t3);margin-bottom:14px;display:block}
+.qt{font-family:'Outfit',sans-serif;font-size:clamp(16px,3.2vw,21px);font-weight:600;line-height:1.5;margin-bottom:24px}
+.og{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+@media(max-width:540px){.og{grid-template-columns:1fr}}
+.ob{position:relative;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;text-align:left;padding:14px 16px 14px 46px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--t1);cursor:pointer;transition:all .2s;min-height:52px;display:flex;align-items:center;line-height:1.35}
+.ob .lt{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:7px;border:1.5px solid rgba(255,255,255,0.1);color:var(--t3);transition:all .2s}
+.ob:nth-child(1){--oc:var(--upc-red)}.ob:nth-child(2){--oc:var(--cyan)}.ob:nth-child(3){--oc:var(--amber)}.ob:nth-child(4){--oc:var(--teal)}
+.ob:hover:not(.lk){border-color:var(--oc);background:color-mix(in srgb,var(--oc) 6%,transparent)}
+.ob:hover:not(.lk) .lt{border-color:var(--oc);color:var(--oc)}
+.ob.ri{border-color:var(--ok)!important;background:var(--ok-bg)!important;box-shadow:0 0 20px rgba(52,211,153,0.15);animation:pp .35s ease-out}
+.ob.ri .lt{background:var(--ok);color:var(--bg);border-color:var(--ok)}
+.ob.wr{border-color:var(--no)!important;background:var(--no-bg)!important;animation:sh .35s ease-out}
+.ob.wr .lt{background:var(--no);color:#fff;border-color:var(--no)}
+.ob.lk{pointer-events:none;opacity:.45}.ob.lk.ri{opacity:1}
+@keyframes pp{0%{transform:scale(1)}40%{transform:scale(1.025)}100%{transform:scale(1)}}
+@keyframes sh{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.fb{width:100%;margin-top:14px;padding:18px 22px;border-radius:14px;backdrop-filter:blur(12px);display:none;animation:fi .35s ease-out}
+.fb.sh{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fb.ok{background:var(--ok-bg);border:1px solid rgba(52,211,153,0.2)}
+.fb.no{background:var(--no-bg);border:1px solid rgba(248,113,113,0.2)}
+.fh{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.fb.ok .fh{color:var(--ok)}.fb.no .fh{color:var(--no)}
+.ft{font-size:13px;line-height:1.55;color:var(--t2)}.ft strong{color:var(--t1)}
+.bn{margin-top:16px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);background:transparent;border:1.5px solid rgba(56,189,248,0.25);border-radius:10px;padding:11px 32px;cursor:pointer;transition:all .25s;display:none}
+.bn.sh{display:inline-block}
+.bn:hover{background:rgba(56,189,248,0.06);border-color:var(--cyan)}
+.rc{background:var(--bg-card);border:1px solid var(--border);border-radius:24px;padding:44px 32px;text-align:center;backdrop-filter:blur(16px);width:100%;position:relative;overflow:hidden;margin-top:60px}
+.rc::after{content:'';position:absolute;top:0;left:20%;right:20%;height:3px;background:linear-gradient(90deg,transparent,var(--ok),transparent)}
+.rl{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+.rg{font-family:'Outfit',sans-serif;font-size:clamp(52px,11vw,86px);font-weight:900;line-height:1;margin-bottom:4px}
+.ro{font-family:'Space Mono',monospace;font-size:13px;color:var(--t3);margin-bottom:24px}
+.rbw{width:80%;max-width:380px;margin:0 auto 24px;height:8px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden}
+.rbf{height:100%;border-radius:6px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.rm{font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;margin-bottom:6px}
+.rs{font-size:13px;color:var(--t2);margin-bottom:24px;line-height:1.55;max-width:500px;margin-left:auto;margin-right:auto}
+.rbd{display:flex;flex-direction:column;gap:8px;width:100%;margin-bottom:28px}
+.rb{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:12px;text-align:left}
+.rbi{font-size:16px;flex-shrink:0;width:28px;text-align:center}
+.rbq{flex:1;color:var(--t2);line-height:1.3}
+.rbp{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;flex-shrink:0}
+.rb.ok .rbp{color:var(--ok)}.rb.no .rbp{color:var(--no)}
+.brt{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,var(--violet),#8b5cf6);border:none;border-radius:14px;padding:14px 44px;cursor:pointer;transition:all .3s;box-shadow:0 4px 20px rgba(167,139,250,0.25)}
+.brt:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(167,139,250,0.35)}
+.cf{position:fixed;z-index:100;pointer-events:none;animation:cfl linear forwards}
+@keyframes cfl{0%{transform:translateY(-15vh) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="amb"></div><div class="grd"></div>
+<div class="bar"><div style="display:flex;align-items:center;gap:10px"><span class="badge">UPC · EPE</span><span class="crs">IS277 · Semana 3</span></div></div>
+<div id="app">
+<div class="scr on" id="sw">
+<div class="wc">
+<h1>Arquitectura del Computador</h1>
+<p class="sub">Quiz Interactivo · Semana 3</p>
+<div class="chips">
+<span class="chip c1">Sist. Archivos</span>
+<span class="chip c2">Memoria Virtual</span>
+<span class="chip c3">Anatomía HDD</span>
+<span class="chip c4">Planificación Disco</span>
+</div>
+<div class="sts"><span>📋 10 preguntas</span><span>⏱ 25s c/u</span><span>🎯 Nota 0–20</span></div>
+<button class="bgo" onclick="go()">Comenzar Quiz</button>
+</div>
+</div>
+<div class="scr" id="sq">
+<div class="qh"><span class="qn" id="xn">1/10</span><span class="qp" id="xp">Puntos: 0</span></div>
+<div class="tt"><div class="tb" id="xtb"></div></div>
+<div class="qc">
+<span class="qm" id="xm"></span>
+<span class="qr" id="xr"></span>
+<p class="qt" id="xt"></p>
+<div class="og" id="xo"></div>
+</div>
+<div class="fb" id="xf"><div class="fh" id="xfh"></div><div class="ft" id="xft"></div></div>
+<button class="bn" id="xbn" onclick="nx()">Siguiente ▸</button>
+</div>
+<div class="scr" id="sr">
+<div class="rc">
+<p class="rl">Calificación Final</p>
+<p class="rg" id="zg">0</p>
+<p class="ro">de 20 puntos</p>
+<div class="rbw"><div class="rbf" id="zb" style="width:0%"></div></div>
+<p class="rm" id="zm"></p>
+<p class="rs" id="zs"></p>
+<div class="rbd" id="zd"></div>
+<button class="brt" onclick="sh('sw')">Reintentar</button>
+</div>
+</div>
+</div>
+<script>
+const D=[
+{m:'fs',ml:'SISTEMAS DE ARCHIVOS',mc:'fs',rf:'Láminas 6–7',
+q:'¿Qué mecanismo utiliza NTFS para registrar cambios pendientes antes de ejecutarlos en disco, garantizando la recuperación ante fallos?',
+o:['Copy-on-Write (CoW)','Journaling (registro de bitácora)','Checksums de extremo a extremo','Extents de bloques contiguos'],a:1,
+y:'¡Exacto! NTFS utiliza <strong>Journaling</strong>: registra operaciones pendientes en un journal antes de ejecutarlas. El proceso es: Registrar → Ejecutar → Confirmar → Recuperar si hay fallo. Reduce la recuperación tras cortes de energía de horas (con fsck) a segundos.',
+n:'La respuesta correcta es <strong>Journaling</strong>. NTFS registra cambios en un journal antes de ejecutarlos. Copy-on-Write es de ZFS, los checksums end-to-end también son de ZFS, y los Extents son la innovación de EXT4.'},
+{m:'fs',ml:'SISTEMAS DE ARCHIVOS',mc:'fs',rf:'Lámina 7',
+q:'¿Qué mecanismo de NTFS permite definir permisos granulares por usuario/grupo sobre archivos y carpetas, con herencia y auditoría?',
+o:['EFS (Encrypting File System)','Cuotas de disco','ACLs (Listas de Control de Acceso)','Enlaces simbólicos'],a:2,
+y:'¡Correcto! Las <strong>ACLs</strong> son el pilar de seguridad de NTFS. Permiten control preciso por usuario/grupo, herencia de permisos desde directorios padre, y auditoría de quién accede a qué y cuándo para cumplimiento normativo.',
+n:'La respuesta correcta es <strong>ACLs (Listas de Control de Acceso)</strong>. EFS es cifrado, las cuotas limitan espacio por usuario, y los enlaces simbólicos son referencias a rutas. Las ACLs manejan permisos granulares con herencia y auditoría.'},
+{m:'fs',ml:'SISTEMAS DE ARCHIVOS',mc:'fs',rf:'Láminas 10–11',
+q:'¿Cuál es el modo de journaling por defecto en EXT4 que ofrece el mejor compromiso entre seguridad y rendimiento?',
+o:['data=writeback','data=journal','data=ordered','data=sync'],a:2,
+y:'¡Perfecto! <strong>data=ordered</strong> es el modo por defecto. Registra metadatos en el journal y asegura que los datos se escriban antes que sus metadatos. Es más seguro que writeback y más rápido que data=journal.',
+n:'La respuesta correcta es <strong>data=ordered</strong>. data=journal registra TODO (máxima seguridad, menor rendimiento). data=writeback solo registra metadatos (máximo rendimiento, menor consistencia). data=sync no existe en EXT4.'},
+{m:'fs',ml:'SISTEMAS DE ARCHIVOS',mc:'fs',rf:'Láminas 13–14',
+q:'¿Qué principio de ZFS garantiza que nunca se sobrescriban datos existentes, escribiendo siempre en bloques nuevos antes de actualizar punteros?',
+o:['Journaling transaccional','Storage Pools (zpools)','RAID-Z con triple paridad','Copy-on-Write (CoW)'],a:3,
+y:'¡Excelente! <strong>Copy-on-Write (CoW)</strong> es el principio fundamental de ZFS. Los datos se escriben en bloques nuevos; solo al completarse se actualizan los punteros. Esto permite snapshots instantáneos (cero costo) y elimina la necesidad de fsck.',
+n:'La respuesta correcta es <strong>Copy-on-Write (CoW)</strong>. ZFS escribe en bloques nuevos y actualiza punteros solo al completarse. Esto garantiza integridad, permite snapshots instantáneos y elimina fsck. zpools es el modelo de almacenamiento, RAID-Z es protección de datos.'},
+{m:'fs',ml:'SISTEMAS DE ARCHIVOS',mc:'fs',rf:'Lámina 16',
+q:'Según la tabla comparativa, ¿cuáles capacidades son EXCLUSIVAS de ZFS frente a NTFS y EXT4?',
+o:['Journaling y cifrado nativo','Compresión y archivos grandes','RAID integrado y deduplicación','Snapshots y cuotas de disco'],a:2,
+y:'¡Muy bien! <strong>RAID integrado (RAID-Z1/Z2/Z3) y deduplicación</strong> son exclusivos de ZFS. También es el único con checksums de datos + metadatos. NTFS tiene compresión y cifrado, pero ninguno tiene RAID integrado ni deduplicación.',
+n:'La respuesta correcta es <strong>RAID integrado y deduplicación</strong>. Journaling lo tienen NTFS y EXT4. Compresión la tiene NTFS. Cifrado lo tiene NTFS (EFS/BitLocker). RAID-Z1/Z2/Z3 y deduplicación son exclusivos de ZFS.'},
+{m:'vm',ml:'MEMORIA VIRTUAL',mc:'vm',rf:'Láminas 23–25',
+q:'¿Qué componente de hardware traduce direcciones virtuales a direcciones físicas en RAM, consultando primero el TLB como caché?',
+o:['La tabla de páginas del SO','La MMU (Memory Management Unit)','El controlador de disco SATA','La caché L2 del procesador'],a:1,
+y:'¡Correcto! La <strong>MMU</strong> es el hardware que traduce direcciones. Su flujo: proceso genera dirección virtual → MMU consulta TLB → TLB Hit = acceso directo a RAM; TLB Miss = consulta tabla de páginas → Page Fault si la página está en disco (swap).',
+n:'La respuesta correcta es la <strong>MMU (Memory Management Unit)</strong>. La tabla de páginas es una estructura del SO que la MMU consulta, pero la MMU (hardware) realiza la traducción. El controlador de disco gestiona I/O, no traducción de direcciones.'},
+{m:'vm',ml:'MEMORIA VIRTUAL',mc:'vm',rf:'Lámina 25',
+q:'Un Page Fault genera acceso a disco (~10 ms) vs. acceso a RAM (~60 ns). ¿Cuántas veces más lento es aproximadamente un Page Fault?',
+o:['1,000× más lento','10,000× más lento','100,000× más lento','1,000,000× más lento'],a:2,
+y:'¡Exacto! <strong>100,000× más lento</strong>. El cálculo: 10 ms = 10,000,000 ns ÷ 60 ns ≈ 166,667×, redondeado a ~100,000×. Esta diferencia monumental es la razón por la que minimizar page faults es absolutamente crítico para el rendimiento.',
+n:'La respuesta correcta es <strong>100,000× más lento</strong>. Cálculo: 10 ms (10,000,000 ns) ÷ 60 ns ≈ 166,667× ≈ 100,000×. Por eso la gestión eficiente de memoria virtual y la minimización de page faults son fundamentales en el diseño de sistemas.'},
+{m:'hdd',ml:'ANATOMÍA DEL HDD',mc:'hdd',rf:'Lámina 27',
+q:'¿Qué componente del HDD posiciona físicamente el cabezal de lectura/escritura sobre la pista correcta del plato magnético?',
+o:['La tarjeta controladora (PCB)','El motor del husillo (spindle)','El brazo actuador','El sector de arranque (MBR)'],a:2,
+y:'¡Correcto! El <strong>brazo actuador</strong> usa un motor de voz para posicionar el cabezal a nanómetros de la superficie, sin contacto físico. Es el responsable del seek time. El motor del husillo gira los platos (5,400–15,000 RPM) y la PCB gestiona I/O y protocolos.',
+n:'La respuesta correcta es el <strong>brazo actuador</strong>. El husillo hace girar los platos. La PCB gestiona I/O, caché y protocolos SATA/SAS. El MBR es una estructura lógica del disco. El brazo actuador determina el seek time al posicionar el cabezal.'},
+{m:'algo',ml:'PLANIFICACIÓN DE DISCO',mc:'algo',rf:'Láminas 29–30',
+q:'Con peticiones [82,170,43,140,24,16,190] desde pista 50, ¿qué algoritmo genera el MENOR seek time (208 pistas) pero puede causar inanición?',
+o:['FCFS (First Come First Served)','SCAN (Algoritmo del Ascensor)','SSTF (Shortest Seek Time First)','C-SCAN (Circular SCAN)'],a:2,
+y:'¡Perfecto! <strong>SSTF</strong> genera 208 pistas al atender siempre la petición más cercana. Sin embargo, puede causar <strong>inanición</strong> en extremos. Comparativa: FCFS=642 (simple, sin inanición), SCAN=332 (equitativo), C-SCAN=391 (máxima equidad).',
+n:'La respuesta correcta es <strong>SSTF</strong> con 208 pistas. Atiende siempre la petición más cercana, minimizando movimiento pero arriesgando inanición. FCFS=642 pistas, SCAN=332, C-SCAN=391. SSTF es el más eficiente pero menos equitativo.'},
+{m:'algo',ml:'PLANIFICACIÓN DE DISCO',mc:'algo',rf:'Lámina 31',
+q:'¿Qué algoritmo de planificación ofrece la MÁXIMA equidad en tiempos de espera y es el más recomendado para bases de datos con alta carga?',
+o:['FCFS','SSTF','SCAN','C-SCAN'],a:3,
+y:'¡Excelente! <strong>C-SCAN</strong> ofrece "muy alta" equidad: atiende en una dirección, al llegar al extremo retorna al inicio sin servir en el camino. Garantiza tiempos de espera uniformes y predecibles, ideal para BBDD y alta carga transaccional.',
+n:'La respuesta correcta es <strong>C-SCAN</strong>. Tiene equidad "Muy Alta" vs. SCAN con equidad "Alta". C-SCAN atiende en una dirección y retorna sin servir, logrando tiempos uniformes. Su seek time (391) es mayor que SCAN (332), pero la predictibilidad es más valiosa en BBDD.'}
+];
+const P=2,T=25;let c=0,s=0,r=[],ti=null,tl=0;
+function sh(id){document.querySelectorAll('.scr').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on')}
+function go(){c=0;s=0;r=[];sh('sq');ld()}
+function ld(){
+const q=D[c];
+document.getElementById('xn').textContent=`${c+1} / ${D.length}`;
+document.getElementById('xp').textContent=`Puntos: ${s}`;
+const m=document.getElementById('xm');m.textContent=q.ml;m.className='qm '+q.mc;
+document.getElementById('xr').textContent='📎 '+q.rf;
+document.getElementById('xt').textContent=q.q;
+const g=document.getElementById('xo');g.innerHTML='';
+'ABCD'.split('').forEach((l,i)=>{
+const b=document.createElement('button');b.className='ob';
+b.innerHTML=`<span class="lt">${l}</span>${q.o[i]}`;
+b.onclick=()=>pk(i);g.appendChild(b);});
+const f=document.getElementById('xf');f.classList.remove('sh','ok','no');
+document.getElementById('xbn').classList.remove('sh');
+st();}
+function st(){tl=T;const b=document.getElementById('xtb');b.style.width='100%';b.classList.remove('dng');
+clearInterval(ti);ti=setInterval(()=>{tl-=.1;b.style.width=(tl/T*100)+'%';if(tl<=6)b.classList.add('dng');if(tl<=0){clearInterval(ti);tu();}},100);}
+function tu(){const q=D[c];document.querySelectorAll('.ob').forEach((b,i)=>{b.classList.add('lk');if(i===q.a)b.classList.add('ri');});r.push({ok:false,p:0});fb(false,q);}
+function pk(i){clearInterval(ti);const q=D[c],ok=i===q.a;
+document.querySelectorAll('.ob').forEach((b,j)=>{b.classList.add('lk');if(j===q.a)b.classList.add('ri');if(j===i&&!ok)b.classList.add('wr');});
+const p=ok?P:0;s+=p;r.push({ok,p});document.getElementById('xp').textContent=`Puntos: ${s}`;fb(ok,q);}
+function fb(ok,q){const f=document.getElementById('xf');f.className='fb sh '+(ok?'ok':'no');
+document.getElementById('xfh').innerHTML=ok?`✅ ¡Correcta! +${P} pts`:'❌ Incorrecta · 0 pts';
+document.getElementById('xft').innerHTML=ok?q.y:q.n;
+document.getElementById('xbn').classList.add('sh');}
+function nx(){c++;if(c>=D.length){res();return;}const e=document.getElementById('sq');e.classList.remove('on');void e.offsetWidth;e.classList.add('on');ld();}
+function res(){sh('sr');const g=s,pc=g/20*100;
+const el=document.getElementById('zg');let v=0;
+const an=setInterval(()=>{v++;el.textContent=v;if(v>=g)clearInterval(an);},50);
+let co;if(g>=16)co='var(--ok)';else if(g>=11)co='var(--amber)';else if(g>=8)co='var(--rose)';else co='var(--no)';
+el.style.color=co;el.style.textShadow=`0 0 40px ${co}`;
+setTimeout(()=>{const b=document.getElementById('zb');b.style.width=pc+'%';b.style.background=co;},200);
+const ms=[{n:18,m:'🏆 Rendimiento Excepcional',s:'Dominas los cuatro módulos de la Semana 3. Tu comprensión de sistemas de archivos, memoria virtual, anatomía del HDD y algoritmos de planificación es sobresaliente.'},
+{n:16,m:'🌟 Excelente Desempeño',s:'Conocimiento sólido en arquitectura del computador. Solo detalles puntuales por afinar.'},
+{n:12,m:'📘 Buen Progreso',s:'Comprendes los fundamentos pero hay áreas que requieren refuerzo. Revisa la retroalimentación de cada pregunta.'},
+{n:8,m:'📝 En Desarrollo',s:'Necesitas reforzar varios conceptos. Repasa las láminas de cada módulo y vuelve a intentar.'},
+{n:0,m:'🔄 Necesitas Repasar',s:'Revisa cuidadosamente las láminas 1–32 del PDF de la Semana 3 y vuelve a intentarlo.'}];
+const mg=ms.find(x=>g>=x.n);
+document.getElementById('zm').textContent=mg.m;document.getElementById('zm').style.color=co;
+document.getElementById('zs').textContent=mg.s;
+const bd=document.getElementById('zd');bd.innerHTML='';
+r.forEach((x,i)=>{const d=document.createElement('div');d.className='rb '+(x.ok?'ok':'no');
+const sh=D[i].q.length>55?D[i].q.substring(0,52)+'…':D[i].q;
+d.innerHTML=`<span class="rbi">${x.ok?'✅':'❌'}</span><span class="rbq">P${i+1} [${D[i].ml}] ${sh}</span><span class="rbp">${x.ok?'+'+P:'0'}</span>`;
+bd.appendChild(d);});
+if(g>=16)cft();}
+function cft(){const cl=['#38bdf8','#c41e3a','#2dd4bf','#fbbf24','#a78bfa','#fb7185','#34d399'];
+for(let i=0;i<45;i++){const e=document.createElement('div');e.className='cf';
+e.style.left=Math.random()*100+'%';e.style.background=cl[Math.floor(Math.random()*cl.length)];
+e.style.width=(4+Math.random()*7)+'px';e.style.height=(7+Math.random()*10)+'px';
+e.style.borderRadius=Math.random()>.5?'50%':'2px';
+e.style.animationDuration=(2+Math.random()*3)+'s';e.style.animationDelay=Math.random()*1.5+'s';
+document.body.appendChild(e);setTimeout(()=>e.remove(),5000);}}
+</script>
+</body>
+</html>
