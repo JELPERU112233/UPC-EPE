@@ -1,0 +1,261 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#0d1b2a}
+.wrap{background:#0d1b2a;padding:16px 0;position:relative}
+svg{display:block;width:100%;overflow:visible}
+.node-box{cursor:pointer;transition:opacity .2s}
+.node-box:hover rect{filter:brightness(1.3)}
+.node-box:hover circle{filter:brightness(1.3)}
+
+/* Modal overlay */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#0d1b2a;border:1.5px solid #444;border-radius:14px;padding:24px;max-width:420px;width:90%;position:relative;max-height:85vh;overflow-y:auto}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:20px;cursor:pointer;line-height:1;font-family:Arial}
+.modal-close:hover{color:#fff}
+.modal-year{font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:4px}
+.modal-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:2px}
+.modal-sub{font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:16px}
+.modal-desc{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.modal-section{margin-bottom:12px}
+.modal-section h4{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;color:rgba(255,255,255,0.4)}
+.modal-item{font-size:12px;color:rgba(255,255,255,0.8);padding:3px 0 3px 14px;position:relative;line-height:1.5}
+.modal-item::before{content:'';position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%}
+.modal-item.pro::before{background:#2E8B7A}
+.modal-item.con::before{background:#7D2027}
+.ar-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:1px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,0.5);margin-bottom:16px}
+</style>
+
+<div class="wrap">
+<svg id="tl" viewBox="0 0 1100 360" role="img">
+<title>Línea de tiempo de Linux</title>
+<desc>Historia interactiva del kernel Linux desde 1991 hasta 2024</desc>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Timeline axis -->
+<line x1="30" y1="200" x2="1080" y2="200" stroke="#1e4d3a" stroke-width="3" marker-end="url(#arr)"/>
+
+<!-- ── EVENT DATA embedded via JS onclick ── -->
+
+<!-- 1991 Kernel 0.01 (top) -->
+<g class="node-box" onclick="openModal('k001')">
+  <line x1="75" y1="200" x2="75" y2="130" stroke="#1db88a" stroke-width="1.5"/>
+  <rect x="28" y="85" width="94" height="48" rx="7" fill="#0d2b1e" stroke="#1db88a" stroke-width="1.5"/>
+  <text x="75" y="106" font-size="13" font-weight="700" fill="#1db88a" text-anchor="middle" dominant-baseline="central">Kernel</text>
+  <text x="75" y="121" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">0.01</text>
+  <circle cx="75" cy="200" r="8" fill="#1db88a"/>
+  <text x="75" y="225" font-size="11" font-weight="700" fill="#1db88a" text-anchor="middle">1991</text>
+</g>
+
+<!-- 1992 GPL (bottom) -->
+<g class="node-box" onclick="openModal('gpl')">
+  <line x1="180" y1="200" x2="180" y2="260" stroke="#1db88a" stroke-width="1.5"/>
+  <rect x="133" y="258" width="94" height="48" rx="7" fill="#0d2b1e" stroke="#1db88a" stroke-width="1.5"/>
+  <text x="180" y="277" font-size="13" font-weight="700" fill="#1db88a" text-anchor="middle" dominant-baseline="central">GPL</text>
+  <text x="180" y="292" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">+Minix</text>
+  <circle cx="180" cy="200" r="8" fill="#1db88a"/>
+  <text x="180" y="330" font-size="11" font-weight="700" fill="#1db88a" text-anchor="middle">1992</text>
+</g>
+
+<!-- 1993 Debian/Slackware (top) -->
+<g class="node-box" onclick="openModal('debian')">
+  <line x1="305" y1="200" x2="305" y2="130" stroke="#CC8800" stroke-width="1.5"/>
+  <rect x="252" y="85" width="106" height="48" rx="7" fill="#2b1e06" stroke="#CC8800" stroke-width="1.5"/>
+  <text x="305" y="106" font-size="13" font-weight="700" fill="#CC8800" text-anchor="middle" dominant-baseline="central">Debian</text>
+  <text x="305" y="121" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">Slackware</text>
+  <circle cx="305" cy="200" r="8" fill="#CC8800"/>
+  <text x="305" y="225" font-size="11" font-weight="700" fill="#CC8800" text-anchor="middle">1993</text>
+</g>
+
+<!-- 1994 Red Hat (bottom) -->
+<g class="node-box" onclick="openModal('redhat')">
+  <line x1="410" y1="200" x2="410" y2="260" stroke="#C0392B" stroke-width="1.5"/>
+  <rect x="360" y="258" width="100" height="48" rx="7" fill="#2b0a08" stroke="#C0392B" stroke-width="1.5"/>
+  <text x="410" y="277" font-size="13" font-weight="700" fill="#C0392B" text-anchor="middle" dominant-baseline="central">Red Hat</text>
+  <text x="410" y="292" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">SUSE</text>
+  <circle cx="410" cy="200" r="8" fill="#C0392B"/>
+  <text x="410" y="330" font-size="11" font-weight="700" fill="#C0392B" text-anchor="middle">1994</text>
+</g>
+
+<!-- 2004 Ubuntu (top) -->
+<g class="node-box" onclick="openModal('ubuntu')">
+  <line x1="540" y1="200" x2="540" y2="130" stroke="#E67E22" stroke-width="1.5"/>
+  <rect x="487" y="85" width="106" height="48" rx="7" fill="#2b1a06" stroke="#E67E22" stroke-width="1.5"/>
+  <text x="540" y="106" font-size="13" font-weight="700" fill="#E67E22" text-anchor="middle" dominant-baseline="central">Ubuntu</text>
+  <text x="540" y="121" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">Canonical</text>
+  <circle cx="540" cy="200" r="8" fill="#E67E22"/>
+  <text x="540" y="225" font-size="11" font-weight="700" fill="#E67E22" text-anchor="middle">2004</text>
+</g>
+
+<!-- 2008 Android (bottom) -->
+<g class="node-box" onclick="openModal('android')">
+  <line x1="650" y1="200" x2="650" y2="260" stroke="#1db88a" stroke-width="1.5"/>
+  <rect x="600" y="258" width="100" height="48" rx="7" fill="#0d2b1e" stroke="#1db88a" stroke-width="1.5"/>
+  <text x="650" y="277" font-size="13" font-weight="700" fill="#1db88a" text-anchor="middle" dominant-baseline="central">Android</text>
+  <text x="650" y="292" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">Linux</text>
+  <circle cx="650" cy="200" r="8" fill="#1db88a"/>
+  <text x="650" y="330" font-size="11" font-weight="700" fill="#1db88a" text-anchor="middle">2008</text>
+</g>
+
+<!-- 2011 Kernel 3 (top) -->
+<g class="node-box" onclick="openModal('k3')">
+  <line x1="760" y1="200" x2="760" y2="130" stroke="#5B9BD5" stroke-width="1.5"/>
+  <rect x="706" y="85" width="108" height="48" rx="7" fill="#0d1e2b" stroke="#5B9BD5" stroke-width="1.5"/>
+  <text x="760" y="106" font-size="13" font-weight="700" fill="#5B9BD5" text-anchor="middle" dominant-baseline="central">Kernel 3</text>
+  <text x="760" y="121" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">cgroups</text>
+  <circle cx="760" cy="200" r="8" fill="#5B9BD5"/>
+  <text x="760" y="225" font-size="11" font-weight="700" fill="#5B9BD5" text-anchor="middle">2011</text>
+</g>
+
+<!-- 2015 Kernel 4 (bottom) -->
+<g class="node-box" onclick="openModal('k4')">
+  <line x1="855" y1="200" x2="855" y2="260" stroke="#9B59B6" stroke-width="1.5"/>
+  <rect x="802" y="258" width="106" height="48" rx="7" fill="#1e0d2b" stroke="#9B59B6" stroke-width="1.5"/>
+  <text x="855" y="277" font-size="13" font-weight="700" fill="#9B59B6" text-anchor="middle" dominant-baseline="central">Kernel 4</text>
+  <text x="855" y="292" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">systemd</text>
+  <circle cx="855" cy="200" r="8" fill="#9B59B6"/>
+  <text x="855" y="330" font-size="11" font-weight="700" fill="#9B59B6" text-anchor="middle">2015</text>
+</g>
+
+<!-- 2019 WSL2 (top) -->
+<g class="node-box" onclick="openModal('wsl2')">
+  <line x1="950" y1="200" x2="950" y2="130" stroke="#2EC4B6" stroke-width="1.5"/>
+  <rect x="897" y="85" width="106" height="48" rx="7" fill="#0d2b2a" stroke="#2EC4B6" stroke-width="1.5"/>
+  <text x="950" y="106" font-size="13" font-weight="700" fill="#2EC4B6" text-anchor="middle" dominant-baseline="central">WSL2</text>
+  <text x="950" y="121" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">Windows</text>
+  <circle cx="950" cy="200" r="8" fill="#2EC4B6"/>
+  <text x="950" y="225" font-size="11" font-weight="700" fill="#2EC4B6" text-anchor="middle">2019</text>
+</g>
+
+<!-- 2024 Kernel 6 (bottom) -->
+<g class="node-box" onclick="openModal('k6')">
+  <line x1="1050" y1="200" x2="1050" y2="260" stroke="#1db88a" stroke-width="1.5"/>
+  <rect x="997" y="258" width="100" height="48" rx="7" fill="#0d2b1e" stroke="#1db88a" stroke-width="1.5"/>
+  <text x="1047" y="277" font-size="13" font-weight="700" fill="#1db88a" text-anchor="middle" dominant-baseline="central">Kernel 6</text>
+  <text x="1047" y="292" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="central">Rust · AI</text>
+  <circle cx="1050" cy="200" r="8" fill="#1db88a"/>
+  <text x="1050" y="330" font-size="11" font-weight="700" fill="#1db88a" text-anchor="middle">2024</text>
+</g>
+
+<!-- AR hint label -->
+<text x="30" y="22" font-size="10" font-weight="700" fill="rgba(255,255,255,0.25)" letter-spacing="1.5">AR INTERACTIVE — HAZ CLICK EN CADA HITO</text>
+</svg>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal" id="modalBox">
+    <button class="modal-close" onclick="closeModalDirect()">×</button>
+    <div class="ar-badge">
+      <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/></svg>
+      AR MODE
+    </div>
+    <div class="modal-year" id="mYear"></div>
+    <div class="modal-title" id="mTitle"></div>
+    <div class="modal-sub" id="mSub"></div>
+    <div class="modal-desc" id="mDesc"></div>
+    <div class="modal-section">
+      <h4>Características</h4>
+      <div id="mFeats"></div>
+    </div>
+    <div class="modal-section">
+      <h4>✦ Ventajas</h4>
+      <div id="mPros"></div>
+    </div>
+    <div class="modal-section">
+      <h4>✦ Desventajas</h4>
+      <div id="mCons"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA={
+  k001:{year:'1991',color:'#1db88a',title:'Kernel Linux 0.01',sub:'Linus Torvalds · Helsinki',
+    desc:'Linus Torvalds anuncia en el grupo de noticias comp.os.minix un sistema operativo "hobby" para procesadores 386/486. El kernel tenía apenas 10,239 líneas de código y solo corría en hardware x86.',
+    feats:['10,239 líneas de código fuente','Solo arquitectura x86 (386/486)','Inspirado en Minix de Andrew Tanenbaum','Monolítico desde su concepción','Sin soporte de red inicial'],
+    pros:['Código abierto desde el inicio','Arquitectura monolítica = alto rendimiento','Base sólida para iteraciones rápidas','Comunidad de desarrollo inmediata'],
+    cons:['Sin portabilidad a otras arquitecturas','Sin soporte de red ni multiusuario real','Muy limitado en drivers de dispositivos','Solo usable por expertos en C']},
+  gpl:{year:'1992',color:'#1db88a',title:'Licencia GPL v2',sub:'GNU + Minix influences',
+    desc:'Linux adopta la GNU General Public License v2, decisión que transforma radicalmente el proyecto. Esto permite que cualquiera use, modifique y redistribuya el código, siempre que las modificaciones sean también libres.',
+    feats:['Adopción de GPL v2 completa','Integración de herramientas GNU (gcc, bash)','Separación definitiva de Minix','Inicio del ecosistema GNU/Linux','Primer sistema completo funcional'],
+    pros:['Garantiza libertad permanente del código','Atrae masivamente a desarrolladores','Protege contra apropiación corporativa','Permite distribución comercial legal'],
+    cons:['Restricciones de compatibilidad con licencias privativas','Obliga a publicar modificaciones derivadas','Conflictos con drivers propietarios de hardware','GPL "viral" puede limitar adopción empresarial']},
+  debian:{year:'1993',color:'#CC8800',title:'Debian & Slackware',sub:'Primeras distribuciones',
+    desc:'Aparecen las primeras distribuciones Linux organizadas. Debian, fundada por Ian Murdock, adopta un sistema de paquetería formal. Slackware de Patrick Volkerding fue la primera distribución en alcanzar popularidad masiva.',
+    feats:['Sistema de paquetes .deb (Debian)','Paquetes tar.gz (Slackware)','Primer gestor de paquetes rudimentario','Base para cientos de distros futuras','Filosofía de software libre estricta (Debian)'],
+    pros:['Facilitan instalación para no expertos','Estabilidad y reproducibilidad del sistema','Base comunitaria sólida y duradera','Debian aún activa 30+ años después'],
+    cons:['Ciclos de actualización muy lentos','Slackware: sin resolución automática de dependencias','Debian: proceso de release extremadamente conservador','Fragmentación temprana del ecosistema Linux']},
+  redhat:{year:'1994',color:'#C0392B',title:'Red Hat & SUSE',sub:'Linux empresarial nace',
+    desc:'Red Hat Enterprise Linux y SUSE llevan Linux al mundo corporativo. Red Hat introduce el formato RPM (Red Hat Package Manager) que se convierte en estándar en el mundo empresarial, mientras SUSE domina Europa.',
+    feats:['Formato RPM de gestión de paquetes','Soporte comercial certificado','Red Hat Network (actualización remota)','YaST de SUSE (configuración gráfica)','Primer Linux con soporte empresarial formal'],
+    pros:['Soporte profesional garantizado','Certificaciones para servidores empresariales','Ciclos de vida largos (10 años RHEL)','Impulsa adopción corporativa de Linux'],
+    cons:['Costo de suscripción elevado','Modelo semi-cerrado en Red Hat','Fragmentación RPM vs DEB persiste hoy','Tensión con comunidad de software libre puro']},
+  ubuntu:{year:'2004',color:'#E67E22',title:'Ubuntu',sub:'Canonical · Linux para todos',
+    desc:'Mark Shuttleworth funda Canonical y lanza Ubuntu basado en Debian. Su filosofía "Linux para seres humanos" democratiza el sistema operativo con lanzamientos cada 6 meses y versiones LTS de soporte extendido.',
+    feats:['Basado en Debian testing','Ciclos de 6 meses + LTS de 5 años','Escritorio GNOME por defecto','Live CD para probar sin instalar','Centro de software unificado','Unity/GNOME Shell interface moderna'],
+    pros:['Instalación y uso accesible para todos','Enorme comunidad y documentación','Ideal para educación e introducción a Linux','Impulsa adopción masiva en desktop'],
+    cons:['Decisiones polémicas (Unity, Mir, Snap)','Paquetes Snap controversiales','Dependencia de Canonical para decisiones clave','A veces inestable en versiones no-LTS']},
+  android:{year:'2008',color:'#1db88a',title:'Android',sub:'Google · Linux en el bolsillo',
+    desc:'Google lanza Android, sistema operativo móvil basado en el kernel Linux pero con una pila de software completamente diferente. Se convierte en el sistema operativo más usado del mundo con más de 3 billones de dispositivos activos.',
+    feats:['Kernel Linux modificado (fork especializado)','Runtime Dalvik → ART (Android 5.0+)','Arquitectura ARM predominante','Play Store con millones de apps','HAL (Hardware Abstraction Layer)','Binder IPC en lugar de POSIX IPC'],
+    pros:['Adopción masiva: +72% del mercado móvil','Ecosistema de apps enorme','Democratiza smartphones a nivel global','Prueba la versatilidad del kernel Linux'],
+    cons:['Fragmentación severa de versiones','Kernel muy divergente del mainline','Modelo de privacidad cuestionado','Actualizaciones lentas por fabricantes OEM']},
+  k3:{year:'2011',color:'#5B9BD5',title:'Kernel 3.x',sub:'cgroups · contenedores · escalabilidad',
+    desc:'El kernel 3.0 marca la madurez técnica de Linux. Se consolidan los control groups (cgroups) que permiten limitar y aislar recursos de procesos, tecnología fundamental que habilita Docker y Kubernetes años después.',
+    feats:['cgroups v1 estabilizado','Namespaces de procesos','KVM maduro para virtualización','Soporte mejorado de ARM','Ext4 como sistema de archivos estándar','Soporte inicial de Btrfs'],
+    pros:['Base tecnológica de contenedores Docker','Virtualización KVM de clase enterprise','Excelente soporte de hardware moderno','Escalabilidad hasta miles de CPU cores'],
+    cons:['cgroups v1 con diseño complejo y limitaciones','Btrfs aún inestable en producción','Deuda técnica acumulada en subsistemas antiguos','Curva de configuración alta para admins']},
+  k4:{year:'2015',color:'#9B59B6',title:'Kernel 4.x + systemd',sub:'Era moderna de Linux',
+    desc:'El kernel 4.x trae soporte masivo de hardware moderno y eBPF. systemd se convierte en el init system dominante en la mayoría de distribuciones, reemplazando SysVinit y Upstart con inicio paralelo de servicios.',
+    feats:['eBPF: programación dinámica del kernel','systemd como init system universal','Live kernel patching (kpatch)','Soporte NVMe y almacenamiento ultra-rápido','cgroups v2 (rediseño completo)','DAX: acceso directo a almacenamiento persistente'],
+    pros:['eBPF revoluciona observabilidad y seguridad','systemd: arranque 10x más rápido','Live patching sin reiniciar servidores','Soporte hardware de vanguardia'],
+    cons:['systemd: controversia por "hace demasiado"','eBPF: superficie de ataque nueva','Complejidad creciente del kernel','Ruptura de compatibilidad en scripts de init']},
+  wsl2:{year:'2019',color:'#2EC4B6',title:'WSL2',sub:'Windows Subsystem for Linux 2',
+    desc:'Microsoft lanza WSL2 con un kernel Linux real ejecutando dentro de Hyper-V. Esto permite correr aplicaciones Linux nativas en Windows con rendimiento casi nativo, marcando la reconciliación histórica entre Microsoft y Linux.',
+    feats:['Kernel Linux real (no emulación)','Virtualización Hyper-V ultraligera','Integración con Windows Explorer y VS Code','Soporte de GPU (CUDA, DirectML)','Systemd soportado desde 2022','Docker Desktop sobre WSL2'],
+    pros:['Entorno Linux nativo en Windows','Rendimiento de I/O cercano al nativo','Ideal para desarrolladores web/devops','Elimina necesidad de dual-boot para muchos'],
+    cons:['Latencia en acceso a sistema de archivos Windows','Consumo de memoria elevado','Networking con limitaciones','No reemplaza Linux nativo para producción']},
+  k6:{year:'2024',color:'#1db88a',title:'Kernel 6.x',sub:'Rust · IA · seguridad moderna',
+    desc:'El kernel 6.x introduce Rust como segundo lenguaje oficial del kernel Linux junto a C, permitiendo escribir drivers con garantías de seguridad de memoria. Se consolidan características de IA, soporte de aceleradores y seguridad avanzada.',
+    feats:['Rust como lenguaje oficial del kernel','Drivers escritos en Rust (seguridad de memoria)','Soporte de aceleradores de IA (NPU/GPU)','io_uring v2: I/O asíncrono avanzado','Landlock LSM: sandboxing por apps','RISC-V como arquitectura de primera clase'],
+    pros:['Rust elimina clases enteras de bugs de memoria','Soporte nativo de hardware IA moderno','Mayor seguridad sin sacrificar rendimiento','RISC-V abre hardware libre de patentes'],
+    cons:['Curva de aprendizaje de Rust para contribuidores','Fricción entre comunidad C y Rust','Tiempo de compilación mayor con Rust','Ecosistema de drivers Rust aún incipiente']}
+};
+
+function openModal(id){
+  const d=DATA[id];
+  if(!d)return;
+  document.getElementById('mYear').textContent=d.year;
+  document.getElementById('mYear').style.color=d.color;
+  document.getElementById('mTitle').textContent=d.title;
+  document.getElementById('mSub').textContent=d.sub;
+  document.getElementById('mDesc').textContent=d.desc;
+  document.getElementById('modalBox').style.borderColor=d.color;
+  document.querySelector('.modal-year').style.color=d.color;
+
+  document.getElementById('mFeats').innerHTML=d.feats.map(f=>
+    `<div class="modal-item" style="color:rgba(255,255,255,0.75)"><span style="position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:${d.color};display:block"></span>${f}</div>`
+  ).join('');
+  document.getElementById('mPros').innerHTML=d.pros.map(p=>
+    `<div class="modal-item pro">${p}</div>`
+  ).join('');
+  document.getElementById('mCons').innerHTML=d.cons.map(c=>
+    `<div class="modal-item con">${c}</div>`
+  ).join('');
+
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(e){
+  if(e.target===document.getElementById('modalBg'))closeModalDirect();
+}
+function closeModalDirect(){
+  document.getElementById('modalBg').classList.remove('show');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModalDirect()});
+</script>
