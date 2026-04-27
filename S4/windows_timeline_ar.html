@@ -1,0 +1,243 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+.wrap{background:#0a0a0f;padding:16px 0;min-height:100%}
+svg{display:block;width:100%;overflow:visible}
+.nd{cursor:pointer}
+.nd:hover rect{opacity:.85}
+.nd:hover circle{opacity:.85}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#0d0d18;border:1.5px solid #555;border-radius:14px;padding:22px;max-width:430px;width:92%;position:relative;max-height:88vh;overflow-y:auto}
+.mcl{position:absolute;top:11px;right:14px;background:none;border:none;color:rgba(255,255,255,0.45);font-size:22px;cursor:pointer;line-height:1;font-family:Arial}
+.mcl:hover{color:#fff}
+.ar-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:1.5px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,0.4);margin-bottom:14px}
+.myr{font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:3px}
+.mti{font-size:20px;font-weight:700;color:#fff;margin-bottom:2px}
+.msu{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px}
+.mds{font-size:12px;color:rgba(255,255,255,0.72);line-height:1.6;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.09)}
+.msec{margin-bottom:11px}
+.msec h4{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;color:rgba(255,255,255,0.35)}
+.mi{font-size:12px;color:rgba(255,255,255,0.78);padding:3px 0 3px 14px;position:relative;line-height:1.5}
+.mi::before{content:'';position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%}
+.mi.pro::before{background:#2E8B7A}
+.mi.con::before{background:#7D2027}
+</style>
+
+<div class="wrap">
+<svg id="tl" viewBox="0 0 1100 310" role="img">
+<title>Evolución de Windows 1981–2021</title>
+<desc>Línea de tiempo interactiva de Windows desde MS-DOS hasta Windows 11</desc>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Title -->
+<text x="550" y="22" font-size="15" font-weight="700" fill="rgba(255,255,255,0.85)" text-anchor="middle" font-family="Arial">Evolución de Windows</text>
+<text x="550" y="38" font-size="9" font-weight="700" fill="rgba(255,255,255,0.25)" text-anchor="middle" font-family="Arial" letter-spacing="2">AR INTERACTIVE — HAZ CLICK EN CADA HITO</text>
+
+<!-- Axis -->
+<line x1="30" y1="130" x2="1078" y2="130" stroke="rgba(255,255,255,0.15)" stroke-width="2" marker-end="url(#arr)"/>
+
+<!-- ── MS-DOS 1981 ── -->
+<g class="nd" onclick="openModal('msdos')">
+  <rect x="28" y="55" width="104" height="54" rx="8" fill="#1a1a2e" stroke="#888" stroke-width="1.5"/>
+  <text x="80" y="75" font-size="12" font-weight="700" fill="#aaa" text-anchor="middle" font-family="Arial" dominant-baseline="central">MS-DOS</text>
+  <text x="80" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">1981</text>
+  <line x1="80" y1="109" x2="80" y2="130" stroke="#888" stroke-width="1.2"/>
+  <circle cx="80" cy="130" r="7" fill="#888"/>
+  <!-- bottom bar -->
+  <rect x="28" y="188" width="104" height="90" rx="6" fill="#111118" stroke="#555" stroke-width="0.8"/>
+  <text x="80" y="203" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">CLI puro</text>
+  <text x="80" y="218" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">640 KB RAM</text>
+  <text x="80" y="233" font-size="9" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Acceso directo HW</text>
+  <text x="80" y="247" font-size="9" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="Arial" dominant-baseline="central">No multi-tarea</text>
+  <line x1="80" y1="130" x2="80" y2="188" stroke="#555" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="80" y="168" font-size="12" font-weight="700" fill="#888" text-anchor="middle" font-family="Arial">1981</text>
+</g>
+
+<!-- ── Win 1-3 1985 ── -->
+<g class="nd" onclick="openModal('win13')">
+  <rect x="163" y="55" width="108" height="54" rx="8" fill="#0d1a2e" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="217" y="75" font-size="12" font-weight="700" fill="#4a90d9" text-anchor="middle" font-family="Arial" dominant-baseline="central">Win 1→3</text>
+  <text x="217" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">1985-1992</text>
+  <line x1="217" y1="109" x2="217" y2="130" stroke="#4a90d9" stroke-width="1.2"/>
+  <circle cx="217" cy="130" r="7" fill="#4a90d9"/>
+  <rect x="163" y="188" width="108" height="90" rx="6" fill="#0a1220" stroke="#4a90d9" stroke-width="0.8"/>
+  <text x="217" y="203" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">GUI Shell sobre DOS</text>
+  <text x="217" y="218" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Cooperative multitasking</text>
+  <text x="217" y="233" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Limited 16-bit</text>
+  <line x1="217" y1="130" x2="217" y2="188" stroke="#4a90d9" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="217" y="168" font-size="12" font-weight="700" fill="#4a90d9" text-anchor="middle" font-family="Arial">1985</text>
+</g>
+
+<!-- ── Win 95/98 1990 ── -->
+<g class="nd" onclick="openModal('win9x')">
+  <rect x="303" y="55" width="110" height="54" rx="8" fill="#2b1e06" stroke="#CC8800" stroke-width="1.5"/>
+  <text x="358" y="75" font-size="12" font-weight="700" fill="#CC8800" text-anchor="middle" font-family="Arial" dominant-baseline="central">Win 95/98</text>
+  <text x="358" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">1995-2000</text>
+  <line x1="358" y1="109" x2="358" y2="130" stroke="#CC8800" stroke-width="1.2"/>
+  <circle cx="358" cy="130" r="7" fill="#CC8800"/>
+  <rect x="303" y="188" width="110" height="90" rx="6" fill="#1a1206" stroke="#CC8800" stroke-width="0.8"/>
+  <text x="358" y="200" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Botón Inicio</text>
+  <text x="358" y="215" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Plug &amp; Play</text>
+  <text x="358" y="230" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Preemptive multitask</text>
+  <text x="358" y="245" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Win32 API</text>
+  <line x1="358" y1="130" x2="358" y2="188" stroke="#CC8800" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="358" y="168" font-size="12" font-weight="700" fill="#CC8800" text-anchor="middle" font-family="Arial">1990</text>
+</g>
+
+<!-- ── NT/XP 1994 ── -->
+<g class="nd" onclick="openModal('ntxp')">
+  <rect x="448" y="55" width="108" height="54" rx="8" fill="#0d1e2b" stroke="#2EC4B6" stroke-width="1.5"/>
+  <text x="502" y="75" font-size="12" font-weight="700" fill="#2EC4B6" text-anchor="middle" font-family="Arial" dominant-baseline="central">NT / XP</text>
+  <text x="502" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">1993-2004</text>
+  <line x1="502" y1="109" x2="502" y2="130" stroke="#2EC4B6" stroke-width="1.2"/>
+  <circle cx="502" cy="130" r="7" fill="#2EC4B6"/>
+  <rect x="448" y="188" width="108" height="90" rx="6" fill="#091820" stroke="#2EC4B6" stroke-width="0.8"/>
+  <text x="502" y="200" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Kernel NT nuevo</text>
+  <text x="502" y="215" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">NTFS · ACL · HAL</text>
+  <text x="502" y="230" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Symmetric multiproc.</text>
+  <text x="502" y="245" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Nativo 32-bit</text>
+  <line x1="502" y1="130" x2="502" y2="188" stroke="#2EC4B6" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="502" y="168" font-size="12" font-weight="700" fill="#2EC4B6" text-anchor="middle" font-family="Arial">1994</text>
+</g>
+
+<!-- ── Vista/7 2006 ── -->
+<g class="nd" onclick="openModal('vista7')">
+  <rect x="591" y="55" width="110" height="54" rx="8" fill="#0d2b1e" stroke="#1db88a" stroke-width="1.5"/>
+  <text x="646" y="75" font-size="12" font-weight="700" fill="#1db88a" text-anchor="middle" font-family="Arial" dominant-baseline="central">Vista / 7</text>
+  <text x="646" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">2006-2012</text>
+  <line x1="646" y1="109" x2="646" y2="130" stroke="#1db88a" stroke-width="1.2"/>
+  <circle cx="646" cy="130" r="7" fill="#1db88a"/>
+  <rect x="591" y="188" width="110" height="90" rx="6" fill="#091a12" stroke="#1db88a" stroke-width="0.8"/>
+  <text x="646" y="200" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Aero Glass UI</text>
+  <text x="646" y="215" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">UAC · DX10</text>
+  <text x="646" y="230" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">WDDM Driver Model</text>
+  <text x="646" y="245" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">DWM Compositor</text>
+  <line x1="646" y1="130" x2="646" y2="188" stroke="#1db88a" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="646" y="168" font-size="12" font-weight="700" fill="#1db88a" text-anchor="middle" font-family="Arial">2006</text>
+</g>
+
+<!-- ── Win 8→10 2012 ── -->
+<g class="nd" onclick="openModal('win810')">
+  <rect x="737" y="55" width="110" height="54" rx="8" fill="#1e0d2b" stroke="#9B59B6" stroke-width="1.5"/>
+  <text x="792" y="75" font-size="12" font-weight="700" fill="#9B59B6" text-anchor="middle" font-family="Arial" dominant-baseline="central">Win 8 → 10</text>
+  <text x="792" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">2012-2021</text>
+  <line x1="792" y1="109" x2="792" y2="130" stroke="#9B59B6" stroke-width="1.2"/>
+  <circle cx="792" cy="130" r="7" fill="#9B59B6"/>
+  <rect x="737" y="188" width="110" height="90" rx="6" fill="#130a1e" stroke="#9B59B6" stroke-width="0.8"/>
+  <text x="792" y="200" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Metro tiles / Modern UI</text>
+  <text x="792" y="215" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">UWP Platform</text>
+  <text x="792" y="230" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">OaaS (Win as Service)</text>
+  <text x="792" y="245" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Integrated Store</text>
+  <line x1="792" y1="130" x2="792" y2="188" stroke="#9B59B6" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="792" y="168" font-size="12" font-weight="700" fill="#9B59B6" text-anchor="middle" font-family="Arial">2012</text>
+</g>
+
+<!-- ── Win 11 2021 ── -->
+<g class="nd" onclick="openModal('win11')">
+  <rect x="883" y="55" width="108" height="54" rx="8" fill="#0d1a2e" stroke="#5B9BD5" stroke-width="1.5"/>
+  <text x="937" y="75" font-size="12" font-weight="700" fill="#5B9BD5" text-anchor="middle" font-family="Arial" dominant-baseline="central">Win 11</text>
+  <text x="937" y="93" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">2021+</text>
+  <line x1="937" y1="109" x2="937" y2="130" stroke="#5B9BD5" stroke-width="1.2"/>
+  <circle cx="937" cy="130" r="7" fill="#5B9BD5"/>
+  <rect x="883" y="188" width="108" height="90" rx="6" fill="#0a1220" stroke="#5B9BD5" stroke-width="0.8"/>
+  <text x="937" y="200" font-size="10" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-family="Arial" dominant-baseline="central">TPM 2.0 · AI Copilot</text>
+  <text x="937" y="215" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Hardware security req.</text>
+  <text x="937" y="230" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Copilot AI / NPU accel.</text>
+  <text x="937" y="245" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial" dominant-baseline="central">Cloud integrated</text>
+  <line x1="937" y1="130" x2="937" y2="188" stroke="#5B9BD5" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="937" y="168" font-size="12" font-weight="700" fill="#5B9BD5" text-anchor="middle" font-family="Arial">2021</text>
+</g>
+
+<!-- NT base label -->
+<line x1="448" y1="148" x2="1080" y2="148" stroke="rgba(46,196,182,0.2)" stroke-width="1" stroke-dasharray="6 4"/>
+<text x="550" y="162" font-size="9" fill="rgba(46,196,182,0.4)" text-anchor="middle" font-family="Arial" letter-spacing="1">— Nace la base NT Moderna —</text>
+</svg>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closeBg(event)">
+  <div class="modal" id="modalBox">
+    <button class="mcl" onclick="closeM()">×</button>
+    <div class="ar-badge">
+      <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/></svg>
+      AR MODE
+    </div>
+    <div class="myr" id="mYr"></div>
+    <div class="mti" id="mTi"></div>
+    <div class="msu" id="mSu"></div>
+    <div class="mds" id="mDs"></div>
+    <div class="msec"><h4>Características técnicas</h4><div id="mFe"></div></div>
+    <div class="msec"><h4>✦ Ventajas</h4><div id="mPr"></div></div>
+    <div class="msec"><h4>✦ Desventajas</h4><div id="mCo"></div></div>
+  </div>
+</div>
+
+<script>
+const DATA={
+  msdos:{year:'1981',color:'#999',title:'MS-DOS',sub:'Microsoft Disk Operating System · IBM PC',
+    desc:'MS-DOS nació de la compra de QDOS por Microsoft para equipar el IBM PC. Un sistema operativo de línea de comandos monousuario y mono-tarea que dominó los PCs durante toda la década de los 80. Acceso directo al hardware sin capas de abstracción.',
+    feats:['Interfaz de línea de comandos (CLI) pura','Limite de 640 KB de RAM convencional','Arquitectura mono-tarea y mono-usuario','Acceso directo al hardware (sin HAL)','Sistema de archivos FAT12/FAT16','Arranque desde disquete o disco duro'],
+    pros:['Extremadamente rápido y ligero','Control total del hardware','Base para millones de aplicaciones empresariales','Simplicidad de administración','Ideal para sistemas embebidos simples'],
+    cons:['Sin multitarea real ni multiusuario','Límite de 640 KB de memoria convencional','Sin interfaz gráfica nativa','Sin seguridad ni protección de memoria','Imposible ejecutar múltiples programas simultáneamente','Vulnerable a virus que acceden directamente al HW']},
+
+  win13:{year:'1985',color:'#4a90d9',title:'Windows 1 → 3',sub:'GUI Shell sobre MS-DOS · 1985-1992',
+    desc:'Windows 1.0 fue la primera respuesta de Microsoft a la Macintosh de Apple. Más que un OS, era una capa gráfica sobre DOS. Windows 3.x supuso el gran salto con interfaz mejorada, gestión de memoria extendida y soporte de aplicaciones más complejas.',
+    feats:['GUI basada en ventanas solapables (Win 3.x)','Multitarea cooperativa (el programa cede el CPU)','Modo protegido 286/386 en Win 3.x','Soporte de memoria extendida (XMS/EMS)','API Windows primitiva (GDI, USER)','Gestor de archivos y Panel de Control básicos'],
+    pros:['Primera GUI accesible para usuarios no técnicos','Windows 3.1 alcanzó 50 millones de copias vendidas','Introdujo el ecosistema de aplicaciones Windows','Base para aplicaciones de oficina (Word, Excel)','Mayor productividad que CLI pura'],
+    cons:['Totalmente dependiente de MS-DOS','Multitarea cooperativa: un programa colgado = sistema bloqueado','Sin protección de memoria entre procesos','Inestabilidad frecuente (pantallas azules tempranas)','Limitado a 16-bit real','Sin soporte de redes integrado']},
+
+  win9x:{year:'1990',color:'#CC8800',title:'Windows 95 / 98',sub:'Preemptive Multitasking · Win32 API · 1995-2000',
+    desc:'Windows 95 fue la revolución del escritorio personal. Introdujo el Botón Inicio, la barra de tareas, Plug & Play y la API Win32 completa. Fue el primer Windows con multitarea preventiva real y soporte TCP/IP integrado. Windows 98 refinó la integración con Internet Explorer.',
+    feats:['Botón Inicio y barra de tareas (paradigma vigente)','Plug & Play: detección automática de hardware','API Win32 completa (32-bit con compatibilidad 16-bit)','Multitarea preventiva para apps 32-bit','TCP/IP y soporte Internet integrado','FAT32 en Win 98: discos mayores de 2 GB','DirectX para juegos y multimedia'],
+    pros:['Interfaz intuitiva que definió el desktop por décadas','Plug & Play facilitó instalación de hardware masivamente','Win32 API atrajo millones de desarrolladores','Soporte de juegos y multimedia superior','Base tecnológica para millones de PCs hogareños'],
+    cons:['Kernel híbrido inestable: mezcla 16/32 bit','Sin seguridad real: todos los usuarios son admin','BSOD frecuentes con drivers defectuosos','Arquitectura basada en DOS: deuda técnica enorme','Sin soporte real de múltiples usuarios','Vulnerable a virus: sin protección de memoria real']},
+
+  ntxp:{year:'1994',color:'#2EC4B6',title:'Windows NT / XP',sub:'Kernel NT · NTFS · HAL · 1993-2004',
+    desc:'Windows NT fue el salto arquitectónico definitivo: un kernel completamente nuevo diseñado por Dave Cutler (ex DEC VMS). Multiprocesamiento simétrico, NTFS, HAL y seguridad real. Windows XP unificó las líneas NT y 9x en el producto más exitoso de Microsoft hasta esa fecha.',
+    feats:['Kernel NT: microkernel híbrido totalmente nuevo','HAL (Hardware Abstraction Layer)','NTFS: permisos ACL, journaling, compresión','Multiprocesamiento simétrico (SMP)','Modo de usuario vs kernel separados','Win XP: Luna UI, Restaurar Sistema, WiFi nativo','Subsistema POSIX y OS/2 opcionales'],
+    pros:['Estabilidad muy superior a la familia 9x','Seguridad real con permisos NTFS y cuentas de usuario','SMP: aprovecha múltiples procesadores','XP: la versión más querida y longeva de Windows','Base arquitectónica que sobrevive hasta hoy en Win 11','Compatibilidad masiva de software'],
+    cons:['NT inicial difícil de configurar para usuarios domésticos','XP sin Service Pack: extremadamente vulnerable en red','Windows XP mantenido hasta 2014 creó problema de obsolescencia','Activación de producto causó fricciones','Requisitos de hardware altos en su época','Muchas funciones de seguridad desactivadas por defecto']},
+
+  vista7:{year:'2006',color:'#1db88a',title:'Windows Vista / 7',sub:'Aero Glass · UAC · DirectX 10 · 2006-2012',
+    desc:'Vista intentó modernizar Windows completamente: nuevo modelo de drivers WDDM, Aero Glass, UAC y DX10. Fue recibido negativamente por sus altos requisitos. Windows 7 refinó todo lo de Vista y se convirtió en el Windows favorito de la era profesional.',
+    feats:['Aero Glass: UI con transparencias y efectos 3D','UAC (User Account Control): elevación de permisos','WDDM: Windows Display Driver Model nuevo','DirectX 10/11: GPU como ciudadano de primera clase','DWM (Desktop Window Manager): compositing','BitLocker: cifrado de disco completo','Búsqueda integrada en Windows 7'],
+    pros:['Windows 7: el Windows más estable y querido','WDDM mejoró dramáticamente la estabilidad de drivers de GPU','UAC introdujo principio de mínimo privilegio','Aero Glass: experiencia visual premium','DirectX 10/11 impulsó industria de videojuegos PC','Windows 7 sigue siendo referencia de usabilidad'],
+    cons:['Vista: excesivos requisitos de hardware (1-2 GB RAM mínimo)','UAC de Vista: demasiadas alertas, usuarios lo desactivaban','Vista: incompatibilidad masiva de drivers al lanzamiento','Aero Glass: consumo GPU/RAM elevado','Vista: fracaso comercial que dañó imagen de Microsoft','Ecosistema de software tardó en actualizarse']},
+
+  win810:{year:'2012',color:'#9B59B6',title:'Windows 8 → 10',sub:'Metro UI · UWP · Windows as a Service · 2012-2021',
+    desc:'Windows 8 eliminó el botón Inicio e introdujo la interfaz Metro/Modern orientada a táctil. Fue rechazado por usuarios de escritorio. Windows 10 lo corrigió y adoptó el modelo de servicio continuo (actualizaciones sin versiones mayores pagas), llevando a 1 billón de dispositivos.',
+    feats:['Metro/Modern UI: interfaz dual escritorio+táctil','UWP (Universal Windows Platform): apps multi-dispositivo','Windows as a Service: actualizaciones continuas gratuitas','Microsoft Store integrada','Hyper-V integrado en ediciones Pro','Sandbox y Windows Defender ATP','WSL (Windows Subsystem for Linux) desde 2016','DirectX 12 en Windows 10'],
+    pros:['Windows 10: 1 billón de dispositivos activos','Actualizaciones gratuitas para usuarios de Win 7/8','DirectX 12: rendimiento gaming superior','UWP: un binario para PC, Xbox, Surface','Integración de nube (OneDrive) nativa','Seguridad mejorada con Secure Boot y UEFI'],
+    cons:['Windows 8: rechazo masivo por eliminar botón Inicio','Metro: confusión entre interfaz táctil y escritorio','Updates forzadas de Win 10 causaron pérdidas de datos','Telemetría y recolección de datos cuestionada','Bloatware y apps preinstaladas no deseadas','UWP: adopción limitada por desarrolladores']},
+
+  win11:{year:'2021',color:'#5B9BD5',title:'Windows 11',sub:'TPM 2.0 · AI Copilot · NPU · 2021+',
+    desc:'Windows 11 moderniza la interfaz con esquinas redondeadas y centro de tareas, e impone requisitos estrictos de hardware (TPM 2.0, CPU lista). Su mayor evolución es la integración de IA con Copilot, soporte de NPU para inferencia local y Android apps vía Amazon Appstore.',
+    feats:['Requisito TPM 2.0 y UEFI Secure Boot obligatorio','Copilot IA integrado (GPT-4 powered)','Soporte nativo de NPU para IA local (Neural Processing Unit)','Android apps via Amazon Appstore (WSA)','Auto HDR y DirectStorage para gaming','Snap Layouts: gestión avanzada de ventanas','WSL2 con systemd y GPU pass-through','Widgets panel renovado'],
+    pros:['Seguridad hardware: TPM elimina clase entera de ataques','Copilot IA: asistente contextual en todo el OS','DirectStorage: tiempos de carga de juegos 2-4x más rápidos','Diseño moderno y coherente visualmente','Auto HDR mejora juegos sin parche del desarrollador','Integración profunda con Microsoft 365 y Teams'],
+    cons:['Requisitos hardware excluyen millones de PCs funcionales','TPM 2.0 obligatorio: upgrade forzado o reemplazar equipo','Android apps: rendimiento inferior y tienda limitada','Botón Inicio centrado: polémica de UX innecesaria','Widgets solo muestran contenido de Microsoft','Actualizaciones aún pueden causar problemas de compatibilidad','Telemetría persistente sin opción de desactivación total']}
+};
+
+function openModal(id){
+  const d=DATA[id];
+  if(!d)return;
+  const yr=document.getElementById('mYr');
+  yr.textContent=d.year; yr.style.color=d.color;
+  document.getElementById('mTi').textContent=d.title;
+  document.getElementById('mSu').textContent=d.sub;
+  document.getElementById('mDs').textContent=d.desc;
+  document.getElementById('modalBox').style.borderColor=d.color;
+  const dot=c=>`<span style="position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:${c};display:block"></span>`;
+  document.getElementById('mFe').innerHTML=d.feats.map(f=>`<div class="mi" style="color:rgba(255,255,255,0.78)">${dot(d.color)}${f}</div>`).join('');
+  document.getElementById('mPr').innerHTML=d.pros.map(p=>`<div class="mi pro">${p}</div>`).join('');
+  document.getElementById('mCo').innerHTML=d.cons.map(c=>`<div class="mi con">${c}</div>`).join('');
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeBg(e){if(e.target===document.getElementById('modalBg'))closeM();}
+function closeM(){document.getElementById('modalBg').classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+</script>
