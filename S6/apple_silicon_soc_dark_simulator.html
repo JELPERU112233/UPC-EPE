@@ -1,0 +1,629 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body, .root { background: #000; font-family: Arial, sans-serif; }
+.root {
+  background: #000;
+  color: #fff;
+  padding: 12px;
+  user-select: none;
+}
+.tab-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.tab {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid #333;
+  cursor: pointer;
+  background: #111;
+  color: #999;
+  letter-spacing: 0.03em;
+}
+.tab.active { background: #1a1a1a; color: #fff; border-color: #555; }
+.metrics {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+.mc {
+  flex: 1;
+  background: #0d0d0d;
+  border: 1px solid #222;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+.mc-label { font-size: 10px; color: #666; font-family: Arial, sans-serif; margin-bottom: 2px; }
+.mc-val { font-size: 15px; font-weight: bold; font-family: Arial, sans-serif; color: #fff; }
+.mc-sub { font-size: 10px; color: #555; font-family: Arial, sans-serif; margin-top: 1px; }
+.ctrl-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.btn-p {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  padding: 5px 11px;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  background: #111;
+  color: #ccc;
+  cursor: pointer;
+}
+.btn-p:hover { background: #1a1a1a; color: #fff; }
+.btn-r {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  padding: 5px 11px;
+  border: 1px solid #222;
+  border-radius: 4px;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+}
+.btn-r:hover { color: #999; }
+.log-box {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  background: #080808;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 6px;
+  max-height: 56px;
+  overflow-y: auto;
+  line-height: 1.7;
+  color: #555;
+}
+.log-box .li { color: #4a9eff; }
+.log-box .lw { color: #ffb347; }
+.log-box .le { color: #ff4a4a; }
+.log-box .ln { color: #666; }
+
+@keyframes dashflow { to { stroke-dashoffset: -20; } }
+@keyframes dashback { to { stroke-dashoffset: 20; } }
+@keyframes swapblink { 0%,100%{opacity:1} 50%{opacity:.4} }
+.flow-down { stroke-dasharray:5 3; animation: dashflow .6s linear infinite; }
+.flow-up   { stroke-dasharray:5 3; animation: dashback .6s linear infinite; }
+.swap-blink { animation: swapblink .7s ease-in-out infinite; }
+</style>
+
+<div class="root">
+  <div class="tab-row">
+    <button class="tab active" id="tab-apple" onclick="setView('apple')">Apple Silicon</button>
+    <button class="tab" id="tab-win" onclick="setView('win')">Windows 11 + K2</button>
+    <button class="tab" id="tab-cmp" onclick="setView('cmp')">Comparación</button>
+  </div>
+
+  <!-- ═══════════ APPLE SVG ═══════════ -->
+  <svg id="svg-apple" width="100%" viewBox="0 0 680 480" role="img">
+    <title>SoC Apple Silicon — Memoria Unificada y swap</title>
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M2 2L8 5L2 8" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+      </marker>
+      <!-- scanlines subtle -->
+      <pattern id="scan" x="0" y="0" width="2" height="3" patternUnits="userSpaceOnUse">
+        <rect x="0" y="0" width="2" height="1" fill="#fff" opacity="0.015"/>
+      </pattern>
+    </defs>
+
+    <!-- Background negro -->
+    <rect width="680" height="480" fill="#000"/>
+    <rect width="680" height="480" fill="url(#scan)"/>
+
+    <!-- ── SoC outer border ── -->
+    <rect x="8" y="8" width="560" height="440" rx="10" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="1"/>
+    <!-- SoC label -->
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#444" x="18" y="26">SoC — Apple Silicon (A18 Pro / M-series)</text>
+
+    <!-- ── CPU block ── -->
+    <rect x="16" y="34" width="155" height="130" rx="6" fill="#1a1040" stroke="#534AB7" stroke-width="1.2"/>
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#AFA9EC" x="26" y="51">CPU — 6 núcleos</text>
+    <!-- HP cores row -->
+    <rect x="22" y="58" width="28" height="18" rx="3" fill="#2a1a6a" stroke="#534AB7" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#9090d0" x="36" y="70" text-anchor="middle">P-Core</text>
+    <rect x="54" y="58" width="28" height="18" rx="3" fill="#2a1a6a" stroke="#534AB7" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#9090d0" x="68" y="70" text-anchor="middle">P-Core</text>
+    <!-- E cores row 1 -->
+    <rect x="22" y="82" width="28" height="18" rx="3" fill="#1a103a" stroke="#3a2a90" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#7070b0" x="36" y="94" text-anchor="middle">E-Core</text>
+    <rect x="54" y="82" width="28" height="18" rx="3" fill="#1a103a" stroke="#3a2a90" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#7070b0" x="68" y="94" text-anchor="middle">E-Core</text>
+    <rect x="86" y="82" width="28" height="18" rx="3" fill="#1a103a" stroke="#3a2a90" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#7070b0" x="100" y="94" text-anchor="middle">E-Core</text>
+    <rect x="118" y="82" width="28" height="18" rx="3" fill="#1a103a" stroke="#3a2a90" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#7070b0" x="132" y="94" text-anchor="middle">E-Core</text>
+    <!-- L2 Cache -->
+    <rect x="22" y="106" width="140" height="14" rx="2" fill="#110d30" stroke="#3a2a90" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#6060a0" x="92" y="116" text-anchor="middle">L2 Cache</text>
+    <!-- 2x HP label -->
+    <text font-family="Arial" font-size="8" fill="#7070b0" x="26" y="55" dy="50">2x High-Perf</text>
+    <text font-family="Arial" font-size="8" fill="#6060a0" x="26" y="80">4x Efficiency</text>
+
+    <!-- ── GPU block ── -->
+    <rect x="185" y="34" width="155" height="130" rx="6" fill="#0d2010" stroke="#1D9E75" stroke-width="1.2"/>
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#5DCAA5" x="195" y="51">GPU — 5 núcleos</text>
+    <!-- Shader cores grid -->
+    <rect x="191" y="58" width="44" height="26" rx="3" fill="#0a2a18" stroke="#1D9E75" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#3a9060" x="213" y="75" text-anchor="middle">Shader Core</text>
+    <rect x="239" y="58" width="44" height="26" rx="3" fill="#0a2a18" stroke="#1D9E75" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#3a9060" x="261" y="75" text-anchor="middle">Shader Core</text>
+    <rect x="287" y="58" width="44" height="26" rx="3" fill="#0a2a18" stroke="#1D9E75" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#3a9060" x="309" y="75" text-anchor="middle">Shader Core</text>
+    <rect x="191" y="90" width="44" height="26" rx="3" fill="#0a2a18" stroke="#1D9E75" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#3a9060" x="213" y="107" text-anchor="middle">Shader Core</text>
+    <rect x="239" y="90" width="66" height="26" rx="3" fill="#0a1a10" stroke="#0d6e50" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="7" fill="#2a6040" x="272" y="103" text-anchor="middle">Texture Unit /</text>
+    <text font-family="Arial" font-size="7" fill="#2a6040" x="272" y="112" text-anchor="middle">Rasterizer</text>
+
+    <!-- ── ANE block ── -->
+    <rect x="354" y="34" width="200" height="130" rx="6" fill="#1a0d00" stroke="#BA7517" stroke-width="1.2"/>
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#EF9F27" x="364" y="51">ANE — 16-core</text>
+    <!-- Neural cores 4x4 grid -->
+    <g fill="#1a1000" stroke="#7a5010" stroke-width="0.5">
+      <rect x="360" y="58" width="40" height="22" rx="2"/>
+      <rect x="404" y="58" width="40" height="22" rx="2"/>
+      <rect x="448" y="58" width="40" height="22" rx="2"/>
+      <rect x="492" y="58" width="40" height="22" rx="2"/>
+      <rect x="360" y="84" width="40" height="22" rx="2"/>
+      <rect x="404" y="84" width="40" height="22" rx="2"/>
+      <rect x="448" y="84" width="40" height="22" rx="2"/>
+      <rect x="492" y="84" width="40" height="22" rx="2"/>
+      <rect x="360" y="110" width="40" height="22" rx="2"/>
+      <rect x="404" y="110" width="40" height="22" rx="2"/>
+      <rect x="448" y="110" width="40" height="22" rx="2"/>
+      <rect x="492" y="110" width="40" height="22" rx="2"/>
+      <rect x="360" y="136" width="40" height="18" rx="2"/>
+      <rect x="404" y="136" width="40" height="18" rx="2"/>
+      <rect x="448" y="136" width="40" height="18" rx="2"/>
+      <rect x="492" y="136" width="40" height="18" rx="2"/>
+    </g>
+    <g font-family="Arial" font-size="7" fill="#6a5010" text-anchor="middle">
+      <text x="380" y="72">Neural</text><text x="380" y="80">Core</text>
+      <text x="424" y="72">Neural</text><text x="424" y="80">Core</text>
+      <text x="468" y="72">Neural</text><text x="468" y="80">Core</text>
+      <text x="512" y="72">Neural</text><text x="512" y="80">Core</text>
+      <text x="380" y="98">Neural</text><text x="380" y="106">Core</text>
+      <text x="424" y="98">Neural</text><text x="424" y="106">Core</text>
+      <text x="468" y="98">Neural</text><text x="468" y="106">Core</text>
+      <text x="512" y="98">Neural</text><text x="512" y="106">Core</text>
+      <text x="380" y="122">Neural</text><text x="380" y="130">Core</text>
+      <text x="424" y="122">Neural</text><text x="424" y="130">Core</text>
+      <text x="468" y="122">Neural</text><text x="468" y="130">Core</text>
+      <text x="512" y="122">Neural</text><text x="512" y="130">Core</text>
+      <text x="380" y="148">Neural</text><text x="424" y="148">Core</text>
+      <text x="468" y="148">Neural</text><text x="512" y="148">Core</text>
+    </g>
+
+    <!-- ── BUS LINES (vertical, CPU→Memoria) ── -->
+    <!-- CPU buses: control (cyan), data (blue), address (yellow) -->
+    <!-- Bus Control CPU (left of CPU block) -->
+    <line x1="30" y1="164" x2="30" y2="225" stroke="#00d4ff" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+    <line x1="30" y1="225" x2="30" y2="164" stroke="#00d4ff" stroke-width="1.5" fill="none" marker-end="url(#arr)" opacity="0.4"/>
+    <text font-family="Arial" font-size="8" fill="#00d4ff" x="22" y="200" text-anchor="middle" transform="rotate(-90,22,200)">Bús de Control (CPU)</text>
+
+    <!-- Bus Datos CPU (right side of CPU) -->
+    <line id="a-bus-cpu-d" x1="85" y1="164" x2="85" y2="225" stroke="#534AB7" stroke-width="2" fill="none" marker-end="url(#arr)" opacity="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#7777cc" x="85" y="200" text-anchor="middle" transform="rotate(-90,85,200)">Bús de Direcciones</text>
+
+    <!-- GPU buses -->
+    <line id="a-bus-gpu-d" x1="230" y1="164" x2="230" y2="225" stroke="#1D9E75" stroke-width="2" fill="none" marker-end="url(#arr)" opacity="0.5"/>
+    <line x1="270" y1="164" x2="270" y2="225" stroke="#1D9E75" stroke-width="1.5" fill="none" marker-end="url(#arr)" opacity="0.4"/>
+    <text font-family="Arial" font-size="8" fill="#1D9E75" x="250" y="200" text-anchor="middle" transform="rotate(-90,250,200)">Bús de Datos (GPU)</text>
+    <text font-family="Arial" font-size="8" fill="#1D9E75" x="290" y="200" text-anchor="middle" transform="rotate(-90,290,200)">Bús Direcciones (GPU)</text>
+
+    <!-- ANE buses -->
+    <line id="a-bus-ane-d" x1="430" y1="164" x2="430" y2="225" stroke="#BA7517" stroke-width="2" fill="none" marker-end="url(#arr)" opacity="0.5"/>
+    <line x1="510" y1="164" x2="510" y2="225" stroke="#00d4ff" stroke-width="1.5" fill="none" marker-end="url(#arr)" opacity="0.4"/>
+    <text font-family="Arial" font-size="8" fill="#BA7517" x="430" y="200" text-anchor="middle" transform="rotate(-90,430,200)">Bús de Datos</text>
+    <text font-family="Arial" font-size="8" fill="#00d4ff" x="518" y="200" text-anchor="middle" transform="rotate(-90,518,200)">Bús de Control (ANE)</text>
+
+    <!-- ── MEMORIA UNIFICADA ── -->
+    <rect x="16" y="230" width="548" height="80" rx="8" fill="#081810" stroke="#1D9E75" stroke-width="1.5"/>
+    <!-- Pool fill bar -->
+    <rect id="a-pool-fill" x="17" y="231" width="0" height="78" rx="8" fill="#1D9E75" opacity="0.2"/>
+    <rect id="a-comp-fill" x="17" y="231" width="0" height="78" rx="8" fill="#EF9F27" opacity="0.25"/>
+    <text font-family="Arial" font-size="15" font-weight="bold" fill="#1D9E75" x="290" y="263" text-anchor="middle">Memoria Unificada</text>
+    <text id="a-pool-label" font-family="Arial" font-size="11" fill="#0F6E56" x="290" y="281" text-anchor="middle">0 / 8 GB usados</text>
+    <text id="a-comp-label" font-family="Arial" font-size="10" fill="#EF9F27" x="290" y="298" text-anchor="middle" opacity="0">▶ comprimiendo datos antes de swap...</text>
+
+    <!-- DRAM Controllers bar -->
+    <rect x="16" y="318" width="548" height="20" rx="3" fill="#050f0a" stroke="#0a3020" stroke-width="0.8"/>
+    <text font-family="Arial" font-size="9" fill="#1D4a30" x="290" y="332" text-anchor="middle">DRAM Controllers</text>
+
+    <!-- Interconnect SSD bus -->
+    <rect x="16" y="346" width="548" height="14" rx="2" fill="#0a0a0a" stroke="#222" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#333" x="290" y="357" text-anchor="middle">Bús de Interconexión SSD</text>
+
+    <!-- Swap arrow (pool → SSD) -->
+    <line id="a-swap-arr" x1="290" y1="360" x2="290" y2="385" stroke="#E24B4A" stroke-width="2.5" fill="none" marker-end="url(#arr)" opacity="0"/>
+
+    <!-- ── SSD NVMe ── -->
+    <rect x="16" y="388" width="548" height="52" rx="6" fill="#0d0d0d" stroke="#333" stroke-width="1"/>
+    <text font-family="Arial" font-size="13" font-weight="bold" fill="#888" x="290" y="410" text-anchor="middle">SSD NVMe — swap destino</text>
+    <text id="a-ssd-label" font-family="Arial" font-size="10" fill="#555" x="290" y="428" text-anchor="middle">inactivo — ~1.4 GB/s integrado al SoC</text>
+
+    <!-- ── LEYENDA ── -->
+    <rect x="580" y="34" width="94" height="170" rx="5" fill="#080808" stroke="#1a1a1a" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="9" font-weight="bold" fill="#666" x="627" y="52" text-anchor="middle">LEYENDA</text>
+    <rect x="588" y="60" width="12" height="12" rx="2" fill="#534AB7"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="71">CPU</text>
+    <rect x="588" y="78" width="12" height="12" rx="2" fill="#1D9E75"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="89">GPU</text>
+    <rect x="588" y="96" width="12" height="12" rx="2" fill="#BA7517"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="107">ANE</text>
+    <rect x="588" y="114" width="12" height="12" rx="2" fill="#EF9F27"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="125">Compresión</text>
+    <rect x="588" y="132" width="12" height="12" rx="2" fill="#E24B4A"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="143">Swap activo</text>
+    <line x1="588" y1="156" x2="600" y2="156" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="160">Bús Control</text>
+    <line x1="588" y1="172" x2="600" y2="172" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="176">Bús Datos</text>
+    <line x1="588" y1="188" x2="600" y2="188" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text font-family="Arial" font-size="9" fill="#888" x="605" y="192">Bús Dirección</text>
+
+    <!-- Click hints -->
+    <text font-family="Arial" font-size="9" fill="#333" x="290" y="460" text-anchor="middle">Clic en CPU / GPU / ANE para agregar procesos al pool</text>
+
+    <!-- clickable overlays -->
+    <rect x="16" y="34" width="155" height="130" rx="6" fill="transparent" style="cursor:pointer" onclick="addP('apple','CPU',1.2)"/>
+    <rect x="185" y="34" width="155" height="130" rx="6" fill="transparent" style="cursor:pointer" onclick="addP('apple','GPU',1.5)"/>
+    <rect x="354" y="34" width="200" height="130" rx="6" fill="transparent" style="cursor:pointer" onclick="addP('apple','ANE',0.8)"/>
+  </svg>
+
+  <!-- ═══════════ WINDOWS SVG ═══════════ -->
+  <svg id="svg-win" width="100%" viewBox="0 0 680 480" role="img" style="display:none">
+    <title>Windows 11 — RAM separada y pagefile.sys</title>
+    <defs>
+      <marker id="arrw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M2 2L8 5L2 8" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+      </marker>
+    </defs>
+    <rect width="680" height="480" fill="#000"/>
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#444" x="18" y="26">Windows 11 + K2 — Arquitectura de memoria tradicional</text>
+
+    <!-- CPU -->
+    <rect x="30" y="40" width="140" height="120" rx="6" fill="#1a1040" stroke="#534AB7" stroke-width="1.2" style="cursor:pointer" onclick="addP('win','CPU',1.5)"/>
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#AFA9EC" x="100" y="60" text-anchor="middle">CPU</text>
+    <text font-family="Arial" font-size="9" fill="#7070b0" x="100" y="76" text-anchor="middle">Intel / AMD / Qualcomm</text>
+    <rect x="42" y="85" width="50" height="18" rx="2" fill="#2a1a6a" stroke="#534AB7" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#9090d0" x="67" y="97" text-anchor="middle">Core 0-3</text>
+    <rect x="98" y="85" width="50" height="18" rx="2" fill="#2a1a6a" stroke="#534AB7" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#9090d0" x="123" y="97" text-anchor="middle">Core 4-7</text>
+    <rect x="42" y="110" width="106" height="14" rx="2" fill="#110d30" stroke="#3a2a90" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#5050a0" x="95" y="120" text-anchor="middle">L3 Cache</text>
+    <text font-family="Arial" font-size="8" fill="#444" x="100" y="148" text-anchor="middle">clic para +proceso</text>
+
+    <!-- GPU discreta -->
+    <rect x="350" y="40" width="180" height="120" rx="6" fill="#0d1a30" stroke="#185FA5" stroke-width="1.2" style="cursor:pointer" onclick="addP('win','GPU',2.0)"/>
+    <text font-family="Arial" font-size="11" font-weight="bold" fill="#85B7EB" x="440" y="60" text-anchor="middle">GPU discreta</text>
+    <text font-family="Arial" font-size="9" fill="#4477aa" x="440" y="76" text-anchor="middle">NVIDIA / AMD</text>
+    <rect x="362" y="85" width="156" height="30" rx="3" fill="#0a1020" stroke="#0C447C" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="9" fill="#3355aa" x="440" y="104" text-anchor="middle">VRAM dedicada (8 GB)</text>
+    <rect x="362" y="120" width="156" height="14" rx="2" fill="#050810" stroke="#0a2060" stroke-width="0.5"/>
+    <text font-family="Arial" font-size="8" fill="#2a3a80" x="440" y="130" text-anchor="middle">Sin acceso directo a RAM sistema</text>
+    <text font-family="Arial" font-size="8" fill="#444" x="440" y="148" text-anchor="middle">clic para +proceso</text>
+
+    <!-- PCIe bus (entre CPU y GPU) -->
+    <rect x="178" y="88" width="164" height="34" rx="4" fill="#080808" stroke="#222" stroke-width="0.8"/>
+    <line x1="186" y1="105" x2="334" y2="105" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" fill="none" marker-end="url(#arrw)"/>
+    <line x1="334" y1="105" x2="186" y2="105" stroke="#888780" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arrw)" opacity="0.5"/>
+    <text font-family="Arial" font-size="9" fill="#555" x="260" y="100" text-anchor="middle">PCIe Bus</text>
+    <text font-family="Arial" font-size="8" fill="#444" x="260" y="114" text-anchor="middle">copia datos CPU↔GPU</text>
+
+    <!-- RAM sistema -->
+    <rect x="30" y="200" width="280" height="80" rx="8" fill="#0d0820" stroke="#534AB7" stroke-width="1.2"/>
+    <rect id="w-ram-fill" x="31" y="201" width="0" height="78" rx="8" fill="#534AB7" opacity="0.2"/>
+    <text font-family="Arial" font-size="13" font-weight="bold" fill="#534AB7" x="170" y="233" text-anchor="middle">RAM del sistema</text>
+    <text id="w-ram-label" font-family="Arial" font-size="10" fill="#3a3480" x="170" y="252" text-anchor="middle">0 / 16 GB usados</text>
+    <text font-family="Arial" font-size="9" fill="#2a2460" x="170" y="268" text-anchor="middle">CPU accede directamente</text>
+
+    <!-- VRAM -->
+    <rect x="360" y="200" width="250" height="80" rx="8" fill="#040818" stroke="#185FA5" stroke-width="1.2"/>
+    <rect id="w-vram-fill" x="361" y="201" width="0" height="78" rx="8" fill="#185FA5" opacity="0.2"/>
+    <text font-family="Arial" font-size="13" font-weight="bold" fill="#185FA5" x="485" y="233" text-anchor="middle">VRAM (GPU)</text>
+    <text id="w-vram-label" font-family="Arial" font-size="10" fill="#0c3a70" x="485" y="252" text-anchor="middle">0 / 8 GB usados</text>
+    <text font-family="Arial" font-size="9" fill="#082850" x="485" y="268" text-anchor="middle">aislada de RAM sistema</text>
+
+    <!-- flechas CPU→RAM, GPU→VRAM -->
+    <line x1="100" y1="160" x2="100" y2="198" stroke="#534AB7" stroke-width="1.5" fill="none" marker-end="url(#arrw)" opacity="0.6"/>
+    <line x1="440" y1="160" x2="440" y2="198" stroke="#185FA5" stroke-width="1.5" fill="none" marker-end="url(#arrw)" opacity="0.6"/>
+
+    <!-- K2 objetivo box -->
+    <rect x="540" y="200" width="130" height="80" rx="5" fill="#080808" stroke="#185FA5" stroke-width="0.8" stroke-dasharray="3 2"/>
+    <text font-family="Arial" font-size="9" fill="#185FA5" x="605" y="222" text-anchor="middle">Windows K2</text>
+    <text font-family="Arial" font-size="8" fill="#0c3a70" x="605" y="238" text-anchor="middle">Reducir uso</text>
+    <text font-family="Arial" font-size="8" fill="#0c3a70" x="605" y="252" text-anchor="middle">idle de RAM</text>
+    <text font-family="Arial" font-size="8" fill="#0c3a70" x="605" y="266" text-anchor="middle">menos pagefile</text>
+
+    <!-- pagefile.sys -->
+    <rect x="30" y="322" width="548" height="52" rx="6" fill="#0a0a0a" stroke="#333" stroke-width="1"/>
+    <text font-family="Arial" font-size="13" font-weight="bold" fill="#666" x="304" y="344" text-anchor="middle">HDD / SSD — pagefile.sys</text>
+    <text id="w-page-label" font-family="Arial" font-size="10" fill="#444" x="304" y="362" text-anchor="middle">inactivo — latencia mayor, bus externo</text>
+
+    <!-- swap arrows -->
+    <line id="w-swap-ram" x1="170" y1="282" x2="170" y2="320" stroke="#E24B4A" stroke-width="2.5" fill="none" marker-end="url(#arrw)" opacity="0"/>
+    <line id="w-swap-vram" x1="440" y1="282" x2="440" y2="320" stroke="#E24B4A" stroke-width="2.5" fill="none" marker-end="url(#arrw)" opacity="0"/>
+
+    <!-- nota overhead -->
+    <text font-family="Arial" font-size="9" fill="#333" x="304" y="400" text-anchor="middle">GPU NO puede acceder directamente a RAM sistema — copia obligatoria por PCIe</text>
+    <text font-family="Arial" font-size="9" fill="#333" x="304" y="415" text-anchor="middle">Clic en CPU / GPU para agregar procesos</text>
+  </svg>
+
+  <!-- ═══════════ COMPARACIÓN SVG ═══════════ -->
+  <svg id="svg-cmp" width="100%" viewBox="0 0 680 420" role="img" style="display:none">
+    <title>Comparación Apple Silicon vs Windows 11</title>
+    <rect width="680" height="420" fill="#000"/>
+    <!-- Headers -->
+    <rect x="20" y="20" width="305" height="38" rx="5" fill="#081810" stroke="#1D9E75" stroke-width="1.2"/>
+    <text font-family="Arial" font-size="13" font-weight="bold" fill="#1D9E75" x="172" y="44" text-anchor="middle">Apple Silicon (macOS)</text>
+    <rect x="355" y="20" width="305" height="38" rx="5" fill="#040818" stroke="#185FA5" stroke-width="1.2"/>
+    <text font-family="Arial" font-size="13" font-weight="bold" fill="#378ADD" x="507" y="44" text-anchor="middle">Windows 11 + K2</text>
+
+    <!-- Row labels -->
+    <g font-family="Arial" font-size="10" fill="#444" text-anchor="middle">
+      <text x="340" y="90">Arquitectura memoria</text>
+      <text x="340" y="166">Swap</text>
+      <text x="340" y="242">Compresión</text>
+      <text x="340" y="318">Estrategia 2026</text>
+      <text x="340" y="394">Overhead GPU</text>
+    </g>
+
+    <!-- Apple rows -->
+    <g font-family="Arial">
+      <rect x="20" y="68" width="305" height="50" rx="4" fill="#081810" stroke="#0d4020" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#1D9E75" x="172" y="89" text-anchor="middle">Unificada</text>
+      <text font-size="9" fill="#0d5030" x="172" y="106" text-anchor="middle">CPU + GPU + ANE — mismo pool</text>
+
+      <rect x="20" y="144" width="305" height="50" rx="4" fill="#081810" stroke="#0d4020" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#1D9E75" x="172" y="165" text-anchor="middle">SSD integrado al SoC</text>
+      <text font-size="9" fill="#0d5030" x="172" y="182" text-anchor="middle">~1.4 GB/s · casi imperceptible</text>
+
+      <rect x="20" y="220" width="305" height="50" rx="4" fill="#081810" stroke="#0d4020" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#1D9E75" x="172" y="241" text-anchor="middle">Agresiva — primera línea</text>
+      <text font-size="9" fill="#0d5030" x="172" y="258" text-anchor="middle">comprime antes de paginar al SSD</text>
+
+      <rect x="20" y="296" width="305" height="50" rx="4" fill="#081810" stroke="#0d4020" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#1D9E75" x="172" y="317" text-anchor="middle">Reducir huella base del SO</text>
+      <text font-size="9" fill="#0d5030" x="172" y="334" text-anchor="middle">macOS Tahoe + optimizaciones SoC</text>
+
+      <rect x="20" y="372" width="305" height="38" rx="4" fill="#081810" stroke="#0d4020" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#1D9E75" x="172" y="397" text-anchor="middle">Ninguno — zero-copy</text>
+    </g>
+
+    <!-- Windows rows -->
+    <g font-family="Arial">
+      <rect x="355" y="68" width="305" height="50" rx="4" fill="#040818" stroke="#0a2050" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#378ADD" x="507" y="89" text-anchor="middle">Separada</text>
+      <text font-size="9" fill="#0a3060" x="507" y="106" text-anchor="middle">RAM sistema + VRAM — bus PCIe</text>
+
+      <rect x="355" y="144" width="305" height="50" rx="4" fill="#040818" stroke="#0a2050" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#378ADD" x="507" y="165" text-anchor="middle">pagefile.sys en disco</text>
+      <text font-size="9" fill="#0a3060" x="507" y="182" text-anchor="middle">mayor latencia · bus externo</text>
+
+      <rect x="355" y="220" width="305" height="50" rx="4" fill="#040818" stroke="#0a2050" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#378ADD" x="507" y="241" text-anchor="middle">Presente, menos prioridad</text>
+      <text font-size="9" fill="#0a3060" x="507" y="258" text-anchor="middle">K2: reducir idle RAM antes de paginar</text>
+
+      <rect x="355" y="296" width="305" height="50" rx="4" fill="#040818" stroke="#0a2050" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#378ADD" x="507" y="317" text-anchor="middle">Windows K2 — calidad y eficiencia</text>
+      <text font-size="9" fill="#0a3060" x="507" y="334" text-anchor="middle">rendimiento, fiabilidad, craft</text>
+
+      <rect x="355" y="372" width="305" height="38" rx="4" fill="#040818" stroke="#0a2050" stroke-width="0.7"/>
+      <text font-size="11" font-weight="bold" fill="#E24B4A" x="507" y="397" text-anchor="middle">Copia PCIe CPU↔GPU obligatoria</text>
+    </g>
+  </svg>
+
+  <!-- ═══ MÉTRICAS ═══ -->
+  <div id="met-apple" class="metrics">
+    <div class="mc"><div class="mc-label">Memoria Unificada</div><div class="mc-val" id="a-used">0.0 GB</div><div class="mc-sub">de 8 GB</div></div>
+    <div class="mc"><div class="mc-label">Comprimida</div><div class="mc-val" id="a-comp">0.0 GB</div><div class="mc-sub">antes de swap</div></div>
+    <div class="mc"><div class="mc-label">Swap SSD</div><div class="mc-val" id="a-swap">0.0 GB</div><div class="mc-sub" id="a-swap-sub">inactivo</div></div>
+    <div class="mc"><div class="mc-label">Presión</div><div class="mc-val" id="a-press">Normal</div><div class="mc-sub" id="a-press-sub">sin bottleneck</div></div>
+  </div>
+  <div id="met-win" class="metrics" style="display:none">
+    <div class="mc"><div class="mc-label">RAM sistema</div><div class="mc-val" id="w-used">0.0 GB</div><div class="mc-sub">de 16 GB</div></div>
+    <div class="mc"><div class="mc-label">VRAM GPU</div><div class="mc-val" id="w-vram">0.0 GB</div><div class="mc-sub">de 8 GB</div></div>
+    <div class="mc"><div class="mc-label">pagefile.sys</div><div class="mc-val" id="w-page">0.0 GB</div><div class="mc-sub" id="w-page-sub">inactivo</div></div>
+    <div class="mc"><div class="mc-label">Overhead PCIe</div><div class="mc-val" id="w-pcie">0.0 GB</div><div class="mc-sub">copia CPU↔GPU</div></div>
+  </div>
+
+  <!-- ═══ CONTROLES ═══ -->
+  <div id="ctrl-apple" class="ctrl-row">
+    <button class="btn-p" onclick="addP('apple','CPU',1.2)">+ CPU (1.2 GB)</button>
+    <button class="btn-p" onclick="addP('apple','GPU',1.5)">+ GPU (1.5 GB)</button>
+    <button class="btn-p" onclick="addP('apple','ANE',0.8)">+ ANE (0.8 GB)</button>
+    <button class="btn-r" onclick="resetS('apple')">↺ Reiniciar</button>
+  </div>
+  <div id="ctrl-win" class="ctrl-row" style="display:none">
+    <button class="btn-p" onclick="addP('win','CPU',1.5)">+ CPU RAM (1.5 GB)</button>
+    <button class="btn-p" onclick="addP('win','GPU',2.0)">+ GPU VRAM (2.0 GB)</button>
+    <button class="btn-r" onclick="resetS('win')">↺ Reiniciar</button>
+  </div>
+
+  <div id="log-apple" class="log-box"></div>
+  <div id="log-win" class="log-box" style="display:none"></div>
+</div>
+
+<script>
+const S = {
+  apple: { used:0, comp:0, swap:0, max:8 },
+  win:   { ram:0, vram:0, page:0, pcie:0, maxRAM:16, maxVRAM:8 }
+};
+
+function lg(sys, msg, cls='ln') {
+  const el = document.getElementById('log-'+sys);
+  const s = document.createElement('span');
+  s.className = cls; s.style.display='block';
+  s.textContent = '> ' + msg;
+  el.appendChild(s); el.scrollTop = el.scrollHeight;
+}
+
+function addP(sys, core, gb) {
+  if (sys==='apple') {
+    const s = S.apple;
+    const rem = +(s.max - s.used).toFixed(2);
+    if (rem > 0.05) {
+      const a = Math.min(gb, rem);
+      s.used = +(s.used + a).toFixed(2);
+      lg('apple', core+': +'+a.toFixed(1)+' GB → pool unificado', 'li');
+    } else if (s.swap < 3) {
+      s.swap = +(s.swap + 0.5).toFixed(2);
+      lg('apple', '⚠ pool lleno → comprimiendo → swap SSD ('+s.swap.toFixed(1)+' GB)', 'lw');
+    } else {
+      lg('apple', '✗ swap máximo — rendimiento degradado', 'le');
+    }
+    updA();
+  } else {
+    const s = S.win;
+    if (core==='CPU') {
+      const rem = +(s.maxRAM - s.ram).toFixed(2);
+      if (rem > 0.05) {
+        const a = Math.min(gb, rem);
+        s.ram = +(s.ram + a).toFixed(2);
+        lg('win','CPU: +'+a.toFixed(1)+' GB → RAM sistema','li');
+      } else {
+        s.page = +(s.page + 0.8).toFixed(2);
+        lg('win','⚠ RAM llena → pagefile.sys (+0.8 GB)','lw');
+      }
+    } else {
+      const rem = +(s.maxVRAM - s.vram).toFixed(2);
+      if (rem > 0.05) {
+        const a = Math.min(gb, rem);
+        s.vram = +(s.vram + a).toFixed(2);
+        s.pcie = +(s.pcie + a*0.35).toFixed(2);
+        lg('win','GPU: +'+a.toFixed(1)+' GB VRAM + PCIe overhead ('+( a*0.35).toFixed(1)+' GB)','li');
+      } else {
+        s.page = +(s.page + 1.0).toFixed(2);
+        lg('win','⚠ VRAM llena → pagefile.sys (+1.0 GB)','lw');
+      }
+    }
+    updW();
+  }
+}
+
+function updA() {
+  const s = S.apple;
+  const maxW = 546;
+  const fw = Math.min(s.used/s.max * maxW, maxW);
+  document.getElementById('a-pool-fill').setAttribute('width', fw.toFixed(0));
+
+  const th = s.max * 0.7;
+  if (s.used > th) {
+    s.comp = +((s.used - th) * 0.4).toFixed(2);
+    const cw = Math.min(s.comp/s.max*maxW, maxW*0.3);
+    const cx = 17 + fw - cw;
+    const cf = document.getElementById('a-comp-fill');
+    cf.setAttribute('x', Math.max(17, cx).toFixed(0));
+    cf.setAttribute('width', cw.toFixed(0));
+    document.getElementById('a-comp-label').setAttribute('opacity','1');
+  } else {
+    s.comp = 0;
+    document.getElementById('a-comp-fill').setAttribute('width','0');
+    document.getElementById('a-comp-label').setAttribute('opacity','0');
+  }
+
+  document.getElementById('a-used').textContent = s.used.toFixed(1)+' GB';
+  document.getElementById('a-comp').textContent = s.comp.toFixed(1)+' GB';
+  document.getElementById('a-pool-label').textContent = s.used.toFixed(1)+' / 8 GB usados';
+
+  const sa = document.getElementById('a-swap-arr');
+  if (s.swap > 0) {
+    sa.setAttribute('opacity','1');
+    sa.classList.add('flow-down');
+    document.getElementById('a-swap').textContent = s.swap.toFixed(1)+' GB';
+    document.getElementById('a-swap-sub').textContent = '⚠ swap activo';
+    document.getElementById('a-ssd-label').textContent = 'SWAP ACTIVO — '+s.swap.toFixed(1)+' GB escritos';
+  } else {
+    sa.setAttribute('opacity','0');
+    sa.classList.remove('flow-down');
+    document.getElementById('a-swap').textContent = '0.0 GB';
+    document.getElementById('a-swap-sub').textContent = 'inactivo';
+    document.getElementById('a-ssd-label').textContent = 'inactivo — ~1.4 GB/s integrado al SoC';
+  }
+
+  const pct = s.used/s.max;
+  let pr='Normal', ps='sin bottleneck';
+  if (pct > 0.9 || s.swap > 1) { pr='Crítica'; ps='swap intenso'; }
+  else if (pct > 0.7) { pr='Moderada'; ps='comprimiendo'; }
+  document.getElementById('a-press').textContent = pr;
+  document.getElementById('a-press-sub').textContent = ps;
+}
+
+function updW() {
+  const s = S.win;
+  const rw = Math.min(s.ram/s.maxRAM*278, 278);
+  const vw = Math.min(s.vram/s.maxVRAM*248, 248);
+  document.getElementById('w-ram-fill').setAttribute('width', rw.toFixed(0));
+  document.getElementById('w-vram-fill').setAttribute('width', vw.toFixed(0));
+  document.getElementById('w-used').textContent = s.ram.toFixed(1)+' GB';
+  document.getElementById('w-vram').textContent = s.vram.toFixed(1)+' GB';
+  document.getElementById('w-ram-label').textContent = s.ram.toFixed(1)+' / 16 GB usados';
+  document.getElementById('w-vram-label').textContent = s.vram.toFixed(1)+' / 8 GB usados';
+  document.getElementById('w-pcie').textContent = s.pcie.toFixed(1)+' GB';
+
+  const sr = document.getElementById('w-swap-ram');
+  const sv = document.getElementById('w-swap-vram');
+  if (s.page > 0) {
+    sr.setAttribute('opacity','1'); sr.classList.add('flow-down');
+    sv.setAttribute('opacity','1'); sv.classList.add('flow-down');
+    document.getElementById('w-page').textContent = s.page.toFixed(1)+' GB';
+    document.getElementById('w-page-sub').textContent = '⚠ paginación activa';
+    document.getElementById('w-page-label').textContent = 'PAGINANDO — '+s.page.toFixed(1)+' GB en pagefile.sys';
+  } else {
+    sr.setAttribute('opacity','0'); sr.classList.remove('flow-down');
+    sv.setAttribute('opacity','0'); sv.classList.remove('flow-down');
+    document.getElementById('w-page').textContent = '0.0 GB';
+    document.getElementById('w-page-sub').textContent = 'inactivo';
+    document.getElementById('w-page-label').textContent = 'inactivo — latencia mayor, bus externo';
+  }
+}
+
+function resetS(sys) {
+  if (sys==='apple') {
+    S.apple = {used:0, comp:0, swap:0, max:8};
+    document.getElementById('a-pool-fill').setAttribute('width','0');
+    document.getElementById('a-comp-fill').setAttribute('width','0');
+    document.getElementById('a-comp-label').setAttribute('opacity','0');
+    document.getElementById('a-swap-arr').setAttribute('opacity','0');
+    document.getElementById('a-swap-arr').classList.remove('flow-down');
+    document.getElementById('log-apple').innerHTML='';
+    updA(); lg('apple','Estado reiniciado','ln');
+  } else {
+    S.win = {ram:0, vram:0, page:0, pcie:0, maxRAM:16, maxVRAM:8};
+    document.getElementById('w-ram-fill').setAttribute('width','0');
+    document.getElementById('w-vram-fill').setAttribute('width','0');
+    document.getElementById('w-swap-ram').setAttribute('opacity','0');
+    document.getElementById('w-swap-vram').setAttribute('opacity','0');
+    document.getElementById('w-swap-ram').classList.remove('flow-down');
+    document.getElementById('w-swap-vram').classList.remove('flow-down');
+    document.getElementById('log-win').innerHTML='';
+    updW(); lg('win','Estado reiniciado','ln');
+  }
+}
+
+function setView(v) {
+  ['apple','win','cmp'].forEach(x => {
+    const svg = document.getElementById('svg-'+x);
+    const met = document.getElementById('met-'+x);
+    const ctrl = document.getElementById('ctrl-'+x);
+    const logEl = document.getElementById('log-'+x);
+    if(svg) svg.style.display='none';
+    if(met) met.style.display='none';
+    if(ctrl) ctrl.style.display='none';
+    if(logEl) logEl.style.display='none';
+    const tb = document.getElementById('tab-'+x);
+    if(tb) tb.classList.remove('active');
+  });
+  const sg = document.getElementById('svg-'+v);
+  const me = document.getElementById('met-'+v);
+  const ct = document.getElementById('ctrl-'+v);
+  const lo = document.getElementById('log-'+v);
+  if(sg) sg.style.display='';
+  if(me) me.style.display='flex';
+  if(ct) ct.style.display='flex';
+  if(lo) lo.style.display='block';
+  const tb = document.getElementById('tab-'+v);
+  if(tb) tb.classList.add('active');
+}
+
+lg('apple','Sistema listo — 8 GB Memoria Unificada disponibles','li');
+lg('win','Sistema listo — 16 GB RAM + 8 GB VRAM disponibles','li');
+</script>
