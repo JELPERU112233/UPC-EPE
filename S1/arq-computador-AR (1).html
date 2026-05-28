@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Core Virtual — Arquitectura del Computador | UPC-EPE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   VARIABLES & RESET
+═══════════════════════════════════════════════ */
+:root {
+  --c-bg:        #030712;
+  --c-bg2:       #070d1a;
+  --c-panel:     rgba(6,14,30,0.88);
+  --c-border:    rgba(0,200,255,0.18);
+  --c-border2:   rgba(0,200,255,0.35);
+  --c-cyan:      #00c8ff;
+  --c-cyan2:     #00eaff;
+  --c-amber:     #f5a623;
+  --c-amber2:    #ffd166;
+  --c-green:     #00ff9d;
+  --c-red:       #ff4560;
+  --c-text:      #c8daf0;
+  --c-text2:     #5b7a9a;
+  --c-text3:     #8da8c4;
+  --f-display:   'Orbitron', sans-serif;
+  --f-mono:      'Space Mono', monospace;
+  --f-body:      'DM Sans', sans-serif;
+  --radius:      10px;
+  --glow-cyan:   0 0 16px rgba(0,200,255,0.45), 0 0 40px rgba(0,200,255,0.12);
+  --glow-amber:  0 0 14px rgba(245,166,35,0.5), 0 0 36px rgba(245,166,35,0.12);
+  --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════════
+   GRID DE FONDO (efecto HUD)
+═══════════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.028) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(0,120,200,0.10) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   HERO / NAVBAR
+═══════════════════════════════════════════════ */
+header {
+  position: relative;
+  z-index: 10;
+  padding: 20px 28px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--c-border);
+  background: rgba(3,7,18,0.7);
+  backdrop-filter: blur(12px);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.logo-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon {
+  width: 38px; height: 38px;
+  border: 1.5px solid var(--c-cyan);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--glow-cyan);
+  flex-shrink: 0;
+}
+
+.logo-icon svg { width: 22px; height: 22px; }
+
+.logo-text {
+  font-family: var(--f-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--c-cyan2);
+  line-height: 1.2;
+}
+
+.logo-sub {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-text2);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+.nav-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nav-pill {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 5px 14px;
+  border: 1px solid var(--c-border2);
+  border-radius: 20px;
+  color: var(--c-cyan);
+  background: rgba(0,200,255,0.06);
+  cursor: pointer;
+  transition: var(--transition);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.nav-pill:hover, .nav-pill.active {
+  background: rgba(0,200,255,0.15);
+  box-shadow: var(--glow-cyan);
+  color: var(--c-cyan2);
+}
+
+/* STATUS BAR */
+.status-bar {
+  width: 100%;
+  background: rgba(0,200,255,0.04);
+  border-bottom: 1px solid var(--c-border);
+  padding: 6px 28px;
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-text2);
+  letter-spacing: 0.08em;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 9;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--c-green);
+  box-shadow: 0 0 6px var(--c-green);
+  animation: pulse-dot 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-val { color: var(--c-cyan); }
+
+/* ═══════════════════════════════════════════════
+   HERO SECTION
+═══════════════════════════════════════════════ */
+.hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 56px 24px 48px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.hero-eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--c-amber);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, var(--c-amber));
+}
+
+.hero-eyebrow::after {
+  background: linear-gradient(90deg, var(--c-amber), transparent);
+}
+
+.hero-title {
+  font-family: var(--f-display);
+  font-size: clamp(26px, 5vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.08;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(0,200,255,0.3);
+  margin-bottom: 8px;
+}
+
+.hero-title span { color: var(--c-cyan2); }
+
+.hero-sub {
+  font-family: var(--f-body);
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 300;
+  color: var(--c-text3);
+  max-width: 560px;
+  margin: 0 auto 32px;
+  letter-spacing: 0.01em;
+}
+
+.hero-badges {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.badge-cyan  { border-color: var(--c-cyan);  color: var(--c-cyan);  background: rgba(0,200,255,0.07); }
+.badge-amber { border-color: var(--c-amber); color: var(--c-amber); background: rgba(245,166,35,0.07); }
+.badge-green { border-color: var(--c-green); color: var(--c-green); background: rgba(0,255,157,0.07); }
+
+/* ═══════════════════════════════════════════════
+   SECCIÓN PRINCIPAL — EXPLORADOR AR
+═══════════════════════════════════════════════ */
+#modulo-ar {
+  position: relative;
+  z-index: 1;
+  padding: 36px 20px 48px;
+}
+
+.section-header {
+  font-family: var(--f-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--c-cyan);
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--c-border2), transparent);
+}
+
+/* GRID PRINCIPAL */
+.ar-grid {
+  display: grid;
+  grid-template-columns: 230px 1fr 260px;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 960px) {
+  .ar-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .panel-components { grid-column: 1; grid-row: 2; }
+  .panel-viewport   { grid-column: 1 / -1; grid-row: 1; }
+  .panel-info       { grid-column: 2; grid-row: 2; }
+}
+
+@media (max-width: 600px) {
+  .ar-grid {
+    grid-template-columns: 1fr;
+  }
+  .panel-components { grid-column: 1; grid-row: 3; }
+  .panel-viewport   { grid-column: 1; grid-row: 1; }
+  .panel-info       { grid-column: 1; grid-row: 2; }
+}
+
+/* PANEL BASE */
+.panel {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-panel);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(0,200,255,0.04);
+}
+
+.panel-title {
+  font-family: var(--f-display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--c-cyan);
+  text-transform: uppercase;
+}
+
+.panel-status {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: var(--c-green);
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ═══════════════════════════════════════════════
+   PANEL IZQUIERDO — LISTA DE COMPONENTES
+═══════════════════════════════════════════════ */
+.comp-list {
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.comp-list::-webkit-scrollbar { width: 3px; }
+.comp-list::-webkit-scrollbar-track { background: transparent; }
+.comp-list::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius: 2px; }
+
+.comp-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--c-text3);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+  width: 100%;
+  font-family: var(--f-body);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.comp-btn:hover {
+  background: rgba(0,200,255,0.08);
+  border-color: var(--c-border2);
+  color: var(--c-text);
+}
+
+.comp-btn.active {
+  background: rgba(0,200,255,0.13);
+  border-color: var(--c-cyan);
+  color: #fff;
+  box-shadow: inset 0 0 12px rgba(0,200,255,0.08);
+}
+
+.comp-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  border: 1px solid var(--c-border);
+  transition: var(--transition);
+}
+
+.comp-btn.active .comp-icon {
+  border-color: var(--c-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.comp-name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.comp-tag {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: var(--c-text2);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════
+   PANEL CENTRAL — VIEWPORT AR  (+50% tamaño)
+═══════════════════════════════════════════════ */
+.panel-viewport {
+  min-height: 560px;
+  position: relative;
+}
+
+.viewport-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,60,120,0.20) 0%, transparent 70%);
+}
+
+/* PLACA BASE ANIMADA — 50% más grande */
+.motherboard-wrap {
+  position: relative;
+  width: min(480px, 92%);
+  aspect-ratio: 1.33;
+}
+
+.motherboard-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 24px rgba(0,200,255,0.28));
+  animation: mb-float 5s ease-in-out infinite;
+  perspective: 800px;
+}
+
+@keyframes mb-float {
+  0%, 100% { transform: translateY(0px) rotateX(3deg) rotateY(-4deg); }
+  50%       { transform: translateY(-12px) rotateX(1deg) rotateY(4deg); }
+}
+
+/* ZONAS CLICKEABLES DEL SVG */
+.mb-zone {
+  cursor: pointer;
+  transition: filter 0.25s ease;
+}
+.mb-zone:hover rect,
+.mb-zone:hover circle {
+  filter: brightness(1.4);
+}
+.mb-zone.mb-active rect {
+  filter: brightness(1.6);
+}
+
+/* RING DE PULSO sobre componente activo */
+@keyframes ring-pulse {
+  0%   { stroke-opacity: 0.9; stroke-width: 2; r: 0; }
+  80%  { stroke-opacity: 0.1; stroke-width: 1; }
+  100% { stroke-opacity: 0;   }
+}
+.pulse-ring {
+  fill: none;
+  animation: ring-pulse 1.2s ease-out forwards;
+}
+
+/* TOOLTIP HOLOGRÁFICO FLOTANTE */
+.holo-tooltip {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -110%);
+  background: rgba(3,12,28,0.92);
+  border: 1px solid var(--c-cyan);
+  border-radius: 8px;
+  padding: 7px 12px;
+  box-shadow: 0 0 20px rgba(0,200,255,0.4), inset 0 0 12px rgba(0,200,255,0.06);
+  font-family: var(--f-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--c-cyan2);
+  white-space: nowrap;
+  z-index: 20;
+  animation: tooltip-in 0.2s ease both;
+  backdrop-filter: blur(8px);
+}
+.holo-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--c-cyan);
+}
+.holo-tooltip-sub {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--c-amber);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translate(-50%, -100%); }
+  to   { opacity: 1; transform: translate(-50%, -110%); }
+}
+
+/* CROSSHAIR SCANNER */
+.scanner {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scan-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,200,255,0.5) 30%, rgba(0,200,255,0.8) 50%, rgba(0,200,255,0.5) 70%, transparent 100%);
+  animation: scan 3s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes scan {
+  0%   { top: 0%; }
+  100% { top: 100%; }
+}
+
+.corner {
+  position: absolute;
+  width: 18px; height: 18px;
+  border-color: var(--c-cyan);
+  border-style: solid;
+  opacity: 0.7;
+}
+.corner.tl { top: 10px;  left: 10px;  border-width: 1.5px 0 0 1.5px; }
+.corner.tr { top: 10px;  right: 10px; border-width: 1.5px 1.5px 0 0; }
+.corner.bl { bottom: 10px; left: 10px;  border-width: 0 0 1.5px 1.5px; }
+.corner.br { bottom: 10px; right: 10px; border-width: 0 1.5px 1.5px 0; }
+
+/* HUD COORDS */
+.hud-coords {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-cyan);
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+.hud-mode {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: var(--c-amber);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: rgba(245,166,35,0.1);
+  border: 1px solid rgba(245,166,35,0.3);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   PANEL DERECHO — INFO HOLOGRÁFICA
+═══════════════════════════════════════════════ */
+.info-content {
+  padding: 18px 16px;
+}
+
+.info-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 200px;
+  color: var(--c-text2);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.info-empty svg { opacity: 0.3; }
+
+.info-name {
+  font-family: var(--f-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.info-model {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-amber);
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.info-desc {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--c-text3);
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+.info-section-label {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--c-cyan);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.bus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+
+.bus-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-text3);
+}
+
+.bus-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bus-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--c-border2), transparent);
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.spec-cell {
+  background: rgba(0,200,255,0.04);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.spec-key {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: var(--c-text2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.spec-val {
+  font-family: var(--f-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-cyan2);
+  letter-spacing: 0.04em;
+}
+
+.nivel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+}
+
+/* ═══════════════════════════════════════════════
+   SECCIÓN CAPAS LÓGICAS
+═══════════════════════════════════════════════ */
+#modulo-capas {
+  position: relative;
+  z-index: 1;
+  padding: 36px 20px 60px;
+  border-top: 1px solid var(--c-border);
+}
+
+.capas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 700px) {
+  .capas-grid { grid-template-columns: 1fr; }
+}
+
+/* TORRE DE CAPAS */
+.layer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.layer-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 2px 0 0 2px;
+  background: var(--layer-color, var(--c-cyan));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.layer-item:hover, .layer-item.active {
+  background: rgba(0,200,255,0.07);
+  border-color: var(--c-border2);
+}
+
+.layer-item:hover::before, .layer-item.active::before {
+  opacity: 1;
+}
+
+.layer-num {
+  font-family: var(--f-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--layer-color, var(--c-cyan));
+  letter-spacing: 0.1em;
+  width: 22px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.layer-name {
+  font-family: var(--f-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text);
+  flex: 1;
+}
+
+.layer-tag {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: var(--c-text2);
+  letter-spacing: 0.06em;
+  text-align: right;
+}
+
+/* PANEL DE DETALLE DE CAPA */
+.layer-detail {
+  padding: 22px 20px;
+}
+
+.layer-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  color: var(--c-text2);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  gap: 12px;
+}
+
+.layer-detail-name {
+  font-family: var(--f-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.layer-detail-tag {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-amber);
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.layer-detail-desc {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--c-text3);
+  line-height: 1.75;
+  margin-bottom: 20px;
+}
+
+.example-block {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--c-border);
+  border-left: 3px solid var(--c-cyan);
+  border-radius: 0 6px 6px 0;
+  padding: 12px 14px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--c-green);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.example-block .comment { color: var(--c-text2); }
+.example-block .key     { color: var(--c-cyan); }
+.example-block .val     { color: var(--c-amber); }
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--c-border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-text2);
+  letter-spacing: 0.07em;
+}
+
+.footer-brand { color: var(--c-cyan); }
+
+/* ═══════════════════════════════════════════════
+   UTILITIES / ANIMATIONS
+═══════════════════════════════════════════════ */
+.fade-in { animation: fadeIn 0.4s ease both; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.glow-text-cyan  { text-shadow: 0 0 16px rgba(0,200,255,0.6); }
+.glow-text-amber { text-shadow: 0 0 16px rgba(245,166,35,0.6); }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────── -->
+<header>
+  <div class="logo-block">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#00c8ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2"/>
+        <path d="M6 10h.01M6 14h.01M10 10h4M10 14h4M18 10h.01M18 14h.01"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">AR-CORE VIRTUAL</div>
+      <div class="logo-sub">UPC · EPE · IS277 · ARQUITECTURA DE COMPUTADORAS</div>
+    </div>
+  </div>
+  <nav class="nav-pills">
+    <a href="#modulo-ar"    class="nav-pill active">Explorador AR</a>
+    <a href="#modulo-capas" class="nav-pill">Capas del sistema</a>
+  </nav>
+</header>
+
+<!-- ── STATUS BAR ──────────────────────────── -->
+<div class="status-bar">
+  <div class="status-item"><div class="status-dot"></div><span class="status-val">SISTEMA ACTIVO</span></div>
+  <div class="status-item">MODO: <span class="status-val">HOLOGRÁFICO</span></div>
+  <div class="status-item">RESOLUCIÓN: <span class="status-val">4K · 120Hz</span></div>
+  <div class="status-item" id="live-time">HORA: <span class="status-val">--:--:--</span></div>
+  <div class="status-item">SESIÓN: <span class="status-val">2026-1</span></div>
+</div>
+
+<!-- ── HERO ────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-eyebrow">Módulo didáctico interactivo</div>
+  <h1 class="hero-title">Arquitectura Interna<br><span>del Computador</span></h1>
+  <p class="hero-sub">Explora en tiempo real los componentes físicos y las capas lógicas que permiten al hardware comprender al software. Selecciona cualquier componente para desplegar su holograma descriptivo.</p>
+  <div class="hero-badges">
+    <span class="badge badge-cyan">Visualización 3D</span>
+    <span class="badge badge-amber">Nivel Intermedio</span>
+    <span class="badge badge-green">Interactivo</span>
+    <span class="badge badge-cyan">IS277 · EPE</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SECCIÓN 1 — EXPLORADOR AR
+═══════════════════════════════════════════ -->
+<section id="modulo-ar">
+  <div class="section-header">Explorador AR — componentes físicos</div>
+
+  <div class="ar-grid">
+
+    <!-- PANEL IZQUIERDO: lista de componentes -->
+    <div class="panel panel-components">
+      <div class="panel-header">
+        <span class="panel-title">Componentes</span>
+        <span class="panel-status"><span class="status-dot"></span>10 dispositivos</span>
+      </div>
+      <div class="comp-list" id="comp-list"></div>
+    </div>
+
+    <!-- PANEL CENTRAL: viewport AR -->
+    <div class="panel panel-viewport">
+      <div class="panel-header">
+        <span class="panel-title">Vista AR · Placa Base</span>
+        <span class="panel-status"><span class="status-dot"></span>Calibrado</span>
+      </div>
+      <div class="viewport-canvas" id="viewport-canvas">
+        <!-- Scanner overlay -->
+        <div class="scanner">
+          <div class="scan-line"></div>
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div class="hud-mode">MODO HOLOGRÁFICO</div>
+          <div class="hud-coords" id="hud-coords">X: 00.00 | Y: 00.00</div>
+        </div>
+
+        <!-- Placa base SVG INTERACTIVA -->
+        <div class="motherboard-wrap" id="mb-wrap">
+          <svg class="motherboard-svg" id="mb-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- Glow filters por color de componente -->
+              <filter id="glow-cyan" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="glow-amber" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="glow-green" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="glow-red" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- PCB body -->
+            <rect x="10" y="10" width="380" height="280" rx="8" fill="#060f1e" stroke="#1a3a5c" stroke-width="1.5"/>
+
+            <!-- Circuito traces de fondo -->
+            <g stroke="#0d2d4a" stroke-width="0.8" fill="none" opacity="0.6">
+              <path d="M70 30 L70 270 M115 30 L115 270 M155 30 L155 270 M200 30 L200 270 M245 30 L245 270 M285 30 L285 270 M325 30 L325 270"/>
+              <path d="M15 65 L385 65 M15 110 L385 110 M15 155 L385 155 M15 200 L385 200 M15 245 L385 245"/>
+            </g>
+            <!-- Neon traces activos (animados) -->
+            <g fill="none" stroke-linecap="round">
+              <path d="M115 65 L285 65 L285 155" stroke="rgba(0,200,255,0.3)" stroke-width="1.5" stroke-dasharray="5 9">
+                <animate attributeName="stroke-dashoffset" from="0" to="-280" dur="5s" repeatCount="indefinite"/>
+              </path>
+              <path d="M70 110 L200 110 L200 200 L325 200" stroke="rgba(0,255,157,0.25)" stroke-width="1.5" stroke-dasharray="5 9">
+                <animate attributeName="stroke-dashoffset" from="0" to="-280" dur="7s" repeatCount="indefinite"/>
+              </path>
+              <path d="M155 30 L155 155 L245 155" stroke="rgba(245,166,35,0.25)" stroke-width="1.2" stroke-dasharray="4 8">
+                <animate attributeName="stroke-dashoffset" from="0" to="-200" dur="6s" repeatCount="indefinite"/>
+              </path>
+              <path d="M285 155 L340 155 L340 200" stroke="rgba(0,200,255,0.2)" stroke-width="1" stroke-dasharray="3 7">
+                <animate attributeName="stroke-dashoffset" from="0" to="-150" dur="4s" repeatCount="indefinite"/>
+              </path>
+            </g>
+
+            <!-- ── COMPONENTES CLICKEABLES ────────────────── -->
+
+            <!-- CPU (centro) -->
+            <g class="mb-zone" id="zone-cpu" data-comp="cpu" data-label="CPU" data-sub="Intel i9-14900K">
+              <rect x="155" y="85" width="90" height="90" rx="5" fill="#0b1e38" stroke="rgba(0,200,255,0.55)" stroke-width="1.5"/>
+              <rect x="164" y="94" width="72" height="72" rx="3" fill="#071320" stroke="rgba(0,200,255,0.18)" stroke-width="1"/>
+              <!-- IHS pattern -->
+              <rect x="170" y="100" width="60" height="60" rx="2" fill="none" stroke="rgba(0,200,255,0.1)" stroke-width="0.5"/>
+              <line x1="200" y1="100" x2="200" y2="160" stroke="rgba(0,200,255,0.08)" stroke-width="0.5"/>
+              <line x1="170" y1="130" x2="230" y2="130" stroke="rgba(0,200,255,0.08)" stroke-width="0.5"/>
+              <text x="200" y="123" text-anchor="middle" dominant-baseline="central" fill="rgba(0,200,255,0.85)" font-family="Orbitron,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5">CPU</text>
+              <text x="200" y="139" text-anchor="middle" dominant-baseline="central" fill="rgba(0,200,255,0.5)" font-family="Space Mono,monospace" font-size="6.5">i9-14900K</text>
+              <!-- Pins row left -->
+              <g stroke="rgba(0,200,255,0.35)" stroke-width="0.9">
+                <line x1="158" y1="97"  x2="154" y2="97"/>
+                <line x1="158" y1="106" x2="154" y2="106"/>
+                <line x1="158" y1="115" x2="154" y2="115"/>
+                <line x1="158" y1="124" x2="154" y2="124"/>
+                <line x1="158" y1="133" x2="154" y2="133"/>
+                <line x1="158" y1="142" x2="154" y2="142"/>
+                <line x1="158" y1="151" x2="154" y2="151"/>
+                <line x1="158" y1="160" x2="154" y2="160"/>
+                <!-- right -->
+                <line x1="242" y1="97"  x2="246" y2="97"/>
+                <line x1="242" y1="106" x2="246" y2="106"/>
+                <line x1="242" y1="115" x2="246" y2="115"/>
+                <line x1="242" y1="124" x2="246" y2="124"/>
+                <line x1="242" y1="133" x2="246" y2="133"/>
+                <line x1="242" y1="142" x2="246" y2="142"/>
+                <line x1="242" y1="151" x2="246" y2="151"/>
+                <line x1="242" y1="160" x2="246" y2="160"/>
+              </g>
+              <!-- Click area invisible ampliada -->
+              <rect x="145" y="75" width="110" height="110" rx="5" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- Fan cooler (encima del CPU, rotando) -->
+            <g class="mb-zone" id="zone-cooler" data-comp="cooler" data-label="Cooler CPU" data-sub="Noctua NH-D15">
+              <circle cx="200" cy="130" r="52" fill="none" stroke="rgba(0,200,255,0.07)" stroke-width="1" stroke-dasharray="4 5"/>
+              <g>
+                <circle cx="200" cy="130" r="38" fill="rgba(0,10,25,0.4)" stroke="rgba(0,200,255,0.15)" stroke-width="0.8"/>
+                <!-- aspas del fan -->
+                <g stroke="rgba(0,200,255,0.2)" stroke-width="0.8" fill="rgba(0,200,255,0.05)">
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(0 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(45 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(90 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(135 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(180 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(225 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(270 200 130)"/>
+                  <ellipse cx="200" cy="113" rx="5" ry="14" transform="rotate(315 200 130)"/>
+                </g>
+                <circle cx="200" cy="130" r="7" fill="#071320" stroke="rgba(0,200,255,0.35)" stroke-width="1"/>
+                <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 200 130" to="360 200 130" dur="5s" repeatCount="indefinite"/>
+              </g>
+              <rect x="155" y="85" width="90" height="90" rx="5" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- RAM DDR5 slots -->
+            <g class="mb-zone" id="zone-ram" data-comp="ram" data-label="RAM DDR5" data-sub="32 GB × 2 · 7200 MT/s">
+              <rect x="296" y="32" width="18" height="130" rx="3" fill="#091a2e" stroke="rgba(0,255,157,0.55)" stroke-width="1.2"/>
+              <!-- chips en el módulo 1 -->
+              <rect x="299" y="40" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.25)" stroke-width="0.5"/>
+              <rect x="299" y="52" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.25)" stroke-width="0.5"/>
+              <rect x="299" y="64" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.25)" stroke-width="0.5"/>
+              <rect x="299" y="76" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.25)" stroke-width="0.5"/>
+              <rect x="299" y="88" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.25)" stroke-width="0.5"/>
+              <text x="305" y="100" text-anchor="middle" dominant-baseline="central" fill="rgba(0,255,157,0.65)" font-family="Orbitron,sans-serif" font-size="5.5" font-weight="700" transform="rotate(90,305,130)">DDR5</text>
+              <!-- slot 2 -->
+              <rect x="318" y="32" width="18" height="130" rx="3" fill="#091a2e" stroke="rgba(0,255,157,0.35)" stroke-width="1"/>
+              <rect x="321" y="40" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.15)" stroke-width="0.5"/>
+              <rect x="321" y="52" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.15)" stroke-width="0.5"/>
+              <rect x="321" y="64" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.15)" stroke-width="0.5"/>
+              <rect x="321" y="76" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.15)" stroke-width="0.5"/>
+              <rect x="321" y="88" width="12" height="7" rx="1" fill="#0d2a18" stroke="rgba(0,255,157,0.15)" stroke-width="0.5"/>
+              <!-- click area -->
+              <rect x="290" y="25" width="56" height="145" rx="3" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- GPU PCIe -->
+            <g class="mb-zone" id="zone-gpu" data-comp="gpu" data-label="GPU RTX 4090" data-sub="PCIe 5.0 x16">
+              <rect x="22" y="168" width="130" height="52" rx="4" fill="#0e1a08" stroke="rgba(245,166,35,0.55)" stroke-width="1.5"/>
+              <rect x="28" y="174" width="118" height="40" rx="2" fill="#080f04" stroke="rgba(245,166,35,0.12)" stroke-width="0.5"/>
+              <!-- GPU die layout -->
+              <rect x="34" y="178" width="36" height="32" rx="2" fill="#0d1a07" stroke="rgba(245,166,35,0.3)" stroke-width="0.8"/>
+              <text x="52" y="195" text-anchor="middle" dominant-baseline="central" fill="rgba(245,166,35,0.6)" font-family="Space Mono,monospace" font-size="4.5">GPC</text>
+              <!-- VRAM chips -->
+              <rect x="76" y="180" width="14" height="10" rx="1" fill="#0a1506" stroke="rgba(245,166,35,0.25)" stroke-width="0.5"/>
+              <rect x="76" y="194" width="14" height="10" rx="1" fill="#0a1506" stroke="rgba(245,166,35,0.25)" stroke-width="0.5"/>
+              <rect x="94" y="180" width="14" height="10" rx="1" fill="#0a1506" stroke="rgba(245,166,35,0.2)" stroke-width="0.5"/>
+              <rect x="94" y="194" width="14" height="10" rx="1" fill="#0a1506" stroke="rgba(245,166,35,0.2)" stroke-width="0.5"/>
+              <rect x="112" y="180" width="14" height="10" rx="1" fill="#0a1506" stroke="rgba(245,166,35,0.2)" stroke-width="0.5"/>
+              <rect x="112" y="194" width="14" height="10" rx="1" fill="#0a1506" stroke="rgba(245,166,35,0.2)" stroke-width="0.5"/>
+              <text x="87" y="213" text-anchor="middle" dominant-baseline="central" fill="rgba(245,166,35,0.75)" font-family="Orbitron,sans-serif" font-size="7" font-weight="700">RTX 4090</text>
+              <!-- Conector PCIe en la placa -->
+              <rect x="22" y="218" width="130" height="6" rx="1" fill="#060e03" stroke="rgba(245,166,35,0.3)" stroke-width="0.8"/>
+              <rect x="22" y="224" width="3" height="60" rx="1" fill="rgba(245,166,35,0.2)"/>
+              <rect x="22" y="162" width="130" height="60" rx="4" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- SSD M.2 -->
+            <g class="mb-zone" id="zone-ssd" data-comp="ssd" data-label="SSD NVMe" data-sub="Samsung 990 Pro · 2 TB">
+              <rect x="22" y="42" width="80" height="14" rx="2" fill="#09172e" stroke="rgba(0,200,255,0.42)" stroke-width="1"/>
+              <rect x="25" y="45" width="18" height="8" rx="1" fill="#071020" stroke="rgba(0,200,255,0.2)" stroke-width="0.5"/>
+              <rect x="47" y="45" width="18" height="8" rx="1" fill="#071020" stroke="rgba(0,200,255,0.2)" stroke-width="0.5"/>
+              <rect x="69" y="45" width="18" height="8" rx="1" fill="#071020" stroke="rgba(0,200,255,0.2)" stroke-width="0.5"/>
+              <text x="62" y="49" text-anchor="middle" dominant-baseline="central" fill="rgba(0,200,255,0.65)" font-family="Space Mono,monospace" font-size="4.5">M.2 NVMe</text>
+              <rect x="20" y="35" width="86" height="26" rx="2" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- Chipset -->
+            <g class="mb-zone" id="zone-chipset" data-comp="chipset" data-label="Chipset Z790" data-sub="Intel PCH · Hub E/S">
+              <rect x="255" y="188" width="56" height="56" rx="4" fill="#091727" stroke="rgba(0,200,255,0.38)" stroke-width="1.2"/>
+              <rect x="262" y="195" width="42" height="42" rx="2" fill="#060f1e" stroke="rgba(0,200,255,0.14)" stroke-width="0.5"/>
+              <text x="283" y="218" text-anchor="middle" dominant-baseline="central" fill="rgba(0,200,255,0.65)" font-family="Orbitron,sans-serif" font-size="7" font-weight="700">Z790</text>
+              <text x="283" y="230" text-anchor="middle" dominant-baseline="central" fill="rgba(0,200,255,0.35)" font-family="Space Mono,monospace" font-size="5">CHIPSET</text>
+              <rect x="248" y="180" width="72" height="72" rx="4" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- PSU 24-pin -->
+            <g class="mb-zone" id="zone-psu" data-comp="psu" data-label="Fuente ATX" data-sub="24-pin · 1200 W">
+              <rect x="344" y="196" width="38" height="70" rx="3" fill="#1a060a" stroke="rgba(255,69,96,0.48)" stroke-width="1.2"/>
+              <!-- pines del conector -->
+              <g fill="#0f0407" stroke="rgba(255,69,96,0.25)" stroke-width="0.5">
+                <rect x="348" y="202" width="8" height="5" rx="1"/>
+                <rect x="360" y="202" width="8" height="5" rx="1"/>
+                <rect x="372" y="202" width="6" height="5" rx="1"/>
+                <rect x="348" y="211" width="8" height="5" rx="1"/>
+                <rect x="360" y="211" width="8" height="5" rx="1"/>
+                <rect x="372" y="211" width="6" height="5" rx="1"/>
+                <rect x="348" y="220" width="8" height="5" rx="1"/>
+                <rect x="360" y="220" width="8" height="5" rx="1"/>
+                <rect x="372" y="220" width="6" height="5" rx="1"/>
+                <rect x="348" y="229" width="8" height="5" rx="1"/>
+                <rect x="360" y="229" width="8" height="5" rx="1"/>
+                <rect x="372" y="229" width="6" height="5" rx="1"/>
+              </g>
+              <text x="363" y="255" text-anchor="middle" dominant-baseline="central" fill="rgba(255,69,96,0.65)" font-family="Orbitron,sans-serif" font-size="4.5" font-weight="700" transform="rotate(-90,363,248)">ATX 24P</text>
+              <rect x="338" y="188" width="52" height="86" rx="3" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- I/O shield -->
+            <g class="mb-zone" id="zone-io" data-comp="io" data-label="Panel I/O" data-sub="USB · DP · LAN · Audio">
+              <rect x="10" y="10" width="14" height="90" rx="2" fill="#080f1c" stroke="rgba(0,200,255,0.3)" stroke-width="0.8"/>
+              <g fill="rgba(0,200,255,0.5)" font-family="Space Mono,monospace" font-size="4" text-anchor="middle">
+                <text x="17" y="24">USB</text>
+                <text x="17" y="36">USB</text>
+                <text x="17" y="48">DP</text>
+                <text x="17" y="60">HDMI</text>
+                <text x="17" y="72">LAN</text>
+                <text x="17" y="84">AUD</text>
+              </g>
+              <!-- ranuras USB -->
+              <rect x="12" y="20" width="10" height="5" rx="0.5" fill="#050c1a" stroke="rgba(0,200,255,0.2)" stroke-width="0.5"/>
+              <rect x="12" y="32" width="10" height="5" rx="0.5" fill="#050c1a" stroke="rgba(0,200,255,0.2)" stroke-width="0.5"/>
+              <rect x="10" y="5" width="20" height="105" rx="2" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- BIOS chip -->
+            <g class="mb-zone" id="zone-bios" data-comp="bios" data-label="BIOS UEFI" data-sub="AMI Aptio 5 · SPI Flash">
+              <rect x="104" y="44" width="34" height="18" rx="2" fill="#10150a" stroke="rgba(245,166,35,0.42)" stroke-width="1"/>
+              <rect x="107" y="47" width="28" height="12" rx="1" fill="#08100a" stroke="rgba(245,166,35,0.15)" stroke-width="0.5"/>
+              <text x="121" y="54" text-anchor="middle" dominant-baseline="central" fill="rgba(245,166,35,0.7)" font-family="Space Mono,monospace" font-size="5.5">BIOS</text>
+              <rect x="98" y="36" width="48" height="34" rx="2" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- Bus system (líneas decorativas que pasan por el centro) -->
+            <g class="mb-zone" id="zone-bus" data-comp="bus" data-label="Sistema de Buses" data-sub="PCIe 5.0 · DMI · SDRAM">
+              <!-- área de buses visible -->
+              <rect x="160" y="240" width="80" height="28" rx="3" fill="#070f1e" stroke="rgba(0,200,255,0.22)" stroke-width="0.8" stroke-dasharray="3 3"/>
+              <text x="200" y="255" text-anchor="middle" dominant-baseline="central" fill="rgba(0,200,255,0.4)" font-family="Orbitron,sans-serif" font-size="5.5" letter-spacing="1">BUS MATRIX</text>
+              <rect x="150" y="232" width="100" height="44" rx="3" fill="transparent" stroke="none"/>
+            </g>
+
+            <!-- Capa de pulsos animados (se inyectan por JS) -->
+            <g id="pulse-layer"></g>
+          </svg>
+        </div>
+
+        <!-- Tooltip holográfico flotante (se posiciona por JS) -->
+        <div class="holo-tooltip" id="holo-tooltip" style="display:none;left:50%;top:50%">
+          <div id="tooltip-title">CPU</div>
+          <div class="holo-tooltip-sub" id="tooltip-sub">Intel i9-14900K</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL DERECHO: info del componente -->
+    <div class="panel panel-info">
+      <div class="panel-header">
+        <span class="panel-title">Holograma descriptivo</span>
+        <span class="panel-status" id="info-status"><span class="status-dot" style="background:var(--c-text2);box-shadow:none"></span>Sin selección</span>
+      </div>
+      <div id="info-content" class="info-content">
+        <div class="info-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          <div>Selecciona un componente<br>para ver su análisis</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SECCIÓN 2 — CAPAS LÓGICAS
+═══════════════════════════════════════════ -->
+<section id="modulo-capas">
+  <div class="section-header">Arquitectura interna por capas</div>
+
+  <div class="capas-grid">
+
+    <!-- Torre de capas -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Modelo de capas</span>
+        <span class="panel-status">7 niveles</span>
+      </div>
+      <div class="layer-stack" id="layer-stack"></div>
+    </div>
+
+    <!-- Detalle de capa -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Análisis de capa</span>
+        <span class="panel-status" id="layer-status"><span class="status-dot" style="background:var(--c-text2);box-shadow:none"></span>Sin selección</span>
+      </div>
+      <div id="layer-detail" class="layer-detail">
+        <div class="layer-detail-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <div>Selecciona una capa<br>del diagrama</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────── -->
+<footer>
+  <span>© 2026 · AR-CORE VIRTUAL · FINES EDUCATIVOS</span>
+  <span class="footer-brand">UPC · EPE · IS277 · ARQUITECTURA DE COMPUTADORAS</span>
+</footer>
+
+
+<script>
+/* ═══════════════════════════════════════════
+   DATOS — COMPONENTES
+═══════════════════════════════════════════ */
+const componentes = [
+  {
+    id: 'cpu', icon: '🔲', label: 'CPU',
+    nombre: 'Procesador CPU', modelo: 'Intel Core i9-14900K · LGA1700',
+    desc: 'El cerebro del computador. Ejecuta instrucciones fetch-decode-execute a ~6 GHz, coordina todos los subsistemas y gestiona la caché de tres niveles (L1/L2/L3). Arquitectura híbrida: 8 P-cores + 16 E-cores = 24 núcleos.',
+    buses: [
+      { name: 'Bus de datos (64-bit)',    color: '#00c8ff' },
+      { name: 'Bus de dirección (48-bit)',color: '#00ff9d' },
+      { name: 'Bus de control',           color: '#f5a623' },
+      { name: 'DMI 4.0 → Chipset',        color: '#00c8ff' },
+    ],
+    specs: [ ['Frecuencia','6.0 GHz'], ['Núcleos','24 (8P+16E)'], ['Caché L3','36 MB'], ['TDP','125 W'] ],
+    nivel: 'Avanzado', nivel_color: '#f5a623',
+    ejemplo: '<span class="key">MOV</span> <span class="val">AX</span>, [BX]\n<span class="key">ADD</span> <span class="val">AX</span>, 0x0F\n<span class="comment">; Fetch → Decode → Execute</span>',
+  },
+  {
+    id: 'ram', icon: '💾', label: 'RAM DDR5',
+    nombre: 'Memoria RAM', modelo: 'DDR5-7200 · 32 GB × 2',
+    desc: 'Almacenamiento volátil de acceso aleatorio. El CPU accede a RAM en ~80 ns cuando falla caché (miss). DDR5 duplica el ancho de banda respecto a DDR4 con 64 GB/s por canal, usando corrección de error on-die (ECC).',
+    buses: [
+      { name: 'Bus de memoria (64-bit)',  color: '#00ff9d' },
+      { name: 'Canal A / Canal B',        color: '#00ff9d' },
+      { name: 'Bus de reloj (CKE/CLK)',   color: '#00c8ff' },
+    ],
+    specs: [ ['Velocidad','7200 MT/s'], ['Latencia','CL34'], ['Capacidad','64 GB'], ['Voltaje','1.1 V'] ],
+    nivel: 'Intermedio', nivel_color: '#00ff9d',
+    ejemplo: '<span class="comment">; DRAM refresh cada 64 ms</span>\n<span class="key">MOV</span> <span class="val">ECX</span>, 64 <span class="comment">; filas</span>\n<span class="key">LOOP</span> <span class="val">refresh_row</span>',
+  },
+  {
+    id: 'gpu', icon: '🎮', label: 'GPU RTX 4090',
+    nombre: 'Tarjeta Gráfica', modelo: 'NVIDIA RTX 4090 · Ada Lovelace',
+    desc: 'Co-procesador masivamente paralelo: 16,384 CUDA cores ejecutan shaders simultáneamente. Conectado vía PCIe 5.0 x16 (128 GB/s). Cuenta con memoria GDDR6X dedicada (24 GB) y núcleos Tensor para IA en hardware.',
+    buses: [
+      { name: 'PCIe 5.0 x16 (128 GB/s)', color: '#f5a623' },
+      { name: 'GDDR6X Bus (512-bit)',      color: '#f5a623' },
+      { name: 'NVLink (opcional)',          color: '#00c8ff' },
+    ],
+    specs: [ ['CUDA Cores','16,384'], ['VRAM','24 GB GDDR6X'], ['TDP','450 W'], ['RT Cores','Gen 4'] ],
+    nivel: 'Avanzado', nivel_color: '#f5a623',
+    ejemplo: '<span class="comment">// Kernel CUDA paralelo</span>\n<span class="key">__global__</span> <span class="val">void</span> vec_add(\n  <span class="val">int</span> *a, <span class="val">int</span> *b, <span class="val">int</span> n) {\n  <span class="val">int</span> i = blockIdx.x * blockDim.x\n           + threadIdx.x;\n}',
+  },
+  {
+    id: 'ssd', icon: '💿', label: 'SSD NVMe',
+    nombre: 'SSD M.2 NVMe', modelo: 'Samsung 990 Pro · 2 TB · PCIe 4.0',
+    desc: 'Almacenamiento no volátil de alta velocidad. Protocolo NVMe elimina la latencia del bus SATA usando PCIe directamente. Celdas NAND flash V-NAND de 3 bits (TLC) organizadas en páginas de 4 KB y bloques de 512 KB.',
+    buses: [
+      { name: 'PCIe 4.0 x4 (8 GB/s)',   color: '#00c8ff' },
+      { name: 'NVMe 2.0 Command Set',    color: '#00c8ff' },
+      { name: 'NAND Flash Bus interno',  color: '#00ff9d' },
+    ],
+    specs: [ ['Lectura secuencial','7.4 GB/s'], ['Escritura','6.9 GB/s'], ['IOPS lectura','1.6 M'], ['NAND','V-NAND TLC'] ],
+    nivel: 'Intermedio', nivel_color: '#00c8ff',
+    ejemplo: '<span class="comment"># fstrim optimiza celdas</span>\n<span class="key">sudo</span> <span class="val">fstrim</span> -av\n<span class="comment"># hdparm mide velocidad</span>\n<span class="key">sudo</span> <span class="val">hdparm</span> -tT /dev/nvme0',
+  },
+  {
+    id: 'chipset', icon: '🔌', label: 'Chipset Z790',
+    nombre: 'Chipset Intel Z790', modelo: 'Hub de E/S · PCH · LGA1700',
+    desc: 'Platform Controller Hub: gestiona los buses secundarios (USB, SATA, PCIe lanes adicionales). Se comunica con el CPU vía DMI 4.0 (64 GB/s). Distribuye recursos de E/S sin consumir los lanes directos del procesador.',
+    buses: [
+      { name: 'DMI 4.0 × 8 → CPU',     color: '#00c8ff' },
+      { name: 'USB 3.2 Gen 2×2',        color: '#00ff9d' },
+      { name: 'SATA III (6 puertos)',   color: '#f5a623' },
+      { name: 'PCIe 4.0 × 12 lanes',   color: '#00c8ff' },
+    ],
+    specs: [ ['Lanes PCIe','28 totales'], ['USB 3.2','2×2 + 3.2×1'], ['Overclocking','Sí'], ['DMI','4.0 × 8'] ],
+    nivel: 'Avanzado', nivel_color: '#00c8ff',
+    ejemplo: '<span class="comment">// Registro de config PCH</span>\n<span class="key">RCBA</span> = <span class="val">0xFED1C000</span>\n<span class="key">TCOBASE</span> = <span class="val">RCBA + 0x0400</span>\n<span class="comment">// Base addr TCO timer</span>',
+  },
+  {
+    id: 'psu', icon: '⚡', label: 'Fuente ATX',
+    nombre: 'Fuente de Poder ATX', modelo: 'Corsair HX1200i · 1200 W · 80+ Platinum',
+    desc: 'Convierte corriente alterna (220 V, 50 Hz) en corrientes continuas estabilizadas para el sistema: +12V (CPU/GPU), +5V (lógica), +3.3V (RAM/almacenamiento), con eficiencia del 94% a carga media.',
+    buses: [
+      { name: 'Rail +12V (CPU 8-pin)',  color: '#ff4560' },
+      { name: 'Rail +12V (GPU 16-pin)', color: '#ff4560' },
+      { name: 'Conector 24-pin ATX',    color: '#f5a623' },
+    ],
+    specs: [ ['Potencia','1200 W'], ['Eficiencia','94% (Platinum)'], ['+12V rail','100 A'], ['Modular','Completamente'] ],
+    nivel: 'Básico', nivel_color: '#00ff9d',
+    ejemplo: '<span class="comment"># Señal PS_ON# (active-low)</span>\n<span class="val">Pin 16</span>: PS_ON# → GND\n<span class="val">Pin 8 </span>: PWR_OK → 5V\n<span class="comment"># POST verifica ±5% tolerancia</span>',
+  },
+  {
+    id: 'bios', icon: '🔧', label: 'BIOS/UEFI',
+    nombre: 'BIOS / UEFI Firmware', modelo: 'AMI Aptio 5 · 256 MB SPI Flash',
+    desc: 'Firmware almacenado en memoria SPI Flash no volátil. UEFI reemplaza al BIOS legado: soporta GPT, arranque seguro (Secure Boot), interfaz gráfica nativa, drivers de 64 bits en pre-OS y Compatibility Support Module para legado.',
+    buses: [
+      { name: 'SPI Flash Bus (33 MHz)', color: '#f5a623' },
+      { name: 'LPC Bus → Super I/O',   color: '#00c8ff' },
+      { name: 'ESPI → Chipset',        color: '#00c8ff' },
+    ],
+    specs: [ ['Estándar','UEFI 2.10'], ['Flash','256 MB SPI'], ['Secure Boot','TPM 2.0'], ['POST','~1.5 seg'] ],
+    nivel: 'Intermedio', nivel_color: '#00c8ff',
+    ejemplo: '<span class="comment">; Vector de reset x86</span>\n<span class="key">FFFFFFF0h</span>: <span class="val">JMP FAR 0xF000:E05B</span>\n<span class="comment">; CPU ejecuta esto al encender</span>\n<span class="comment">; → POST → Bootstrap Loader</span>',
+  },
+  {
+    id: 'cooler', icon: '🌀', label: 'Cooler CPU',
+    nombre: 'Sistema de Refrigeración', modelo: 'Noctua NH-D15 / 240mm AIO',
+    desc: 'Disipa el calor generado por la CPU (TDP 125–253 W en modo Turbo). El calor pasa por pasta térmica (interfaz sólido-metal) al heatsink de cobre/aluminio y se extrae mediante ventiladores PWM controlados por el BIOS vía señal 4-pin.',
+    buses: [
+      { name: 'PWM 4-pin (25kHz)',      color: '#00c8ff' },
+      { name: 'Sensor tach (RPM)',      color: '#00ff9d' },
+    ],
+    specs: [ ['TDP máximo','250 W'], ['Ruido','24.6 dB(A)'], ['Control','PWM automático'], ['Pasta','NT-H1'] ],
+    nivel: 'Básico', nivel_color: '#00ff9d',
+    ejemplo: '<span class="comment">// BIOS control PWM</span>\n<span class="val">FAN_DUTY</span> = map(<span class="key">temp</span>,\n  40, 90,  <span class="comment">// °C</span>\n  20, 100  <span class="comment">// % duty</span>\n);',
+  },
+  {
+    id: 'io', icon: '🔗', label: 'Puertos I/O',
+    nombre: 'Panel de Puertos I/O', modelo: 'Rear I/O Shield · Frontal USB-C',
+    desc: 'Interfaz física entre el sistema y dispositivos externos. El panel trasero conecta perifèrics mediante USB 3.2, Thunderbolt 4, DisplayPort 2.1, HDMI 2.1, RJ-45 2.5G LAN y audio 7.1 surround via Realtek ALC4082.',
+    buses: [
+      { name: 'Thunderbolt 4 (40 Gbps)',color: '#00c8ff' },
+      { name: 'USB 3.2 Gen2 (10 Gbps)',  color: '#00ff9d' },
+      { name: 'DisplayPort 2.1',         color: '#f5a623' },
+      { name: 'Ethernet 2.5 GbE',        color: '#00c8ff' },
+    ],
+    specs: [ ['USB Total','12 puertos'], ['TB4 ports','2'], ['Audio','7.1 HD'], ['LAN','2.5 Gbps'] ],
+    nivel: 'Básico', nivel_color: '#00ff9d',
+    ejemplo: '<span class="comment"># Inspeccionar dispositivos USB</span>\n<span class="key">lsusb</span> -t\n<span class="comment"># Ver velocidad de enlace</span>\n<span class="key">ethtool</span> <span class="val">eth0</span>',
+  },
+  {
+    id: 'bus', icon: '🔀', label: 'Sistema de Buses',
+    nombre: 'Sistema de Buses', modelo: 'PCIe 5.0 · DMI 4.0 · SDRAM',
+    desc: 'Red de comunicación interna que interconecta todos los componentes. Los buses modernos son seriales y diferenciales (mayor inmunidad al ruido, menor EM). La jerarquía: CPU → Chipset → Dispositivos E/S minimiza la latencia.',
+    buses: [
+      { name: 'FSB / QPI → DDR5 Ctrl',  color: '#00c8ff' },
+      { name: 'PCIe 5.0 × 16 (GPU)',     color: '#f5a623' },
+      { name: 'PCIe 4.0 × 4 (NVMe)',     color: '#00c8ff' },
+    ],
+    specs: [ ['BW pico CPU-RAM','96 GB/s'], ['PCIe 5.0 x16','128 GB/s'], ['Slots total','5 PCIe'], ['Protocolo','Serial diferencial'] ],
+    nivel: 'Avanzado', nivel_color: '#f5a623',
+    ejemplo: '<span class="comment">// MMIO BAR de PCIe device</span>\n<span class="key">lspci</span> -vvv | grep <span class="val">Memory</span>\n<span class="comment">// BAR0: 0xf6000000 64-bit</span>',
+  },
+];
+
+/* ═══════════════════════════════════════════
+   DATOS — CAPAS LÓGICAS
+═══════════════════════════════════════════ */
+const capas = [
+  {
+    num: '7', name: 'Usuario / Aplicación',
+    tag: 'HMI · UI',
+    color: '#f5a623',
+    desc: 'El usuario interactúa con una aplicación (navegador, juego, IDE). La aplicación llama a funciones de biblioteca de alto nivel sin conocer el hardware subyacente. Nivel de abstracción máximo.',
+    interaccion: 'Click en botón → evento JavaScript → llamada a función',
+    ejemplo: '<span class="comment">// Python — nivel de usuario</span>\nwith <span class="key">open</span>(<span class="val">"datos.txt"</span>, <span class="val">"r"</span>) as f:\n    contenido = f.<span class="key">read</span>()\n<span class="comment"># No sabes si es HDD o SSD</span>',
+  },
+  {
+    num: '6', name: 'Sistema Operativo',
+    tag: 'Kernel · Scheduler',
+    color: '#00c8ff',
+    desc: 'El kernel gestiona recursos (CPU, memoria, dispositivos) mediante llamadas al sistema (syscalls). Proporciona abstracción del hardware, protección de memoria (rings 0-3) y planificación de procesos.',
+    interaccion: 'Llamada al sistema → ring 0 → driver → hardware',
+    ejemplo: '<span class="comment">; Linux syscall open()</span>\n<span class="key">mov</span> <span class="val">rax</span>, 2      <span class="comment">; SYS_open</span>\n<span class="key">mov</span> <span class="val">rdi</span>, filename\n<span class="key">syscall</span>         <span class="comment">; INT 0x80</span>',
+  },
+  {
+    num: '5', name: 'Driver / HAL',
+    tag: 'Hardware Abstraction Layer',
+    color: '#00ff9d',
+    desc: 'El driver traduce peticiones genéricas del SO a comandos específicos del dispositivo. La HAL (Hardware Abstraction Layer) permite que el kernel sea portátil entre distintas arquitecturas.',
+    interaccion: 'IRP → driver stack → controlador → registros de hardware',
+    ejemplo: '<span class="comment">// WDM driver — Windows</span>\n<span class="key">DriverEntry</span>(DRIVER_OBJECT *drv) {\n  drv->MajorFunction[IRP_MJ_READ]\n      = MyReadHandler;\n}',
+  },
+  {
+    num: '4', name: 'Sistema Operativo base · ISA',
+    tag: 'Instruction Set Architecture',
+    color: '#00c8ff',
+    desc: 'La ISA define el contrato entre software y hardware: qué instrucciones existen, cómo se codifican en binario y el modelo de registros. x86-64 tiene ~1500 instrucciones; ARM Cortex opta por RISC (~100 básicas).',
+    interaccion: 'Código máquina binario → decodificador CPU → micro-ops',
+    ejemplo: '<span class="comment">; x86-64 — suma de enteros</span>\n<span class="key">0x48</span> <span class="val">0x01</span> <span class="val">0xC3</span>\n<span class="comment">; ADD rbx, rax</span>\n<span class="comment">; Opcode | ModRM | SIB</span>',
+  },
+  {
+    num: '3', name: 'Microarquitectura',
+    tag: 'Pipeline · Cache · Branch Pred.',
+    color: '#f5a623',
+    desc: 'Implementación interna de la ISA. Define el pipeline (cuántas etapas: Intel Raptor Lake = 20 etapas), la caché (L1d/L1i/L2/L3), la predicción de ramas y la ejecución fuera de orden (OoO). Invisible al programador.',
+    interaccion: 'Micro-ops → reorder buffer → execution units → commit',
+    ejemplo: '<span class="comment">// Branch misprediction penalty</span>\n<span class="val">~15-20</span> ciclos de penalización\n<span class="key">RDTSC</span> <span class="comment">; medir ciclos</span>\n<span class="comment">// IPC Raptor Lake: ~5-6</span>',
+  },
+  {
+    num: '2', name: 'Lógica Digital',
+    tag: 'Compuertas · Flip-flops · ALU',
+    color: '#00c8ff',
+    desc: 'Circuitos digitales que implementan la microarquitectura: compuertas NAND/NOR, multiplexores, registros (flip-flops D), la ALU (suma, AND, OR, comparación) y la unidad de control. Diseñados con HDL (Verilog/VHDL).',
+    interaccion: 'Señales eléctricas (0/1) → compuertas → resultado en ns',
+    ejemplo: '<span class="comment">// Verilog — Full Adder</span>\n<span class="key">module</span> <span class="val">fa</span>(a, b, cin, sum, cout);\n  <span class="key">assign</span> sum  = a ^ b ^ cin;\n  <span class="key">assign</span> cout = (a&b)|(a&cin);\n<span class="key">endmodule</span>',
+  },
+  {
+    num: '1', name: 'Circuito Electrónico · Física',
+    tag: 'Transistor · MOSFET · Señal eléctrica',
+    color: '#ff4560',
+    desc: 'El nivel físico: transistores MOSFET de 3 nm (Intel Intel 4 node) conmutan entre saturación (1) y corte (0) en ~0.3 ns. Un i9-14900K contiene ~24,000 millones de transistores en 257 mm². La física cuántica limita la miniaturización.',
+    interaccion: 'Voltaje VGS → canal MOSFET → corriente IDS → nivel lógico',
+    ejemplo: '<span class="comment">// Transistor FinFET 3nm</span>\n<span class="val">VDD</span>  = <span class="key">0.8 V</span>   <span class="comment">// alimentación</span>\n<span class="val">VTH</span>  = <span class="key">0.25V</span>  <span class="comment">// umbral</span>\n<span class="val">tPD</span>  = <span class="key">~0.3ns</span> <span class="comment">// retardo</span>',
+  },
+];
+
+/* ═══════════════════════════════════════════
+   RENDERIZADO: LISTA DE COMPONENTES
+═══════════════════════════════════════════ */
+const compList = document.getElementById('comp-list');
+
+componentes.forEach(c => {
+  const btn = document.createElement('button');
+  btn.className = 'comp-btn';
+  btn.dataset.id = c.id;
+  btn.innerHTML = `
+    <div class="comp-icon">${c.icon}</div>
+    <div>
+      <div class="comp-name">${c.label}</div>
+    </div>
+  `;
+  btn.addEventListener('click', () => selectComp(c.id, 'list'));
+  compList.appendChild(btn);
+});
+
+/* ═══════════════════════════════════════════
+   INTERACCIÓN SVG — ZONAS CLICKEABLES
+═══════════════════════════════════════════ */
+const tooltip   = document.getElementById('holo-tooltip');
+const tooltipT  = document.getElementById('tooltip-title');
+const tooltipS  = document.getElementById('tooltip-sub');
+const pulseLayer = document.getElementById('pulse-layer');
+const mbSvg     = document.getElementById('mb-svg');
+const canvas    = document.getElementById('viewport-canvas');
+
+// Mapeo de zona SVG → posición central (cx, cy en viewBox 400×300)
+// usada para posicionar el tooltip y los pulsos
+const zoneCenters = {
+  cpu:     { cx: 200, cy: 130 },
+  ram:     { cx: 316, cy:  97 },
+  gpu:     { cx:  87, cy: 194 },
+  ssd:     { cx:  62, cy:  49 },
+  chipset: { cx: 283, cy: 216 },
+  psu:     { cx: 363, cy: 231 },
+  io:      { cx:  17, cy:  55 },
+  bios:    { cx: 121, cy:  53 },
+  cooler:  { cx: 200, cy: 130 },
+  bus:     { cx: 200, cy: 254 },
+};
+
+const zoneColors = {
+  cpu: '#00c8ff', ram: '#00ff9d', gpu: '#f5a623', ssd: '#00c8ff',
+  chipset: '#00c8ff', psu: '#ff4560', io: '#00c8ff', bios: '#f5a623',
+  cooler: '#00c8ff', bus: '#00c8ff',
+};
+
+// Convierte coords viewBox → posición % en el canvas real
+function svgToCanvas(cx, cy) {
+  const svgEl = mbSvg;
+  const wrap  = document.getElementById('mb-wrap');
+  const wrapRect = wrap.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  // The SVG viewBox is 400×300; the wrap element renders it scaled
+  const scaleX = wrapRect.width  / 400;
+  const scaleY = wrapRect.height / 300;
+  const offsetX = wrapRect.left - canvasRect.left;
+  const offsetY = wrapRect.top  - canvasRect.top;
+  return {
+    x: offsetX + cx * scaleX,
+    y: offsetY + cy * scaleY,
+  };
+}
+
+function spawnPulse(compId) {
+  const zc = zoneCenters[compId];
+  if (!zc) return;
+  const color = zoneColors[compId] || '#00c8ff';
+  // Eliminar pulso anterior
+  const old = pulseLayer.querySelector(`[data-pulse="${compId}"]`);
+  if (old) old.remove();
+  // Radio según componente
+  const rMap = { cpu: 52, cooler: 52, gpu: 38, ram: 20, ssd: 14, chipset: 32, psu: 24, io: 12, bios: 14, bus: 22 };
+  const r = rMap[compId] || 24;
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', zc.cx);
+  circle.setAttribute('cy', zc.cy);
+  circle.setAttribute('r', r);
+  circle.setAttribute('stroke', color);
+  circle.setAttribute('stroke-width', '2');
+  circle.setAttribute('fill', 'none');
+  circle.setAttribute('class', 'pulse-ring');
+  circle.setAttribute('data-pulse', compId);
+  // Segunda onda
+  const circle2 = circle.cloneNode();
+  circle2.setAttribute('r', r * 0.6);
+  circle2.style.animationDelay = '0.2s';
+  circle2.setAttribute('data-pulse', compId + '-2');
+  pulseLayer.appendChild(circle);
+  pulseLayer.appendChild(circle2);
+  // limpiar después de la animación
+  setTimeout(() => { circle.remove(); circle2.remove(); }, 1600);
+}
+
+function showTooltip(compId) {
+  const data = componentes.find(c => c.id === compId);
+  if (!data) return;
+  const zc = zoneCenters[compId];
+  if (!zc) return;
+  const pos = svgToCanvas(zc.cx, zc.cy);
+  tooltipT.textContent = data.nombre;
+  tooltipS.textContent = data.modelo;
+  tooltip.style.left   = pos.x + 'px';
+  tooltip.style.top    = pos.y + 'px';
+  tooltip.style.display = 'block';
+  tooltip.style.borderColor = zoneColors[compId] || '#00c8ff';
+  tooltip.style.color = zoneColors[compId] || '#00c8ff';
+  // auto-ocultar
+  clearTimeout(tooltip._timer);
+  tooltip._timer = setTimeout(() => { tooltip.style.display = 'none'; }, 2800);
+}
+
+function highlightZone(compId) {
+  // Quitar activo anterior
+  document.querySelectorAll('.mb-zone').forEach(z => z.classList.remove('mb-active'));
+  const zone = document.getElementById('zone-' + compId);
+  if (zone) zone.classList.add('mb-active');
+}
+
+// Conectar cada zona SVG con click + hover
+document.querySelectorAll('.mb-zone').forEach(zone => {
+  const id = zone.dataset.comp;
+  if (!id) return;
+
+  zone.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectComp(id, 'svg');
+  });
+
+  zone.addEventListener('mouseenter', () => {
+    const data = componentes.find(c => c.id === id);
+    if (!data) return;
+    const zc = zoneCenters[id];
+    if (!zc) return;
+    const pos = svgToCanvas(zc.cx, zc.cy);
+    tooltipT.textContent = data.label;
+    tooltipS.textContent = zone.dataset.sub || '';
+    tooltip.style.left = pos.x + 'px';
+    tooltip.style.top  = pos.y + 'px';
+    tooltip.style.display = 'block';
+    tooltip.style.borderColor = zoneColors[id] || '#00c8ff';
+    tooltip.style.color = zoneColors[id] || '#00c8ff';
+    clearTimeout(tooltip._timer);
+  });
+
+  zone.addEventListener('mouseleave', () => {
+    tooltip._timer = setTimeout(() => { tooltip.style.display = 'none'; }, 400);
+  });
+});
+
+// Click fuera del SVG oculta tooltip
+canvas.addEventListener('click', () => { tooltip.style.display = 'none'; });
+
+/* ═══════════════════════════════════════════
+   LÓGICA: SELECCIÓN DE COMPONENTE
+═══════════════════════════════════════════ */
+let activeComp = null;
+
+function selectComp(id, source = 'list') {
+  activeComp = id;
+  const data = componentes.find(c => c.id === id);
+  if (!data) return;
+
+  // 1. Actualizar botones de la lista
+  document.querySelectorAll('.comp-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+
+  // 2. Highlight + pulso en el SVG
+  highlightZone(id);
+  spawnPulse(id);
+
+  // 3. Tooltip si viene del click en lista (si viene del SVG ya está visible)
+  if (source === 'list') {
+    showTooltip(id);
+  }
+
+  // 4. Renderizar panel de info
+  const ic = document.getElementById('info-content');
+  ic.innerHTML = `
+    <div class="info-content fade-in">
+      <div class="info-name">${data.nombre}</div>
+      <div class="info-model">${data.modelo}</div>
+      <p class="info-desc">${data.desc}</p>
+
+      <div class="info-section-label">Conectividad de Bus</div>
+      <div class="bus-list">
+        ${data.buses.map(b => `
+          <div class="bus-item">
+            <div class="bus-dot" style="background:${b.color};box-shadow:0 0 6px ${b.color}"></div>
+            <span style="font-size:11px;font-family:var(--f-mono);letter-spacing:0.04em">${b.name}</span>
+            <div class="bus-line" style="background:linear-gradient(90deg,${b.color}60,transparent)"></div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="info-section-label">Especificaciones técnicas</div>
+      <div class="spec-grid">
+        ${data.specs.map(([k,v]) => `
+          <div class="spec-cell">
+            <div class="spec-key">${k}</div>
+            <div class="spec-val">${v}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="info-section-label">Ejemplo técnico</div>
+      <div class="example-block">${data.ejemplo}</div>
+
+      <div style="margin-top:14px">
+        <span class="nivel-badge" style="background:${data.nivel_color}18;border:1px solid ${data.nivel_color}55;color:${data.nivel_color}">
+          <span style="width:6px;height:6px;border-radius:50%;background:${data.nivel_color};box-shadow:0 0 6px ${data.nivel_color}"></span>
+          Nivel ${data.nivel}
+        </span>
+      </div>
+    </div>
+  `;
+
+  // 5. Actualizar status
+  document.getElementById('info-status').innerHTML =
+    `<span class="status-dot" style="background:${data.nivel_color};box-shadow:0 0 6px ${data.nivel_color}"></span>${data.label} · Activo`;
+
+  // 6. Scroll suave al panel de info en móvil
+  if (window.innerWidth < 700) {
+    document.getElementById('info-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+/* ═══════════════════════════════════════════
+   RENDERIZADO: CAPAS LÓGICAS
+═══════════════════════════════════════════ */
+const layerStack = document.getElementById('layer-stack');
+
+capas.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'layer-item';
+  item.style.setProperty('--layer-color', c.color);
+  item.dataset.id = c.num;
+  item.innerHTML = `
+    <span class="layer-num">${c.num}</span>
+    <div>
+      <div class="layer-name">${c.name}</div>
+      <div class="layer-tag">${c.tag}</div>
+    </div>
+  `;
+  item.addEventListener('click', () => selectLayer(c.num));
+  layerStack.appendChild(item);
+});
+
+function selectLayer(num) {
+  const data = capas.find(c => c.num === num);
+  if (!data) return;
+
+  document.querySelectorAll('.layer-item').forEach(i => {
+    i.classList.toggle('active', i.dataset.id === num);
+  });
+
+  const ld = document.getElementById('layer-detail');
+  ld.innerHTML = `
+    <div class="fade-in">
+      <div class="layer-detail-name" style="color:${data.color};text-shadow:0 0 20px ${data.color}55">
+        Capa ${data.num} — ${data.name}
+      </div>
+      <div class="layer-detail-tag">${data.tag}</div>
+      <p class="layer-detail-desc">${data.desc}</p>
+
+      <div class="info-section-label">Interacción típica</div>
+      <div style="font-family:var(--f-mono);font-size:11px;color:var(--c-text3);margin-bottom:16px;padding:8px 12px;background:rgba(0,200,255,0.04);border:1px solid var(--c-border);border-radius:6px;letter-spacing:0.04em">
+        ${data.interaccion}
+      </div>
+
+      <div class="info-section-label">Ejemplo en código</div>
+      <div class="example-block">${data.ejemplo}</div>
+    </div>
+  `;
+
+  document.getElementById('layer-status').innerHTML =
+    `<span class="status-dot" style="background:${data.color};box-shadow:0 0 6px ${data.color}"></span>Capa ${data.num} · Activa`;
+}
+
+/* ═══════════════════════════════════════════
+   RELOJ EN VIVO
+═══════════════════════════════════════════ */
+function updateTime() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('es-PE', { hour12: false });
+  const el = document.getElementById('live-time');
+  if (el) el.innerHTML = `HORA: <span class="status-val">${t}</span>`;
+}
+setInterval(updateTime, 1000);
+updateTime();
+
+/* ═══════════════════════════════════════════
+   COORDENADAS HUD ANIMADAS
+═══════════════════════════════════════════ */
+setInterval(() => {
+  const el = document.getElementById('hud-coords');
+  if (el) {
+    const x = (Math.random() * 100).toFixed(2).padStart(6,'0');
+    const y = (Math.random() * 100).toFixed(2).padStart(6,'0');
+    el.textContent = `X: ${x} | Y: ${y}`;
+  }
+}, 800);
+
+/* ═══════════════════════════════════════════
+   NAV PILLS: active por scroll
+═══════════════════════════════════════════ */
+const pills = document.querySelectorAll('.nav-pill');
+const sections = document.querySelectorAll('section[id]');
+
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 120) current = s.id;
+  });
+  pills.forEach(p => {
+    p.classList.toggle('active', p.getAttribute('href') === '#' + current);
+  });
+}, { passive: true });
+</script>
+</body>
+</html>
