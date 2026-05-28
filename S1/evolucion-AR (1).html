@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolución Tecnológica — AR Virtual | UPC-EPE IS277</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════
+   VARIABLES GLOBALES
+════════════════════════════════════════════════ */
+:root {
+  --bg:      #02060f;
+  --bg2:     #060d1c;
+  --panel:   rgba(4,10,24,0.85);
+  --cyan:    #00d4ff;
+  --cyan2:   #00f0ff;
+  --amber:   #f59e0b;
+  --amber2:  #fbbf24;
+  --green:   #00ff9d;
+  --red:     #ff4560;
+  --purple:  #a78bfa;
+  --pink:    #f472b6;
+  --border:  rgba(0,212,255,0.15);
+  --border2: rgba(0,212,255,0.35);
+  --text:    #c8daf0;
+  --text2:   #4d6a8a;
+  --text3:   #7a9cbd;
+  --fD: 'Orbitron', sans-serif;
+  --fM: 'Space Mono', monospace;
+  --fB: 'DM Sans', sans-serif;
+  --glow-c:  0 0 20px rgba(0,212,255,0.4), 0 0 50px rgba(0,212,255,0.1);
+  --glow-a:  0 0 20px rgba(245,158,11,0.45), 0 0 50px rgba(245,158,11,0.1);
+  --tr: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fB);overflow-x:hidden;cursor:none}
+
+/* ════ CURSOR PERSONALIZADO — ultraliviano ════ */
+#cursor{position:fixed;width:1px;height:14px;background:rgba(0,212,255,.55);pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#cursor::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:1px;background:rgba(0,212,255,.55)}
+#cursor-dot{position:fixed;width:3px;height:3px;background:var(--cyan);border-radius:50%;pointer-events:none;z-index:10000;transform:translate(-50%,-50%);box-shadow:0 0 4px var(--cyan)}
+
+/* ════ FONDO PARTÍCULAS ════ */
+#particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+
+/* ════ GRID HUD DE FONDO ════ */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,212,255,.022) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,212,255,.022) 1px,transparent 1px);
+  background-size:52px 52px;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,100,180,.12),transparent 70%);
+}
+
+/* ════════════════════════════════════════════════
+   HEADER
+════════════════════════════════════════════════ */
+header{
+  position:relative;z-index:20;
+  padding:18px 32px 14px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  border-bottom:1px solid var(--border);
+  background:rgba(2,6,15,.75);backdrop-filter:blur(14px);
+}
+.logo-wrap{display:flex;align-items:center;gap:14px}
+.logo-icon{width:40px;height:40px;border:1.5px solid var(--cyan);border-radius:9px;display:grid;place-items:center;box-shadow:var(--glow-c);flex-shrink:0}
+.logo-title{font-family:var(--fD);font-size:16.2px;font-weight:700;letter-spacing:.15em;color:var(--cyan2);line-height:1.2}
+.logo-sub{font-family:var(--fM);font-size:11.9px;color:var(--text2);letter-spacing:.07em;margin-top:2px}
+.nav-row{display:flex;gap:6px;flex-wrap:wrap}
+.npill{font-family:var(--fM);font-size:11.9px;letter-spacing:.1em;padding:5px 13px;border:1px solid var(--border2);border-radius:20px;color:var(--cyan);background:rgba(0,212,255,.05);cursor:none;transition:var(--tr);text-decoration:none;text-transform:uppercase}
+.npill:hover,.npill.on{background:rgba(0,212,255,.15);box-shadow:var(--glow-c);color:var(--cyan2)}
+
+/* STATUS BAR */
+.sbar{position:relative;z-index:19;width:100%;background:rgba(0,212,255,.035);border-bottom:1px solid var(--border);padding:5px 32px;display:flex;gap:24px;align-items:center;font-family:var(--fM);font-size:11.9px;color:var(--text2);letter-spacing:.08em;flex-wrap:wrap}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.sv{color:var(--cyan)}
+
+/* ════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════ */
+.hero{
+  position:relative;z-index:1;text-align:center;
+  padding:64px 24px 52px;border-bottom:1px solid var(--border);
+  overflow:hidden;
+}
+.hero-eyebrow{font-family:var(--fM);font-size:12.5px;letter-spacing:.24em;color:var(--amber);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:12px}
+.hero-eyebrow::before,.hero-eyebrow::after{content:'';height:1px;width:48px}
+.hero-eyebrow::before{background:linear-gradient(90deg,transparent,var(--amber))}
+.hero-eyebrow::after{background:linear-gradient(90deg,var(--amber),transparent)}
+.hero-h1{font-family:var(--fD);font-size:clamp(35px, 6.88vw, 72.5px);font-weight:900;letter-spacing:.06em;line-height:1.05;color:#fff;text-shadow:0 0 50px rgba(0,212,255,.25);margin-bottom:10px}
+.hero-h1 span{color:var(--cyan2)}
+.hero-p{font-family:var(--fB);font-size:clamp(16.2px, 2.25vw, 20px);font-weight:300;color:var(--text3);max-width:580px;margin:0 auto 32px;line-height:1.75}
+.hero-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.tag{font-family:var(--fM);font-size:11.9px;letter-spacing:.1em;padding:5px 12px;border-radius:4px;border:1px solid;text-transform:uppercase}
+.tc{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.07)}
+.ta{border-color:var(--amber);color:var(--amber);background:rgba(245,158,11,.07)}
+.tg{border-color:var(--green);color:var(--green);background:rgba(0,255,157,.07)}
+.tp{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.07)}
+
+/* ════════════════════════════════════════════════
+   SECCIÓN TIMELINE — GENERACIONES
+════════════════════════════════════════════════ */
+#seccion-timeline{position:relative;z-index:1;padding:48px 20px 60px}
+.sec-hdr{font-family:var(--fD);font-size:12.5px;font-weight:600;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase;margin-bottom:28px;display:flex;align-items:center;gap:12px}
+.sec-hdr::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+
+/* CONTENEDOR GENERAL */
+.gen-layout{display:grid;grid-template-columns:280px 1fr 320px;gap:16px;max-width:1280px;margin:0 auto}
+@media(max-width:1100px){.gen-layout{grid-template-columns:220px 1fr 260px}}
+@media(max-width:780px){.gen-layout{grid-template-columns:1fr;grid-template-rows:auto auto auto}}
+
+/* RAIL DE GENERACIONES */
+.gen-rail{display:flex;flex-direction:column;gap:0}
+.gen-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border:none;background:transparent;cursor:none;
+  position:relative;text-align:left;width:100%;
+  border-left:2px solid var(--border);transition:var(--tr);
+}
+.gen-btn::before{content:'';position:absolute;left:-2px;top:0;bottom:0;width:2px;background:var(--gen-color,var(--cyan));transform:scaleY(0);transform-origin:top;transition:transform .35s ease}
+.gen-btn.on::before,.gen-btn:hover::before{transform:scaleY(1)}
+.gen-btn.on,.gen-btn:hover{background:rgba(0,212,255,.05)}
+.gen-num{font-family:var(--fD);font-size:16.2px;font-weight:700;color:var(--gen-color,var(--cyan));width:24px;flex-shrink:0;letter-spacing:.05em}
+.gen-info{flex:1}
+.gen-name{font-family:var(--fB);font-size:16.2px;font-weight:500;color:var(--text);line-height:1.2}
+.gen-period{font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.07em;margin-top:2px}
+.gen-dot{width:8px;height:8px;border-radius:50%;background:var(--gen-color,var(--cyan));flex-shrink:0;opacity:.6;box-shadow:0 0 6px var(--gen-color,var(--cyan))}
+.gen-btn.on .gen-dot{opacity:1;animation:blink 1.5s ease-in-out infinite}
+
+/* PANEL CENTRAL — VISOR AR */
+.ar-panel{
+  border:1px solid var(--border);border-radius:12px;
+  background:var(--panel);backdrop-filter:blur(16px);overflow:hidden;
+  position:relative;min-height:500px;
+}
+.ar-panel-hdr{
+  padding:10px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,212,255,.04);
+}
+.ar-panel-title{font-family:var(--fD);font-size:11.2px;font-weight:600;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}
+.ar-panel-status{font-family:var(--fM);font-size:11.2px;color:var(--green);display:flex;align-items:center;gap:5px;letter-spacing:.07em}
+
+/* CANVAS AR */
+.ar-viewport{
+  position:relative;width:100%;height:550px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  background:radial-gradient(ellipse 55% 55% at 50% 50%,rgba(0,60,120,.18),transparent 70%);
+  cursor:grab;
+}
+.ar-viewport:active{cursor:grabbing}
+#ar-canvas{width:100%;height:100%}
+
+/* HUD overlay */
+.ar-hud{position:absolute;inset:0;pointer-events:none}
+.ar-corner{position:absolute;width:20px;height:20px;border-color:var(--cyan);border-style:solid;opacity:.6}
+.ar-corner.tl{top:12px;left:12px;border-width:1.5px 0 0 1.5px}
+.ar-corner.tr{top:12px;right:12px;border-width:1.5px 1.5px 0 0}
+.ar-corner.bl{bottom:12px;left:12px;border-width:0 0 1.5px 1.5px}
+.ar-corner.br{bottom:12px;right:12px;border-width:0 1.5px 1.5px 0}
+.ar-scan{position:absolute;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.6) 40%,rgba(0,240,255,.9) 50%,rgba(0,212,255,.6) 60%,transparent);animation:arscan 4s linear infinite;opacity:.55}
+@keyframes arscan{0%{top:-2px}100%{top:calc(100% + 2px)}}
+.ar-badge{position:absolute;top:14px;right:14px;font-family:var(--fM);font-size:10.6px;color:var(--amber);letter-spacing:.14em;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);padding:3px 8px;border-radius:4px;text-transform:uppercase}
+.ar-coords{position:absolute;bottom:12px;left:14px;font-family:var(--fM);font-size:11.2px;color:var(--cyan);letter-spacing:.09em;opacity:.7}
+.ar-drag-hint{position:absolute;bottom:14px;right:14px;font-family:var(--fM);font-size:10px;color:var(--text2);letter-spacing:.06em}
+/* Electron particles SVG overlay */
+.ar-electrons{position:absolute;inset:0;pointer-events:none}
+
+/* PANEL DERECHO — INFO */
+.info-panel{border:1px solid var(--border);border-radius:12px;background:var(--panel);backdrop-filter:blur(16px);overflow:hidden;display:flex;flex-direction:column}
+.info-hdr{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(0,212,255,.04);display:flex;align-items:center;justify-content:space-between}
+.info-hdr-title{font-family:var(--fD);font-size:11.2px;font-weight:600;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}
+.info-body{padding:18px 16px;overflow-y:auto;flex:1}
+.info-body::-webkit-scrollbar{width:3px}
+.info-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.info-gen-name{font-family:var(--fD);font-size:21.2px;font-weight:700;letter-spacing:.07em;line-height:1.2;margin-bottom:4px;color:#fff}
+.info-period{font-family:var(--fM);font-size:11.9px;letter-spacing:.1em;margin-bottom:16px}
+.info-desc{font-size:16.2px;font-weight:300;color:var(--text3);line-height:1.75;margin-bottom:18px}
+.info-lbl{font-family:var(--fM);font-size:11.2px;letter-spacing:.16em;color:var(--cyan);text-transform:uppercase;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.metric-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.metric-item{display:flex;align-items:center;justify-content:space-between;font-family:var(--fM);font-size:12.5px;gap:8px}
+.metric-key{color:var(--text2);letter-spacing:.05em;flex-shrink:0}
+.metric-bar{flex:1;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.metric-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.metric-val{color:var(--cyan);font-size:11.9px;flex-shrink:0;text-align:right;min-width:52px}
+.spec-2col{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px}
+.spec-cell{background:rgba(0,212,255,.04);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
+.spec-k{font-family:var(--fM);font-size:10.6px;color:var(--text2);letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
+.spec-v{font-family:var(--fD);font-size:14.4px;font-weight:600;color:var(--cyan2);letter-spacing:.04em}
+.hito-box{background:rgba(0,255,157,.05);border:1px solid rgba(0,255,157,.2);border-left:3px solid var(--green);border-radius:0 7px 7px 0;padding:10px 12px;margin-bottom:10px}
+.hito-lbl{font-family:var(--fM);font-size:10.6px;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.hito-txt{font-size:15px;font-weight:300;color:var(--text3);line-height:1.6}
+.limit-box{background:rgba(255,69,96,.05);border:1px solid rgba(255,69,96,.2);border-left:3px solid var(--red);border-radius:0 7px 7px 0;padding:10px 12px}
+.limit-lbl{font-family:var(--fM);font-size:10.6px;color:var(--red);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+
+/* ════════════════════════════════════════════════
+   SECCIÓN 3 EJES TRANSVERSALES
+════════════════════════════════════════════════ */
+#seccion-ejes{position:relative;z-index:1;padding:40px 20px 52px;border-top:1px solid var(--border)}
+.ejes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1280px;margin:0 auto}
+@media(max-width:780px){.ejes-grid{grid-template-columns:1fr}}
+.eje-card{border:1px solid var(--border);border-radius:12px;background:var(--panel);backdrop-filter:blur(14px);padding:22px 18px;position:relative;overflow:hidden;transition:var(--tr)}
+.eje-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--eje-color,var(--cyan)),transparent)}
+.eje-card:hover{border-color:var(--border2);transform:translateY(-3px)}
+.eje-num{font-family:var(--fD);font-size:40px;font-weight:900;color:var(--eje-color,var(--cyan));opacity:.12;position:absolute;top:14px;right:16px;letter-spacing:-.02em}
+.eje-icon{width:44px;height:44px;border:1.5px solid var(--eje-color,var(--cyan));border-radius:10px;display:grid;place-items:center;margin-bottom:14px;box-shadow:0 0 14px rgba(0,0,0,.3)}
+.eje-title{font-family:var(--fD);font-size:16.2px;font-weight:700;letter-spacing:.07em;margin-bottom:8px;line-height:1.2}
+.eje-desc{font-size:16.2px;font-weight:300;color:var(--text3);line-height:1.7;margin-bottom:18px}
+.eje-btn{font-family:var(--fM);font-size:11.2px;letter-spacing:.1em;padding:6px 14px;border:1px solid var(--eje-color,var(--cyan));border-radius:5px;color:var(--eje-color,var(--cyan));background:transparent;cursor:none;transition:var(--tr);text-transform:uppercase}
+.eje-btn:hover{background:rgba(0,0,0,.3);box-shadow:0 0 10px rgba(0,212,255,.2)}
+
+/* ════════════════════════════════════════════════
+   CONSOLA DE SIMULACIÓN
+════════════════════════════════════════════════ */
+#seccion-consola{position:relative;z-index:1;padding:40px 20px 60px;border-top:1px solid var(--border)}
+.consola-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:1280px;margin:0 auto}
+@media(max-width:900px){.consola-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){.consola-grid{grid-template-columns:1fr}}
+
+.sim-card{border:1px solid var(--border);border-radius:12px;background:var(--panel);backdrop-filter:blur(14px);overflow:hidden}
+.sim-hdr{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(0,212,255,.04);display:flex;align-items:center;gap:8px}
+.sim-hdr-t{font-family:var(--fD);font-size:11.2px;font-weight:600;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}
+.sim-body{padding:18px 14px}
+
+/* Slider de miniaturización */
+.sim-slider-wrap{margin-bottom:14px}
+.sim-slider-lbl{font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(0,212,255,.12);outline:none;cursor:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--cyan);cursor:none;box-shadow:0 0 8px var(--cyan);border:1.5px solid rgba(255,255,255,.3)}
+input[type=range]::-webkit-slider-runnable-track{border-radius:2px}
+.sim-component-vis{border:1px solid var(--border);border-radius:8px;background:rgba(0,0,0,.3);padding:14px;text-align:center;margin-bottom:12px;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden}
+.sim-comp-label{font-family:var(--fD);font-size:13.8px;font-weight:600;color:var(--cyan2);letter-spacing:.06em}
+.sim-comp-size{font-family:var(--fM);font-size:12.5px;color:var(--amber);letter-spacing:.08em}
+.sim-comp-ctx{font-family:var(--fM);font-size:10.6px;color:var(--text2);letter-spacing:.05em;margin-top:4px}
+
+/* Monitor térmico */
+.therm-gauge{position:relative;width:100%;height:10px;background:rgba(255,255,255,.06);border-radius:5px;margin-bottom:10px;overflow:hidden}
+.therm-fill{height:100%;border-radius:5px;transition:width .5s ease,background .5s ease}
+.therm-readout{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.therm-val{font-family:var(--fD);font-size:27.5px;font-weight:700;color:var(--red);letter-spacing:.04em}
+.therm-unit{font-family:var(--fM);font-size:12.5px;color:var(--text2);letter-spacing:.07em;align-self:flex-end;margin-bottom:4px}
+.therm-label{font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.07em;margin-bottom:6px}
+.power-row{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
+.power-val{font-family:var(--fD);font-size:22.5px;font-weight:700;letter-spacing:.04em;color:var(--amber)}
+.power-unit{font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.06em}
+
+/* Flujo CPU/GPU/NPU */
+.flow-nodes{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.flow-node{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-family:var(--fM);font-size:12.5px;transition:var(--tr)}
+.flow-node.active{border-color:var(--node-color);background:rgba(0,0,0,.2);box-shadow:inset 0 0 12px rgba(0,0,0,.3)}
+.flow-node-icon{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-size:15px;flex-shrink:0;border:1px solid var(--node-color,var(--cyan))}
+.flow-node-name{color:var(--node-color,var(--cyan));font-weight:700;letter-spacing:.06em;flex:1}
+.flow-node-bar{flex:2;height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.flow-node-fill{height:100%;border-radius:2px;width:0%;transition:width 1.2s ease}
+.flow-node-pct{color:var(--text2);font-size:11.2px;min-width:30px;text-align:right}
+.flow-log{font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.05em;border:1px solid var(--border);border-radius:6px;padding:8px 10px;min-height:60px;line-height:1.6;background:rgba(0,0,0,.2)}
+.flow-btn{width:100%;font-family:var(--fM);font-size:11.9px;letter-spacing:.1em;padding:8px 14px;border:1px solid var(--green);border-radius:6px;color:var(--green);background:rgba(0,255,157,.06);cursor:none;transition:var(--tr);text-transform:uppercase;margin-bottom:12px}
+.flow-btn:hover{background:rgba(0,255,157,.12);box-shadow:0 0 14px rgba(0,255,157,.2)}
+
+/* ════════════════════════════════════════════════
+   GLOSARIO AR
+════════════════════════════════════════════════ */
+#seccion-glosario{position:relative;z-index:1;padding:40px 20px 60px;border-top:1px solid var(--border)}
+.glosario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;max-width:1280px;margin:0 auto}
+.glos-item{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:14px 10px;text-align:center;cursor:none;transition:var(--tr);position:relative;overflow:hidden}
+.glos-item::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(0,212,255,.08),transparent 60%);opacity:0;transition:var(--tr)}
+.glos-item:hover::before,.glos-item.on::before{opacity:1}
+.glos-item:hover,.glos-item.on{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.glos-svg{margin:0 auto 10px;display:block}
+.glos-name{font-family:var(--fB);font-size:13.8px;font-weight:500;color:var(--text);letter-spacing:.02em;line-height:1.3}
+.glos-gen{font-family:var(--fM);font-size:10px;color:var(--text2);letter-spacing:.07em;margin-top:3px}
+
+/* MODAL DIAGNÓSTICO */
+.diag-modal{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.diag-modal.open{display:flex}
+.diag-backdrop{position:absolute;inset:0;background:rgba(2,6,15,.85);backdrop-filter:blur(6px)}
+.diag-box{position:relative;z-index:1;background:rgba(4,10,24,.96);border:1px solid var(--border2);border-radius:14px;padding:28px 24px;max-width:480px;width:100%;box-shadow:0 0 60px rgba(0,212,255,.12),0 20px 60px rgba(0,0,0,.6);animation:modalIn .3s ease both}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
+.diag-close{position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--text2);font-size:22.5px;cursor:none;padding:4px 8px;transition:var(--tr)}
+.diag-close:hover{color:var(--cyan)}
+.diag-name{font-family:var(--fD);font-size:20px;font-weight:700;letter-spacing:.08em;color:#fff;margin-bottom:4px}
+.diag-gen{font-family:var(--fM);font-size:11.9px;color:var(--amber);letter-spacing:.1em;margin-bottom:16px}
+.diag-svg{margin:0 auto 16px;display:block;filter:drop-shadow(0 0 16px rgba(0,212,255,.3))}
+.diag-desc{font-size:16.2px;font-weight:300;color:var(--text3);line-height:1.75;margin-bottom:16px}
+.diag-specs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ════════════════════════════════════════════════
+   TABLA HISTÓRICA
+════════════════════════════════════════════════ */
+#seccion-tabla{position:relative;z-index:1;padding:40px 20px 60px;border-top:1px solid var(--border)}
+.tabla-wrap{max-width:1280px;margin:0 auto;overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+.hist-table{width:100%;border-collapse:collapse;font-family:var(--fB);font-size:15.6px}
+.hist-table thead tr{background:rgba(0,212,255,.06);border-bottom:1px solid var(--border2)}
+.hist-table th{padding:12px 14px;font-family:var(--fM);font-size:10.6px;letter-spacing:.12em;color:var(--cyan);text-transform:uppercase;font-weight:400;text-align:left;white-space:nowrap}
+.hist-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text3);vertical-align:middle}
+.hist-table tr:last-child td{border-bottom:none}
+.hist-table tr:hover td{background:rgba(0,212,255,.04);color:var(--text)}
+.gen-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--fM);font-size:11.2px;padding:3px 8px;border-radius:4px;letter-spacing:.06em;white-space:nowrap}
+.td-perf{font-family:var(--fM);font-size:12.5px;color:var(--amber);letter-spacing:.05em}
+.td-imp{font-size:15px;color:var(--text);font-weight:400}
+
+/* ════════════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════════════ */
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-family:var(--fM);font-size:11.9px;color:var(--text2);letter-spacing:.07em}
+.fbrand{color:var(--cyan)}
+
+/* ════ UTIL ════ */
+.fade-in{animation:fadeIn .4s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.panel{border:1px solid var(--border);border-radius:12px;background:var(--panel);backdrop-filter:blur(16px)}
+</style>
+</head>
+<body>
+
+<!-- Cursor personalizado -->
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+
+<!-- Canvas de partículas de fondo -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- ══ HEADER ══════════════════════════════════════ -->
+<header>
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-title">AR-CORE VIRTUAL</div>
+      <div class="logo-sub">UPC · EPE · IS277 · EVOLUCIÓN TECNOLÓGICA</div>
+    </div>
+  </div>
+  <nav class="nav-row">
+    <a href="#seccion-timeline"  class="npill on">Generaciones</a>
+    <a href="#seccion-ejes"      class="npill">3 Ejes</a>
+    <a href="#seccion-consola"   class="npill">Consola</a>
+    <a href="#seccion-glosario"  class="npill">Glosario AR</a>
+    <a href="#seccion-tabla"     class="npill">Tabla</a>
+  </nav>
+</header>
+
+<div class="sbar">
+  <div style="display:flex;align-items:center;gap:6px"><div class="sdot"></div><span class="sv">SISTEMA ACTIVO</span></div>
+  <div>MODO: <span class="sv">HOLOGRÁFICO AR</span></div>
+  <div>GENERACIONES: <span class="sv">6 ESTACIONES</span></div>
+  <div id="live-clock">HORA: <span class="sv">--:--:--</span></div>
+  <div>SESIÓN: <span class="sv">2026-1</span></div>
+</div>
+
+<!-- ══ HERO ════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-eyebrow">Módulo didáctico interactivo · IS277</div>
+  <h1 class="hero-h1">Evolución de las<br><span>Generaciones Tecnológicas</span></h1>
+  <p class="hero-p">De los tubos de vacío termiónicos a la era del co-procesamiento inteligente. Seis generaciones de hardware, tres fuerzas vectoriales constantes: miniaturización extrema, eficiencia térmica y paradigmas distribuidos.</p>
+  <div class="hero-tags">
+    <span class="tag tc">6 Generaciones</span>
+    <span class="tag ta">Visualización AR</span>
+    <span class="tag tg">SVG Físico Realista</span>
+    <span class="tag tp">CPU · GPU · NPU</span>
+  </div>
+</div>
+
+<!-- ══ SECCIÓN GENERACIONES ═══════════════════════ -->
+<section id="seccion-timeline">
+  <div class="sec-hdr">Explorador de generaciones — Vista holográfica AR</div>
+
+  <div class="gen-layout">
+
+    <!-- RAIL IZQUIERDO -->
+    <div class="gen-rail" id="gen-rail"></div>
+
+    <!-- VISOR AR CENTRAL -->
+    <div class="ar-panel">
+      <div class="ar-panel-hdr">
+        <span class="ar-panel-title">Vista AR · Componente Holográfico</span>
+        <span class="ar-panel-status"><span class="sdot"></span>Orbital activo</span>
+      </div>
+      <div class="ar-viewport" id="ar-viewport">
+        <!-- HUD -->
+        <div class="ar-hud">
+          <div class="ar-corner tl"></div><div class="ar-corner tr"></div>
+          <div class="ar-corner bl"></div><div class="ar-corner br"></div>
+          <div class="ar-scan"></div>
+          <div class="ar-badge" id="ar-badge">LIVE AR</div>
+          <div class="ar-coords" id="ar-coords">AZ: 45° | EL: 30° | ZOOM: 1.0×</div>
+          <div class="ar-drag-hint">Arrastra para orbitar · Rueda para zoom</div>
+        </div>
+        <!-- Electrones SVG -->
+        <svg class="ar-electrons" id="ar-electrons" viewBox="0 0 600 440" xmlns="http://www.w3.org/2000/svg"></svg>
+        <!-- Canvas 3D orbital -->
+        <canvas id="ar-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- PANEL DERECHO INFO -->
+    <div class="info-panel">
+      <div class="info-hdr">
+        <span class="info-hdr-title">Análisis holográfico</span>
+        <span id="info-status" style="font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.07em">Sin selección</span>
+      </div>
+      <div class="info-body" id="info-body">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:12px;color:var(--text2);font-family:var(--fM);font-size:12.5px;letter-spacing:.07em;text-align:center;opacity:.6">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Selecciona una generación<br>para iniciar diagnóstico
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ 3 EJES TRANSVERSALES ═══════════════════════ -->
+<section id="seccion-ejes">
+  <div class="sec-hdr" style="max-width:1280px;margin:0 auto">Los 3 ejes transversales de la evolución</div>
+  <div class="ejes-grid">
+
+    <div class="eje-card" style="--eje-color:#00d4ff">
+      <div class="eje-num">1</div>
+      <div class="eje-icon" style="border-color:#00d4ff">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      </div>
+      <div class="eje-title" style="color:#00d4ff">Miniaturización Extrema</div>
+      <div class="eje-desc">De salas de 150 m² en la era termiónica a chips de 3 nm. La fotolitografía permitió integrar miles de millones de transistores en el área de un grano de arena.</div>
+      <button class="eje-btn" onclick="document.getElementById('sim-mini').scrollIntoView({behavior:'smooth'})">Probar Simulador →</button>
+    </div>
+
+    <div class="eje-card" style="--eje-color:#f59e0b">
+      <div class="eje-num">2</div>
+      <div class="eje-icon" style="border-color:#f59e0b">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="5"/></svg>
+      </div>
+      <div class="eje-title" style="color:#f59e0b">Eficiencia Térmica</div>
+      <div class="eje-desc">El calor es el mayor enemigo del hardware lógico. Desde turbinas de enfriamiento masivas hasta voltajes ultra bajos y litografías cuánticas para móviles.</div>
+      <button class="eje-btn" style="border-color:#f59e0b;color:#f59e0b" onclick="document.getElementById('sim-therm').scrollIntoView({behavior:'smooth'})">Probar Monitor →</button>
+    </div>
+
+    <div class="eje-card" style="--eje-color:#a78bfa">
+      <div class="eje-num">3</div>
+      <div class="eje-icon" style="border-color:#a78bfa">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="9" y="15" width="6" height="6" rx="1"/><path d="M5 9v3a2 2 0 002 2h10a2 2 0 002-2V9M12 15v-3"/></svg>
+      </div>
+      <div class="eje-title" style="color:#a78bfa">Paradigmas Distribuidos</div>
+      <div class="eje-desc">Del cálculo local y secuencial a la arquitectura distribuida Cloud-Edge-IA. CPU, GPU y NPU co-procesan en tiempo real con inferencia en el borde de la red.</div>
+      <button class="eje-btn" style="border-color:#a78bfa;color:#a78bfa" onclick="document.getElementById('sim-flow').scrollIntoView({behavior:'smooth'})">Simular Flujo →</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ CONSOLA DE SIMULACIÓN ══════════════════════ -->
+<section id="seccion-consola">
+  <div class="sec-hdr" style="max-width:1280px;margin:0 auto">Consola integrada de simulación física</div>
+  <div class="consola-grid">
+
+    <!-- SIM 1: MINIATURIZACIÓN -->
+    <div class="sim-card" id="sim-mini">
+      <div class="sim-hdr"><div class="sdot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></div><span class="sim-hdr-t">Deslizador de Escala</span></div>
+      <div class="sim-body">
+        <div class="sim-slider-wrap">
+          <div class="sim-slider-lbl"><span>AÑO DE LITOGRAFÍA</span><span id="mini-year-lbl" style="color:var(--cyan)">1940</span></div>
+          <input type="range" id="mini-slider" min="0" max="5" step="1" value="0">
+        </div>
+        <div class="sim-component-vis" id="mini-vis">
+          <svg id="mini-svg" width="113" height="113" viewBox="0 0 90 90"></svg>
+          <div class="sim-comp-label" id="mini-comp-lbl">Tubo de Vacío Termiónico</div>
+          <div class="sim-comp-size" id="mini-comp-size">⌀ 10–15 cm</div>
+          <div class="sim-comp-ctx" id="mini-comp-ctx">Tamaño de Habitación de Control</div>
+        </div>
+        <div style="font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.06em;line-height:1.6" id="mini-desc">En esta época se requerían salas enteras para albergar apenas unos miles de tubos lógicos.</div>
+      </div>
+    </div>
+
+    <!-- SIM 2: TEMPERATURA -->
+    <div class="sim-card" id="sim-therm">
+      <div class="sim-hdr"><div class="sdot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></div><span class="sim-hdr-t">Monitor de Consumo y Calor</span></div>
+      <div class="sim-body">
+        <div class="sim-slider-wrap">
+          <div class="sim-slider-lbl"><span>CARGA LÓGICA</span><span id="therm-pct" style="color:var(--amber)">10%</span></div>
+          <input type="range" id="therm-slider" min="10" max="100" step="5" value="10" style="accent-color:var(--amber)">
+        </div>
+        <div class="therm-readout">
+          <div>
+            <div class="therm-label">TEMP. SIMULADA</div>
+            <div style="display:flex;align-items:baseline;gap:5px">
+              <div class="therm-val" id="therm-val">80°C</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="therm-label">CONSUMO</div>
+            <div class="power-row"><span class="power-val" id="power-val">150</span><span class="power-unit">kW</span></div>
+          </div>
+        </div>
+        <div class="therm-gauge"><div class="therm-fill" id="therm-fill" style="width:12%;background:var(--amber)"></div></div>
+        <div style="font-family:var(--fM);font-size:11.2px;color:var(--text2);letter-spacing:.06em;margin-bottom:12px" id="therm-infra">Ventilación de Agua / Aire Forzado</div>
+        <!-- Termómetro SVG -->
+        <div style="display:flex;justify-content:center">
+          <svg id="thermo-svg" width="60" height="120" viewBox="0 0 60 120">
+            <rect x="25" y="10" width="10" height="70" rx="5" fill="#0d1e35" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+            <rect x="27" y="12" width="6" height="66" rx="3" fill="transparent" id="thermo-bg"/>
+            <rect x="27" y="12" width="6" height="66" rx="3" id="thermo-fill" fill="var(--amber)" transform="scale(1,-1) translate(0,-90)"/>
+            <circle cx="30" cy="95" r="12" fill="#0d1e35" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+            <circle cx="30" cy="95" r="8" id="thermo-bulb" fill="var(--amber)"/>
+            <text x="30" y="115" text-anchor="middle" font-family="Space Mono" font-size="7" fill="rgba(0,212,255,.5)" letter-spacing=".1em">°C</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIM 3: FLUJO CPU/GPU/NPU -->
+    <div class="sim-card" id="sim-flow">
+      <div class="sim-hdr"><div class="sdot" style="background:var(--purple);box-shadow:0 0 6px var(--purple)"></div><span class="sim-hdr-t">Flujo CPU / GPU / NPU</span></div>
+      <div class="sim-body">
+        <button class="flow-btn" id="flow-btn" onclick="runFlowSim()">▶ Iniciar Flujo Digital</button>
+        <div class="flow-nodes">
+          <div class="flow-node" id="fn-user" style="--node-color:#00d4ff">
+            <div class="flow-node-icon" style="border-color:#00d4ff">👤</div>
+            <div class="flow-node-name" style="color:#00d4ff">Usuario</div>
+            <div class="flow-node-bar"><div class="flow-node-fill" id="bar-user" style="background:#00d4ff"></div></div>
+            <div class="flow-node-pct" id="pct-user">0%</div>
+          </div>
+          <div class="flow-node" id="fn-cpu" style="--node-color:#f59e0b">
+            <div class="flow-node-icon" style="border-color:#f59e0b">⚙️</div>
+            <div class="flow-node-name" style="color:#f59e0b">CPU</div>
+            <div class="flow-node-bar"><div class="flow-node-fill" id="bar-cpu" style="background:#f59e0b"></div></div>
+            <div class="flow-node-pct" id="pct-cpu">0%</div>
+          </div>
+          <div class="flow-node" id="fn-gpu" style="--node-color:#f472b6">
+            <div class="flow-node-icon" style="border-color:#f472b6">🎮</div>
+            <div class="flow-node-name" style="color:#f472b6">GPU</div>
+            <div class="flow-node-bar"><div class="flow-node-fill" id="bar-gpu" style="background:#f472b6"></div></div>
+            <div class="flow-node-pct" id="pct-gpu">0%</div>
+          </div>
+          <div class="flow-node" id="fn-npu" style="--node-color:#a78bfa">
+            <div class="flow-node-icon" style="border-color:#a78bfa">🧠</div>
+            <div class="flow-node-name" style="color:#a78bfa">NPU</div>
+            <div class="flow-node-bar"><div class="flow-node-fill" id="bar-npu" style="background:#a78bfa"></div></div>
+            <div class="flow-node-pct" id="pct-npu">0%</div>
+          </div>
+          <div class="flow-node" id="fn-cloud" style="--node-color:#00ff9d">
+            <div class="flow-node-icon" style="border-color:#00ff9d">☁️</div>
+            <div class="flow-node-name" style="color:#00ff9d">Cloud/Edge</div>
+            <div class="flow-node-bar"><div class="flow-node-fill" id="bar-cloud" style="background:#00ff9d"></div></div>
+            <div class="flow-node-pct" id="pct-cloud">0%</div>
+          </div>
+        </div>
+        <div class="flow-log" id="flow-log">Esperando inicio de simulación...</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ GLOSARIO AR ════════════════════════════════ -->
+<section id="seccion-glosario">
+  <div class="sec-hdr" style="max-width:1280px;margin:0 auto">Glosario de componentes AR — diagnóstico holográfico</div>
+  <div class="glosario-grid" id="glosario-grid"></div>
+</section>
+
+<!-- ══ TABLA HISTÓRICA ════════════════════════════ -->
+<section id="seccion-tabla">
+  <div class="sec-hdr" style="max-width:1280px;margin:0 auto">Tabla de contraste histórico</div>
+  <div class="tabla-wrap">
+    <table class="hist-table">
+      <thead>
+        <tr>
+          <th>Generación</th><th>Periodo</th><th>Tecnología Base</th>
+          <th>Rendimiento</th><th>Disipación</th><th>Impacto Principal</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ MODAL DIAGNÓSTICO ══════════════════════════ -->
+<div class="diag-modal" id="diag-modal">
+  <div class="diag-backdrop" onclick="closeDiag()"></div>
+  <div class="diag-box">
+    <button class="diag-close" onclick="closeDiag()">✕</button>
+    <div class="diag-name" id="diag-name"></div>
+    <div class="diag-gen" id="diag-gen"></div>
+    <svg class="diag-svg" id="diag-svg" width="150" height="150" viewBox="0 0 120 120"></svg>
+    <p class="diag-desc" id="diag-desc"></p>
+    <div class="diag-specs" id="diag-specs"></div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 · AR-CORE VIRTUAL · FINES EDUCATIVOS</span>
+  <span class="fbrand">UPC · EPE · IS277 · ARQUITECTURA DE COMPUTADORAS</span>
+</footer>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════
+   CURSOR
+════════════════════════════════════════════════ */
+const cur = document.getElementById('cursor');
+const curDot = document.getElementById('cursor-dot');
+let mx=0,my=0,cx=0,cy=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;curDot.style.left=mx+'px';curDot.style.top=my+'px'});
+(function animCursor(){cx+=(mx-cx)*.22;cy+=(my-cy)*.22;cur.style.left=cx+'px';cur.style.top=cy+'px';requestAnimationFrame(animCursor)})();
+
+/* ════════════════════════════════════════════════
+   PARTÍCULAS DE FONDO
+════════════════════════════════════════════════ */
+const pc = document.getElementById('particle-canvas');
+const pctx = pc.getContext('2d');
+let particles=[];
+function resizePC(){pc.width=window.innerWidth;pc.height=window.innerHeight}
+resizePC();window.addEventListener('resize',resizePC);
+for(let i=0;i<90;i++){particles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*.9+.3,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()})}
+function animParticles(){
+  pctx.clearRect(0,0,pc.width,pc.height);
+  particles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.a+=.005;
+    if(p.x<0)p.x=pc.width;if(p.x>pc.width)p.x=0;
+    if(p.y<0)p.y=pc.height;if(p.y>pc.height)p.y=0;
+    pctx.beginPath();pctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    pctx.fillStyle=`rgba(0,212,255,${.15+Math.sin(p.a)*.1})`;pctx.fill();
+  });
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+/* ════════════════════════════════════════════════
+   RELOJ
+════════════════════════════════════════════════ */
+setInterval(()=>{
+  const t=new Date().toLocaleTimeString('es-PE',{hour12:false});
+  document.getElementById('live-clock').innerHTML=`HORA: <span class="sv">${t}</span>`;
+},1000);
+
+/* ════════════════════════════════════════════════
+   DATOS DE GENERACIONES
+════════════════════════════════════════════════ */
+const gens = [
+  {
+    id:'g1',num:'1ª',color:'#ff6b35',
+    name:'Tubos de Vacío',period:'1940 – 1956',
+    tech:'Tubos termiónicos',perf:'~5 KIPS',heat:'Crítica',
+    desc:'Tecnología basada en tubos de vacío termiónicos que posibilitó el primer procesamiento digital electrónico a gran escala. Las máquinas eran enormes, costosas y consumían cantidades exorbitantes de electricidad.',
+    hito:'Primer procesamiento electrónico masivo — ENIAC (1945): 18,000 tubos, 30 toneladas, 160 kW.',
+    limit:'Consumo masivo de energía, generación extrema de calor, vida útil media: 1,000 horas.',
+    specs:[['Escala','Cuarto entero'],['Velocidad','5 KIPS'],['Consumo','~160 kW'],['Fiabilidad','Muy baja']],
+    metrics:{mini:2,therm:98,inter:0,speed:1},
+    draw: drawVacuumTube
+  },
+  {
+    id:'g2',num:'2ª',color:'#f59e0b',
+    name:'Transistores',period:'1956 – 1964',
+    tech:'Transistores discretos',perf:'~100 KIPS',heat:'Media',
+    desc:'El transistor de germanio/silicio reemplazó al tubo de vacío: más pequeño, más fiable, menor consumo. Permitió los primeros lenguajes de alto nivel (COBOL, FORTRAN) y el inicio de la industria del software.',
+    hito:'Invención del transistor (Bell Labs, 1947). IBM 7090: primera computadora totalmente transistorizada para cálculo científico.',
+    limit:'Transistores discretos aún grandes, ensamblaje manual, susceptibles a ruido eléctrico.',
+    specs:[['Escala','Armario'],['Velocidad','100 KIPS'],['Consumo','~10 kW'],['Fiabilidad','Moderada']],
+    metrics:{mini:15,therm:55,inter:5,speed:10},
+    draw: drawTransistor
+  },
+  {
+    id:'g3',num:'3ª',color:'#10b981',
+    name:'Circuitos Integrados',period:'1965 – 1971',
+    tech:'IC — SSI/MSI',perf:'~1 MIPS',heat:'Media',
+    desc:'Jack Kilby y Robert Noyce integraron múltiples transistores en un solo chip de silicio. El IBM System/360 introdujo la familia de computadoras compatibles, revolución que aún persiste en la arquitectura x86.',
+    hito:'IBM System/360 (1964): arquitectura de 32 bits, primer sistema de familia compatible. Apolo 11 navegó con ICs de 4 KIPS.',
+    limit:'Densidad de integración aún limitada (SSI: <100 componentes/chip), procesos de fabricación costosos.',
+    specs:[['Escala','Escritorio grande'],['Velocidad','1 MIPS'],['Consumo','~1 kW'],['Integración','SSI/MSI']],
+    metrics:{mini:35,therm:40,inter:20,speed:100},
+    draw: drawIC
+  },
+  {
+    id:'g4',num:'4ª',color:'#3b82f6',
+    name:'Microprocesadores',period:'1972 – 1982',
+    tech:'VLSI — Microprocesador',perf:'~100 MIPS',heat:'Baja',
+    desc:'Intel 4004 (1971) integró CPU completa en un chip. La VLSI permitió millones de transistores/chip. Nació la PC doméstica (Apple II, IBM PC), democratizando la computación.',
+    hito:'Intel 4004: 2,300 transistores. Intel 8086: arquitectura x86. IBM PC (1981): inicio de la era personal.',
+    limit:'Memoria RAM cara y limitada, almacenamiento en diskette de 360 KB, SO propietarios.',
+    specs:[['Escala','Sobremesa'],['Velocidad','100 MIPS'],['Consumo','~50 W'],['Transistores','2,300–120K']],
+    metrics:{mini:60,therm:20,inter:45,speed:10000},
+    draw: drawMicroprocessor
+  },
+  {
+    id:'g5',num:'5ª',color:'#8b5cf6',
+    name:'Internet & Móvil',period:'1983 – 2019',
+    tech:'ULSI — Internet — WiFi/LTE',perf:'~10 GFLOPS',heat:'Baja',
+    desc:'La era de la conectividad ubicua. Los microprocesadores ULSI integran cientos de millones de transistores. Internet, WiFi y LTE transformaron la computación en un servicio distribuido global accesible desde el bolsillo.',
+    hito:'World Wide Web (1991). iPhone (2007): primer smartphone ARM capaz con UI táctil. Android democratiza el acceso.',
+    limit:'Privacidad de datos, brecha digital, dependencia energética de datacenters globales.',
+    specs:[['Escala','Bolsillo'],['Velocidad','10 GFLOPS'],['Consumo','~5 W (móvil)'],['Transistores','1–10 mil M']],
+    metrics:{mini:88,therm:10,inter:85,speed:2000000},
+    draw: drawSmartphone
+  },
+  {
+    id:'g6',num:'6ª',color:'#ec4899',
+    name:'IA & Co-Procesamiento',period:'2019 – Presente',
+    tech:'CPU/GPU/NPU — Edge AI',perf:'>100 TFLOPS',heat:'Optimizada',
+    desc:'Co-procesamiento heterogéneo: CPU para lógica de control, GPU para paralelismo masivo, NPU para inferencia de IA en hardware. Arquitecturas 3D stacking, memorias HBM, Edge Computing y modelos de lenguaje en dispositivo.',
+    hito:'GPT-4 (2023), Apple Neural Engine (16 TOPS), NVIDIA H100 (>4,000 TFLOPS). Inferencia on-device sin nube.',
+    limit:'Costo energético de entrenar LLMs, concentración corporativa del hardware de IA, sostenibilidad.',
+    specs:[['Escala','Wafer/3D'],['Velocidad','>100 TFLOPS'],['Nodo','3–5 nm'],['Transistores','>100 mil M']],
+    metrics:{mini:99,therm:5,inter:100,speed:20000000000},
+    draw: drawNPUChip
+  },
+];
+
+/* ════════════════════════════════════════════════
+   FUNCIONES DE DIBUJO SVG — COMPONENTES FÍSICOS
+════════════════════════════════════════════════ */
+
+// 1ª Gen — TUBO DE VACÍO TERMIÓNICO (perfil realista)
+function drawVacuumTube(ctx,W,H,color,t){
+  const cx=W/2,cy=H/2;
+  // Bulbo de vidrio
+  ctx.beginPath();
+  ctx.ellipse(cx,cy-8,22,32,0,0,Math.PI*2);
+  ctx.strokeStyle=color+'88';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='rgba(255,120,50,0.04)';ctx.fill();
+  // Cuello
+  ctx.beginPath();ctx.moveTo(cx-8,cy+24);ctx.lineTo(cx-5,cy+42);ctx.moveTo(cx+8,cy+24);ctx.lineTo(cx+5,cy+42);
+  ctx.strokeStyle=color+'44';ctx.stroke();
+  // Base de pines
+  ctx.beginPath();ctx.rect(cx-14,cy+42,28,8);
+  ctx.fillStyle='rgba(40,40,40,0.8)';ctx.fill();
+  ctx.strokeStyle=color+'66';ctx.stroke();
+  // Pines
+  for(let i=-2;i<=2;i++){if(i===0)continue;ctx.beginPath();ctx.moveTo(cx+i*5,cy+50);ctx.lineTo(cx+i*5,cy+60);ctx.strokeStyle=color+'55';ctx.lineWidth=1;ctx.stroke();}
+  // Ánodo (placa)
+  ctx.beginPath();ctx.rect(cx-12,cy-28,24,10);
+  ctx.fillStyle='rgba(255,100,50,0.15)';ctx.fill();ctx.strokeStyle=color+'88';ctx.lineWidth=1;ctx.stroke();
+  // Cátodo
+  ctx.beginPath();ctx.moveTo(cx-6,cy-8);ctx.lineTo(cx+6,cy-8);
+  ctx.strokeStyle=color+'cc';ctx.lineWidth=2;ctx.stroke();
+  // Filamento (espiral con brillo pulsante)
+  const glow=0.5+0.5*Math.sin(t*3);
+  ctx.beginPath();
+  for(let i=0;i<=20;i++){const y=cy-4+i*1.4;const x=cx+(i%2===0?-3:3)*Math.sin(i)*0.8;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.strokeStyle=`rgba(255,180,50,${0.6+glow*0.4})`;ctx.lineWidth=1.5;ctx.stroke();
+  // Glow del filamento
+  ctx.shadowColor='rgba(255,120,30,0.6)';ctx.shadowBlur=6+glow*8;
+  ctx.beginPath();ctx.arc(cx,cy+4,3,0,Math.PI*2);
+  ctx.fillStyle=`rgba(255,140,40,${0.4+glow*0.5})`;ctx.fill();
+  ctx.shadowBlur=0;
+  // Reflejo en vidrio
+  ctx.beginPath();ctx.ellipse(cx-10,cy-20,4,10,-.4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.04)';ctx.fill();
+}
+
+// 2ª Gen — TRANSISTOR BJT TO-92 (vista exterior)
+function drawTransistor(ctx,W,H,color,t){
+  const cx=W/2,cy=H/2-10;
+  // Cuerpo TO-92 (D-shape)
+  ctx.beginPath();
+  ctx.arc(cx,cy,20,Math.PI,0,false);
+  ctx.lineTo(cx+20,cy+22);ctx.lineTo(cx-20,cy+22);ctx.closePath();
+  ctx.fillStyle='#1a1005';ctx.fill();
+  ctx.strokeStyle=color+'bb';ctx.lineWidth=1.5;ctx.stroke();
+  // Cara plana con gravado
+  ctx.beginPath();ctx.rect(cx-20,cy,40,22);
+  ctx.fillStyle='#0f0a02';ctx.fill();ctx.strokeStyle=color+'55';ctx.stroke();
+  // Texto grabado
+  ctx.fillStyle=color+'99';ctx.font=`bold 7.5px 'Space Mono',monospace`;ctx.textAlign='center';
+  ctx.fillText('2N3904',cx,cy+10);
+  ctx.font=`6.2px 'Space Mono',monospace`;ctx.fillText('NPN',cx,cy+18);
+  // Tres pines (B E C)
+  const pinY=cy+22;const pinX=[cx-10,cx,cx+10];const pinLbls=['B','E','C'];
+  pinX.forEach((px,i)=>{
+    ctx.beginPath();ctx.moveTo(px,pinY);ctx.lineTo(px,pinY+28);
+    ctx.strokeStyle=color+'cc';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=color+'66';ctx.font=`6.2px 'Space Mono',monospace`;ctx.textAlign='center';
+    ctx.fillText(pinLbls[i],px,pinY+36);
+  });
+  // Reflejo metálico
+  const pulse=0.5+0.5*Math.sin(t*2);
+  ctx.beginPath();ctx.arc(cx,cy,20,Math.PI,0,false);
+  ctx.fillStyle=`rgba(245,158,11,${0.03+pulse*0.04})`;ctx.fill();
+  // Marcas de orientación
+  ctx.beginPath();ctx.arc(cx-14,cy-10,2,0,Math.PI*2);
+  ctx.fillStyle=color+'44';ctx.fill();
+}
+
+// 3ª Gen — CIRCUITO INTEGRADO DIP-14 (vista superior con pads)
+function drawIC(ctx,W,H,color,t){
+  const cx=W/2,cy=H/2,bw=52,bh=32;
+  // Cuerpo cerámico/epoxy
+  ctx.beginPath();ctx.roundRect(cx-bw/2,cy-bh/2,bw,bh,3);
+  ctx.fillStyle='#080c05';ctx.fill();
+  ctx.strokeStyle=color+'bb';ctx.lineWidth=1.5;ctx.stroke();
+  // Notch de orientación
+  ctx.beginPath();ctx.arc(cx-bw/2+6,cy,4,Math.PI/2,3*Math.PI/2);
+  ctx.fillStyle='#0a1008';ctx.fill();ctx.strokeStyle=color+'66';ctx.lineWidth=1;ctx.stroke();
+  // Die visible (efecto transparencia)
+  ctx.beginPath();ctx.roundRect(cx-16,cy-10,32,20,2);
+  ctx.fillStyle='rgba(16,185,129,0.08)';ctx.fill();
+  ctx.strokeStyle=color+'33';ctx.stroke();
+  // Texto
+  ctx.fillStyle=color+'bb';ctx.font=`bold 6.9px 'Space Mono',monospace`;ctx.textAlign='center';
+  ctx.fillText('SN74LS00',cx,cy-2);ctx.font=`5.6px 'Space Mono',monospace`;ctx.fillText('TEXAS',cx,cy+6);
+  // Pines DIP (7 por lado)
+  for(let i=0;i<7;i++){
+    const py=cy-bh/2+4+i*(bh-8)/6;
+    // izq
+    ctx.beginPath();ctx.moveTo(cx-bw/2,py);ctx.lineTo(cx-bw/2-10,py);
+    ctx.strokeStyle=color+'cc';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.rect(cx-bw/2-12,py-2,4,4);
+    ctx.fillStyle='#c0c0c0';ctx.fill();
+    // der
+    ctx.beginPath();ctx.moveTo(cx+bw/2,py);ctx.lineTo(cx+bw/2+10,py);
+    ctx.strokeStyle=color+'cc';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.rect(cx+bw/2+8,py-2,4,4);
+    ctx.fillStyle='#c0c0c0';ctx.fill();
+  }
+  // Glow pulsante
+  const p=0.5+0.5*Math.sin(t*2.5);
+  ctx.shadowColor=color;ctx.shadowBlur=4+p*8;
+  ctx.beginPath();ctx.roundRect(cx-bw/2,cy-bh/2,bw,bh,3);
+  ctx.strokeStyle=`rgba(16,185,129,${p*0.4})`;ctx.lineWidth=1;ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+// 4ª Gen — MICROPROCESADOR INTEL (vista top con IHS y pins array)
+function drawMicroprocessor(ctx,W,H,color,t){
+  const cx=W/2,cy=H/2;
+  // PCB substrate
+  ctx.beginPath();ctx.roundRect(cx-36,cy-36,72,72,4);
+  ctx.fillStyle='#070d1c';ctx.fill();ctx.strokeStyle='#1a3a5c';ctx.lineWidth=1;ctx.stroke();
+  // LGA pins array (simplified dots)
+  for(let r=-4;r<=4;r++){for(let c=-4;c<=4;c++){
+    if(Math.abs(r)>3||Math.abs(c)>3)continue;
+    ctx.beginPath();ctx.arc(cx+c*7,cy+r*7,1,0,Math.PI*2);
+    ctx.fillStyle='rgba(192,192,150,0.4)';ctx.fill();
+  }}
+  // IHS (Integrated Heat Spreader)
+  ctx.beginPath();ctx.roundRect(cx-26,cy-26,52,52,3);
+  ctx.fillStyle='#1c1c1c';ctx.fill();
+  ctx.strokeStyle=color+'aa';ctx.lineWidth=1.5;ctx.stroke();
+  // Grabado del modelo
+  ctx.fillStyle=color+'cc';ctx.font=`bold 6.9px 'Orbitron',sans-serif`;ctx.textAlign='center';
+  ctx.fillText('INTEL',cx,cy-8);ctx.font=`bold 6.2px 'Space Mono',monospace`;
+  ctx.fillText('i9-14900K',cx,cy+1);ctx.font=`5px 'Space Mono',monospace`;
+  ctx.fillStyle=color+'77';ctx.fillText('LGA1700',cx,cy+10);ctx.fillText('3.2-6.0GHz',cx,cy+18);
+  // Reflejo metálico pulsante
+  const p=0.5+0.5*Math.sin(t*1.8);
+  ctx.beginPath();ctx.ellipse(cx-8,cy-10,8,4,-.6,0,Math.PI*2);
+  ctx.fillStyle=`rgba(255,255,255,${0.03+p*0.04})`;ctx.fill();
+  // Glow halo
+  ctx.shadowColor=color;ctx.shadowBlur=6+p*12;
+  ctx.beginPath();ctx.roundRect(cx-26,cy-26,52,52,3);
+  ctx.strokeStyle=`rgba(59,130,246,${p*0.5})`;ctx.lineWidth=1;ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+// 5ª Gen — SMARTPHONE SoC ARM (chip con wafer, antenas y sensores)
+function drawSmartphone(ctx,W,H,color,t){
+  const cx=W/2,cy=H/2;
+  // Marco del dispositivo
+  ctx.beginPath();ctx.roundRect(cx-22,cy-38,44,76,8);
+  ctx.fillStyle='#0d0d12';ctx.fill();ctx.strokeStyle=color+'88';ctx.lineWidth=1.5;ctx.stroke();
+  // Pantalla
+  ctx.beginPath();ctx.roundRect(cx-18,cy-32,36,56,6);
+  ctx.fillStyle='#050814';ctx.fill();ctx.strokeStyle=color+'33';ctx.lineWidth=.5;ctx.stroke();
+  // Contenido pantalla — onda de datos
+  const p=0.5+0.5*Math.sin(t*2);
+  for(let i=0;i<5;i++){
+    ctx.beginPath();
+    ctx.moveTo(cx-14,cy-18+i*10);
+    for(let x=0;x<28;x++){ctx.lineTo(cx-14+x,cy-18+i*10+Math.sin((x+t*10)*0.5)*3*p);}
+    ctx.strokeStyle=`rgba(139,92,246,${0.2+p*0.3})`;ctx.lineWidth=.8;ctx.stroke();
+  }
+  // Logo del chip
+  ctx.fillStyle=color+'cc';ctx.font=`bold 6.2px 'Orbitron',sans-serif`;ctx.textAlign='center';
+  ctx.fillText('A17 Pro',cx,cy+2);ctx.font=`5px 'Space Mono',monospace`;
+  ctx.fillStyle=color+'77';ctx.fillText('ARM · 3nm',cx,cy+10);
+  // Cámara
+  ctx.beginPath();ctx.arc(cx,cy-26,4,0,Math.PI*2);
+  ctx.fillStyle='#050814';ctx.fill();ctx.strokeStyle=color+'55';ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy-26,2,0,Math.PI*2);
+  ctx.fillStyle='#1a0a30';ctx.fill();
+  // Botón home
+  ctx.beginPath();ctx.arc(cx,cy+32,4,0,Math.PI*2);
+  ctx.strokeStyle=color+'44';ctx.lineWidth=1;ctx.stroke();
+  // Señal WiFi
+  for(let i=1;i<=3;i++){
+    ctx.beginPath();ctx.arc(cx+14,cy-28,3+i*3,1.1*Math.PI,1.9*Math.PI);
+    ctx.strokeStyle=`rgba(139,92,246,${0.2+p*(0.4/i)})`;ctx.lineWidth=1;ctx.stroke();
+  }
+}
+
+// 6ª Gen — CHIP NPU / AI con interconexiones
+function drawNPUChip(ctx,W,H,color,t){
+  const cx=W/2,cy=H/2;
+  const p=0.5+0.5*Math.sin(t*2.5);
+  // Substrato
+  ctx.beginPath();ctx.roundRect(cx-34,cy-34,68,68,5);
+  ctx.fillStyle='#080010';ctx.fill();ctx.strokeStyle=color+'66';ctx.lineWidth=1;ctx.stroke();
+  // HBM stacks (laterales)
+  for(let s=0;s<3;s++){
+    ctx.beginPath();ctx.rect(cx-34,cy-20+s*14,8,10);
+    ctx.fillStyle='#0d0020';ctx.fill();ctx.strokeStyle=color+'55';ctx.lineWidth=.8;ctx.stroke();
+    ctx.beginPath();ctx.rect(cx+26,cy-20+s*14,8,10);
+    ctx.fillStyle='#0d0020';ctx.fill();ctx.strokeStyle=color+'55';ctx.lineWidth=.8;ctx.stroke();
+  }
+  // Die central con neuronas
+  ctx.beginPath();ctx.roundRect(cx-20,cy-20,40,40,3);
+  ctx.fillStyle='rgba(236,72,153,0.07)';ctx.fill();
+  ctx.strokeStyle=color+'aa';ctx.lineWidth=1.5;ctx.stroke();
+  // Red neuronal (nodos y conexiones)
+  const nodes=[[cx-10,cy-10],[cx+10,cy-10],[cx-12,cy+2],[cx,cy+2],[cx+12,cy+2],[cx-8,cy+14],[cx+8,cy+14]];
+  nodes.forEach((n,i)=>{
+    nodes.slice(i+1).forEach(m=>{
+      const d=Math.hypot(m[0]-n[0],m[1]-n[1]);
+      if(d<24){
+        ctx.beginPath();ctx.moveTo(n[0],n[1]);ctx.lineTo(m[0],m[1]);
+        const pulse=0.5+0.5*Math.sin(t*3+i*.8);
+        ctx.strokeStyle=`rgba(236,72,153,${0.1+pulse*0.25})`;ctx.lineWidth=.7;ctx.stroke();
+      }
+    });
+  });
+  nodes.forEach((n,i)=>{
+    const pulse=0.5+0.5*Math.sin(t*3+i*.9);
+    ctx.beginPath();ctx.arc(n[0],n[1],2.5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(236,72,153,${0.5+pulse*0.5})`;ctx.fill();
+    ctx.shadowColor=color;ctx.shadowBlur=4+pulse*6;ctx.fill();ctx.shadowBlur=0;
+  });
+  // Texto
+  ctx.fillStyle=color+'cc';ctx.font=`bold 6.2px 'Orbitron',sans-serif`;ctx.textAlign='center';
+  ctx.fillText('NPU · AI',cx,cy-25);
+  ctx.font=`5px 'Space Mono',monospace`;ctx.fillStyle=color+'77';
+  ctx.fillText('>100 TFLOPS',cx,cy+27);
+  // Glow halo pulsante
+  ctx.shadowColor=color;ctx.shadowBlur=8+p*18;
+  ctx.beginPath();ctx.roundRect(cx-20,cy-20,40,40,3);
+  ctx.strokeStyle=`rgba(236,72,153,${p*0.4})`;ctx.lineWidth=1;ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+/* ════════════════════════════════════════════════
+   RENDER DEL RAIL DE GENERACIONES
+════════════════════════════════════════════════ */
+const rail = document.getElementById('gen-rail');
+gens.forEach((g,i) => {
+  const btn = document.createElement('button');
+  btn.className = 'gen-btn';
+  btn.style.setProperty('--gen-color', g.color);
+  btn.dataset.id = g.id;
+  btn.innerHTML = `
+    <span class="gen-num" style="color:${g.color}">${g.num}</span>
+    <div class="gen-info">
+      <div class="gen-name">${g.name}</div>
+      <div class="gen-period">${g.period}</div>
+    </div>
+    <div class="gen-dot" style="background:${g.color};box-shadow:0 0 6px ${g.color}"></div>
+  `;
+  btn.addEventListener('click', () => selectGen(g.id));
+  rail.appendChild(btn);
+});
+
+/* ════════════════════════════════════════════════
+   CANVAS AR ORBITAL — RENDERIZADO 3D SIMULADO
+════════════════════════════════════════════════ */
+const arCanvas = document.getElementById('ar-canvas');
+const arCtx = arCanvas.getContext('2d');
+const arViewport = document.getElementById('ar-viewport');
+
+let arState = { gen: null, azimuth: 0.8, elevation: 0.5, zoom: 1, isDrag: false, lx: 0, ly: 0, time: 0 };
+
+function resizeAR() {
+  arCanvas.width  = arViewport.offsetWidth;
+  arCanvas.height = arViewport.offsetHeight;
+}
+resizeAR(); window.addEventListener('resize', resizeAR);
+
+// Interacción orbital
+arViewport.addEventListener('mousedown', e => { arState.isDrag=true; arState.lx=e.clientX; arState.ly=e.clientY; });
+window.addEventListener('mouseup',   () => { arState.isDrag=false; });
+window.addEventListener('mousemove', e => {
+  if (!arState.isDrag || !arState.gen) return;
+  arState.azimuth   += (e.clientX - arState.lx) * 0.01;
+  arState.elevation += (e.clientY - arState.ly) * 0.008;
+  arState.elevation  = Math.max(-1, Math.min(1, arState.elevation));
+  arState.lx = e.clientX; arState.ly = e.clientY;
+  updateCoords();
+});
+arViewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  arState.zoom = Math.max(0.5, Math.min(2.4, arState.zoom - e.deltaY * 0.001));
+  updateCoords();
+}, { passive: false });
+// Touch
+arViewport.addEventListener('touchstart', e => { arState.isDrag=true; arState.lx=e.touches[0].clientX; arState.ly=e.touches[0].clientY; },{passive:true});
+arViewport.addEventListener('touchend',   () => { arState.isDrag=false; });
+arViewport.addEventListener('touchmove',  e => {
+  if(!arState.isDrag||!arState.gen) return;
+  arState.azimuth+=(e.touches[0].clientX-arState.lx)*0.012;
+  arState.lx=e.touches[0].clientX;arState.ly=e.touches[0].clientY;
+  updateCoords();
+},{passive:true});
+
+function updateCoords() {
+  document.getElementById('ar-coords').textContent =
+    `AZ: ${(arState.azimuth*57.3%360+360).toFixed(0)}° | EL: ${(arState.elevation*57.3).toFixed(0)}° | ZOOM: ${arState.zoom.toFixed(1)}×`;
+}
+
+function renderAR(ts) {
+  requestAnimationFrame(renderAR);
+  const W = arCanvas.width, H = arCanvas.height;
+  arCtx.clearRect(0, 0, W, H);
+  if (!arState.gen) return;
+  arState.time = ts * 0.001;
+  if (!arState.isDrag) arState.azimuth += 0.004;
+
+  const g = gens.find(x => x.id === arState.gen);
+  if (!g) return;
+
+  const cx = W/2, cy = H/2;
+  const scale = arState.zoom * Math.min(W, H) / 260;
+
+  // Plano de órbita
+  const rings = 3;
+  for (let r=0; r<rings; r++) {
+    const rx = (60+r*35)*scale;
+    const ry = rx * Math.abs(Math.cos(arState.elevation));
+    const a = 0.06 - r*0.015;
+    arCtx.beginPath();
+    arCtx.ellipse(cx, cy + Math.sin(arState.elevation)*rx*0.3, rx, ry, arState.azimuth*0.2, 0, Math.PI*2);
+    arCtx.strokeStyle = `rgba(0,212,255,${a})`;
+    arCtx.lineWidth = 0.8;
+    arCtx.setLineDash([4,8]);
+    arCtx.stroke();
+    arCtx.setLineDash([]);
+  }
+
+  // Electrones orbitando
+  const eCount = 3+gens.indexOf(g);
+  for (let e=0; e<eCount; e++) {
+    const angle = arState.time*1.5 + (e/eCount)*Math.PI*2 + arState.azimuth;
+    const er = 65*scale;
+    const ex = cx + Math.cos(angle)*er;
+    const ey = cy + Math.sin(angle)*er*Math.abs(Math.cos(arState.elevation));
+    arCtx.beginPath();
+    arCtx.arc(ex, ey, 3*scale, 0, Math.PI*2);
+    arCtx.fillStyle = g.color+'dd';
+    arCtx.shadowColor = g.color; arCtx.shadowBlur = 8; arCtx.fill(); arCtx.shadowBlur=0;
+    // Trail
+    for(let tr=1;tr<=6;tr++){
+      const ta = angle - tr*0.12;
+      const tx = cx + Math.cos(ta)*er;
+      const ty = cy + Math.sin(ta)*er*Math.abs(Math.cos(arState.elevation));
+      arCtx.beginPath();arCtx.arc(tx,ty,1.5*(1-tr/7)*scale,0,Math.PI*2);
+      arCtx.fillStyle=g.color+Math.floor((1-tr/7)*80).toString(16).padStart(2,'0');arCtx.fill();
+    }
+  }
+
+  // Plataforma holográfica base
+  const bW=100*scale, bH=12*scale, bY=cy+52*scale;
+  arCtx.beginPath();arCtx.ellipse(cx,bY,bW,bH,0,0,Math.PI*2);
+  const bg=arCtx.createRadialGradient(cx,bY,0,cx,bY,bW);
+  bg.addColorStop(0,g.color+'22');bg.addColorStop(0.6,g.color+'08');bg.addColorStop(1,'transparent');
+  arCtx.fillStyle=bg;arCtx.fill();
+  arCtx.beginPath();arCtx.ellipse(cx,bY,bW,bH,0,0,Math.PI*2);
+  arCtx.strokeStyle=g.color+'33';arCtx.lineWidth=1;arCtx.stroke();
+
+  // Componente físico SVG convertido a canvas (dibujo programático)
+  arCtx.save();
+  arCtx.translate(cx, cy - 8*scale);
+  arCtx.scale(scale, scale);
+  g.draw(arCtx, 100, 100, g.color, arState.time);
+  arCtx.restore();
+
+  // Líneas de datos radiantes
+  const lineCount = 8;
+  for(let l=0;l<lineCount;l++){
+    const la = (l/lineCount)*Math.PI*2 + arState.time*0.5;
+    const ll = (45+Math.sin(arState.time*2+l)*15)*scale;
+    const lx1=cx+Math.cos(la)*32*scale, ly1=cy+Math.sin(la)*18*scale;
+    const lx2=cx+Math.cos(la)*ll,        ly2=cy+Math.sin(la)*ll*0.5;
+    arCtx.beginPath();arCtx.moveTo(lx1,ly1);arCtx.lineTo(lx2,ly2);
+    arCtx.strokeStyle=g.color+'18';arCtx.lineWidth=0.8;arCtx.stroke();
+  }
+}
+requestAnimationFrame(renderAR);
+
+/* ════════════════════════════════════════════════
+   SELECCIÓN DE GENERACIÓN
+════════════════════════════════════════════════ */
+function selectGen(id) {
+  const g = gens.find(x => x.id === id);
+  if (!g) return;
+  arState.gen = id;
+
+  // Rail activo
+  document.querySelectorAll('.gen-btn').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+
+  // Badge AR
+  document.getElementById('ar-badge').textContent = `${g.num} GEN · AR LIVE`;
+  document.getElementById('ar-badge').style.color = g.color;
+  document.getElementById('ar-badge').style.borderColor = g.color+'55';
+  document.getElementById('ar-badge').style.background = g.color+'12';
+
+  // Panel info
+  const metMax = {mini:[2,15,35,60,88,99],therm:[98,55,40,20,10,5],inter:[0,5,20,45,85,100],speed:[1,10,100,10000,2000000,20000000000]};
+  const mi = gens.indexOf(g);
+
+  document.getElementById('info-body').innerHTML = `
+    <div class="fade-in">
+      <div class="info-gen-name" style="color:${g.color};text-shadow:0 0 24px ${g.color}44">${g.num} Generación — ${g.name}</div>
+      <div class="info-period" style="color:${g.color}">${g.period} · ${g.tech}</div>
+      <p class="info-desc">${g.desc}</p>
+
+      <div class="info-lbl">Métricas comparativas</div>
+      <div class="metric-row">
+        ${[
+          ['Miniaturización', g.metrics.mini, '#00d4ff'],
+          ['Eficiencia Térmica', 100-g.metrics.therm, '#f59e0b'],
+          ['Interconectividad', g.metrics.inter, '#a78bfa'],
+        ].map(([k,v,c])=>`
+          <div class="metric-item">
+            <span class="metric-key">${k}</span>
+            <div class="metric-bar"><div class="metric-fill" style="width:${v}%;background:${c}"></div></div>
+            <span class="metric-val" style="color:${c}">${v}%</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="info-lbl">Especificaciones</div>
+      <div class="spec-2col">
+        ${g.specs.map(([k,v])=>`
+          <div class="spec-cell">
+            <div class="spec-k">${k}</div>
+            <div class="spec-v" style="color:${g.color}">${v}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="hito-box">
+        <div class="hito-lbl">Hito Clave</div>
+        <div class="hito-txt">${g.hito}</div>
+      </div>
+      <div class="limit-box">
+        <div class="limit-lbl">Limitación</div>
+        <div class="hito-txt" style="color:var(--text3)">${g.limit}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('info-status').innerHTML = `<span style="color:${g.color};font-size:9px">● ${g.num} gen activa</span>`;
+}
+
+// Seleccionar 1ª gen al cargar
+setTimeout(() => selectGen('g1'), 400);
+
+/* ════════════════════════════════════════════════
+   AUTO-RECORRIDO
+════════════════════════════════════════════════ */
+let autoIdx=0, autoTimer=null;
+function startAuto(){
+  stopAuto();
+  autoTimer = setInterval(()=>{
+    autoIdx=(autoIdx+1)%gens.length;
+    selectGen(gens[autoIdx].id);
+  }, 5000);
+}
+function stopAuto(){clearInterval(autoTimer)}
+arViewport.addEventListener('mousedown', stopAuto);
+
+/* ════════════════════════════════════════════════
+   CONSOLA — MINIATURIZACIÓN
+════════════════════════════════════════════════ */
+const miniData = [
+  {year:'1940',comp:'Tubo de Vacío Termiónico',size:'⌀ 10–15 cm',ctx:'Sala de Control (150 m²)',desc:'Salas enteras para miles de tubos termiónicos. ENIAC: 18,000 tubos.', draw: drawVacuumTube, color:'#ff6b35'},
+  {year:'1956',comp:'Transistor BJT TO-92',size:'⌀ 4–5 mm',ctx:'Armario de servidores',desc:'Primer transistor comercial. 10× más pequeño que el tubo de vacío.', draw: drawTransistor, color:'#f59e0b'},
+  {year:'1965',comp:'IC DIP-14 (SSI)',size:'13 × 6 mm',ctx:'Rack de equipos',desc:'Primer IC comercial. 14 componentes en un solo chip cerámico.', draw: drawIC, color:'#10b981'},
+  {year:'1972',comp:'Intel 4004 VLSI',size:'4 × 3 mm',ctx:'Tarjeta PCB de escritorio',desc:'Primera CPU completa en un chip. 2,300 transistores en 10µm.', draw: drawMicroprocessor, color:'#3b82f6'},
+  {year:'2007',comp:'SoC ARM Cortex-A',size:'8 × 8 mm',ctx:'Smartphone (bolsillo)',desc:'Billones de transistores. WiFi, GPS, GPU, NPU integrados.', draw: drawSmartphone, color:'#8b5cf6'},
+  {year:'2026',comp:'NPU AI 3nm (Wafer)',size:'< 1 mm² (die)',ctx:'Wearable / Edge AI',desc:'Litografía EUV de 3nm. 100M+ transistores por mm². Inferencia de IA on-device.', draw: drawNPUChip, color:'#ec4899'},
+];
+const miniSlider = document.getElementById('mini-slider');
+const miniSVG    = document.getElementById('mini-svg');
+
+function renderMiniSVG(idx) {
+  const d = miniData[idx];
+  const c = document.createElement('canvas');
+  c.width=113;c.height=113;
+  const ctx=c.getContext('2d');
+  d.draw(ctx,90,90,d.color,performance.now()/1000);
+  miniSVG.innerHTML='';
+  const img = new Image();
+  img.onload=()=>{miniSVG.innerHTML='';const image=document.createElementNS('http://www.w3.org/2000/svg','image');image.setAttribute('href',img.src);image.setAttribute('x','0');image.setAttribute('y','0');image.setAttribute('width','90');image.setAttribute('height','90');miniSVG.appendChild(image);};
+  img.src=c.toDataURL();
+  document.getElementById('mini-year-lbl').textContent = d.year;
+  document.getElementById('mini-comp-lbl').textContent = d.comp;
+  document.getElementById('mini-comp-size').textContent = d.size;
+  document.getElementById('mini-comp-ctx').textContent = d.ctx;
+  document.getElementById('mini-desc').textContent = d.desc;
+}
+renderMiniSVG(0);
+miniSlider.addEventListener('input', e => renderMiniSVG(parseInt(e.target.value)));
+// Animar el SVG de miniaturización
+setInterval(()=>renderMiniSVG(parseInt(miniSlider.value)),80);
+
+/* ════════════════════════════════════════════════
+   CONSOLA — TEMPERATURA
+════════════════════════════════════════════════ */
+const thermSlider = document.getElementById('therm-slider');
+function updateTherm(val) {
+  const pct=parseInt(val);
+  const isGen1 = pct > 70;
+  const base = pct<20?30:pct<50?45:pct<80?90:pct<95?180:350;
+  const temp = Math.round(base*(0.8+pct/500));
+  const kw   = Math.round((pct<20?0.08:pct<50?0.5:pct<80?5:pct<95?50:150)*(0.9+pct/1000));
+  const color = temp<60?'#00ff9d':temp<120?'#f59e0b':temp<200?'#ff7043':'#ff4560';
+  document.getElementById('therm-pct').textContent=pct+'%';
+  document.getElementById('therm-val').textContent=temp+'°C';
+  document.getElementById('therm-val').style.color=color;
+  document.getElementById('power-val').textContent=kw>1000?(kw/1000).toFixed(1)+' MW':kw;
+  document.getElementById('power-val').style.color=color;
+  const fillW=Math.min(100,pct*1.1);
+  document.getElementById('therm-fill').style.width=fillW+'%';
+  document.getElementById('therm-fill').style.background=color;
+  // infra
+  const infra=temp<80?'Ventilación Pasiva (Disipador)':temp<150?'Ventilador PWM activo':temp<250?'Refrigeración Líquida AIO':'Turbinas de Agua Industrial';
+  document.getElementById('therm-infra').textContent=infra;
+  // termómetro
+  const th=Math.min(66,Math.round(pct*0.66));
+  document.getElementById('thermo-fill').setAttribute('height',th);
+  document.getElementById('thermo-fill').setAttribute('y',12+(66-th));
+  document.getElementById('thermo-fill').setAttribute('fill',color);
+  document.getElementById('thermo-bulb').setAttribute('fill',color);
+}
+thermSlider.addEventListener('input',e=>updateTherm(e.target.value));
+updateTherm(10);
+
+/* ════════════════════════════════════════════════
+   CONSOLA — FLUJO CPU/GPU/NPU
+════════════════════════════════════════════════ */
+let flowRunning=false;
+function runFlowSim(){
+  if(flowRunning)return;
+  flowRunning=true;
+  const log=document.getElementById('flow-log');
+  const nodes=['user','cpu','gpu','npu','cloud'];
+  nodes.forEach(n=>{
+    document.getElementById('bar-'+n).style.width='0%';
+    document.getElementById('pct-'+n).textContent='0%';
+    document.getElementById('fn-'+n).classList.remove('active');
+  });
+  log.textContent='';
+
+  const steps=[
+    {node:'user',  pct:100, delay:0,    msg:'[01] Usuario: "Generar imagen 4K con IA"...'},
+    {node:'cpu',   pct:35,  delay:800,  msg:'[02] CPU decodifica petición → coords de tarea...'},
+    {node:'gpu',   pct:78,  delay:1600, msg:'[03] GPU lanza 16,384 CUDA cores → renderizado...'},
+    {node:'npu',   pct:95,  delay:2400, msg:'[04] NPU ejecuta difusión: 100 TOPS @ 3nm...'},
+    {node:'cloud', pct:60,  delay:3200, msg:'[05] Cloud sincroniza modelo base via Edge CDN...'},
+    {node:'cpu',   pct:15,  delay:4000, msg:'[06] CPU post-procesa → entrega resultado al usuario.'},
+  ];
+  steps.forEach(s=>{
+    setTimeout(()=>{
+      document.getElementById('fn-'+s.node).classList.add('active');
+      document.getElementById('bar-'+s.node).style.width=s.pct+'%';
+      document.getElementById('pct-'+s.node).textContent=s.pct+'%';
+      log.textContent += (log.textContent?'\n':'')+s.msg;
+      log.scrollTop=log.scrollHeight;
+    },s.delay);
+  });
+  setTimeout(()=>{
+    log.textContent+='\n[07] ✓ Imagen generada en 4.2s — latencia total 85ms';
+    flowRunning=false;
+  },4800);
+}
+
+/* ════════════════════════════════════════════════
+   GLOSARIO — DATOS Y RENDER
+════════════════════════════════════════════════ */
+const glosarioData = [
+  {name:'Tubo de Vacío', gen:'1ª Gen · 1940', color:'#ff6b35', draw:drawVacuumTube,
+   desc:'Dispositivo termiónico que amplifica o conmuta señales eléctricas mediante el flujo de electrones en un vacío. Base de la primera generación de computadoras.',
+   specs:[['Diámetro','10–15 cm'],['Vida útil','~1,000 h'],['Consumo','~40 W/tubo'],['Función','Interruptor lógico']]},
+  {name:'Transistor', gen:'2ª Gen · 1956', color:'#f59e0b', draw:drawTransistor,
+   desc:'Dispositivo semiconductor de 3 terminales (BJT o FET) que amplifica o conmuta corriente eléctrica. Reemplazó al tubo de vacío con 10× menor tamaño y mayor fiabilidad.',
+   specs:[['Tamaño','TO-92 (4mm)'],['Ganancia','hFE 100–300'],['VCEmax','40 V'],['Función','Amplif./Switch']]},
+  {name:'Circuito Integrado', gen:'3ª Gen · 1965', color:'#10b981', draw:drawIC,
+   desc:'Conjunto de transistores, resistencias y condensadores fabricados en un único chip de silicio. El IC eliminó el cableado discreto y multiplicó la densidad lógica.',
+   specs:[['Encapsulado','DIP-14'],['Integración','SSI (<100 comp)'],['VCC','5V TTL'],['Lógica','Booleana']]},
+  {name:'Microprocesador', gen:'4ª Gen · 1972', color:'#3b82f6', draw:drawMicroprocessor,
+   desc:'CPU completa integrada en un único chip VLSI. El Intel 4004 (1971) fue el primero; el 8086 (1978) definió la arquitectura x86 que persiste hasta hoy en PCs y servidores.',
+   specs:[['Nodo','10µm–180nm'],['Transistores','2K–120M'],['Bus','8/16/32 bits'],['ISA','x86/RISC']]},
+  {name:'Mainframe', gen:'3ª–4ª Gen', color:'#06b6d4', draw:(c,W,H,col,t)=>{
+      drawIC(c,W,H,col,t);
+   },
+   desc:'Sistema de cómputo de gran escala para procesamiento masivo de transacciones. Aún activos en bancos, aerolíneas y gobiernos con disponibilidad 99.999%.',
+   specs:[['RAM','Hasta 40 TB'],['MIPS','50,000+'],['Disponib.','5 nines'],['OS','z/OS IBM']]},
+  {name:'PC Clásico', gen:'4ª Gen · 1981', color:'#84cc16', draw:drawMicroprocessor,
+   desc:'Computadora personal basada en microprocesador x86. El IBM PC (1981) y el Apple II democratizaron el acceso a la computación fuera de empresas y universidades.',
+   specs:[['CPU','Intel 8088'],['RAM','64 KB–640 KB'],['Storage','Diskette 360 KB'],['OS','MS-DOS']]},
+  {name:'Smartphone', gen:'5ª Gen · 2007', color:'#8b5cf6', draw:drawSmartphone,
+   desc:'Dispositivo portátil con SoC ARM que integra CPU, GPU, NPU, modem 5G, sensores y cámara. El iPhone (2007) redefinió la interfaz hombre-máquina.',
+   specs:[['SoC','Apple A17/Snapdragon'],['Nodo','3–4 nm'],['RAM','8–24 GB'],['Conectividad','5G/WiFi 7']]},
+  {name:'WiFi & LTE', gen:'5ª Gen · 2000s', color:'#0ea5e9', draw:(c,W,H,col,t)=>{drawSmartphone(c,W,H,col,t)},
+   desc:'Tecnologías de conectividad inalámbrica que habilitaron la computación ubicua. WiFi 802.11ax (6 GHz, 9.6 Gbps) y 5G NR (mmWave, 20 Gbps) definen la era actual.',
+   specs:[['Estándar','WiFi 6E / 5G NR'],['Velocidad','9.6 / 20 Gbps'],['Latencia','<1 ms (5G)'],['Banda','6 GHz / mmWave']]},
+  {name:'Cloud Computing', gen:'5ª–6ª Gen', color:'#22d3ee', draw:(c,W,H,col,t)=>{drawNPUChip(c,W,H,col,t)},
+   desc:'Modelo de entrega de recursos computacionales bajo demanda (IaaS/PaaS/SaaS). AWS, Azure y GCP concentran >60% del mercado global con datacenters en 200+ regiones.',
+   specs:[['Modelo','IaaS/PaaS/SaaS'],['SLA','99.999%'],['Latencia','<10 ms (edge)'],['Escala','Infinita teórica']]},
+  {name:'IoT Periférico', gen:'6ª Gen · 2019', color:'#a3e635', draw:drawSmartphone,
+   desc:'Red de objetos físicos con sensores y conectividad que generan y procesan datos en el borde. >75,000 millones de dispositivos IoT proyectados para 2025.',
+   specs:[['Protocolo','MQTT / CoAP'],['Energía','<1 mW (LoRa)'],['Conectividad','BLE/ZigBee/LoRa'],['Proceso','Edge AI']]},
+  {name:'Comp. Cuántica', gen:'6ª Gen · Emergente', color:'#ec4899', draw:drawNPUChip,
+   desc:'Computación basada en qubits que aprovecha superposición y entrelazamiento cuántico. IBM Condor (1,121 qubits, 2023) supera ciertos problemas de optimización clásica.',
+   specs:[['Qubits','1,121 (IBM)'],['Coherencia','~100 µs'],['Error','~0.1–1%'],['Temperatura','~15 mK']]},
+  {name:'Tarjeta Perforada', gen:'Pre-1ª Gen', color:'#fbbf24', draw:(c,W,H,col,t)=>{
+      const cx=W/2,cy=H/2;
+      ctx2=c;ctx2.beginPath();ctx2.roundRect(cx-30,cy-20,60,40,2);
+      ctx2.fillStyle='#1a1408';ctx2.fill();ctx2.strokeStyle=col+'88';ctx2.lineWidth=1;ctx2.stroke();
+      for(let r=0;r<3;r++)for(let cc=0;cc<8;cc++){ctx2.beginPath();ctx2.rect(cx-27+cc*7,cy-14+r*12,4,8);ctx2.fillStyle=Math.random()>.5?'transparent':col+'55';ctx2.fill();ctx2.strokeStyle=col+'33';ctx2.lineWidth=.5;ctx2.stroke();}
+      ctx2.fillStyle=col+'99';ctx2.font=`5px 'Space Mono',monospace`;ctx2.textAlign='center';ctx2.fillText('IBM 80-COL CARD',cx,cy+26);
+   },
+   desc:'Medio de entrada/salida de datos perforado físicamente. Precursor de la era digital, usado desde 1890 (Hollerith) hasta los años 80. 80 columnas × 12 filas = 80 caracteres.',
+   specs:[['Capacidad','80 bytes/tarjeta'],['Velocidad','1,000 t/min'],['Material','Cartón 0.178mm'],['Origen','H. Hollerith 1890']]},
+];
+
+const gGrid = document.getElementById('glosario-grid');
+glosarioData.forEach((item, idx) => {
+  const div = document.createElement('div');
+  div.className='glos-item';
+  const c=document.createElement('canvas');c.width=88;c.height=88;
+  const gtx=c.getContext('2d');
+  item.draw(gtx,88,88,item.color,performance.now()/1000);
+  div.innerHTML=`
+    <img src="${c.toDataURL()}" class="glos-svg" width="88" height="88" alt="${item.name}">
+    <div class="glos-name">${item.name}</div>
+    <div class="glos-gen">${item.gen}</div>
+  `;
+  div.addEventListener('click', ()=>openDiag(item));
+  gGrid.appendChild(div);
+  // Reanimar
+  setInterval(()=>{
+    gtx.clearRect(0,0,70,70);
+    item.draw(gtx,88,88,item.color,performance.now()/1000);
+    div.querySelector('img').src=c.toDataURL();
+  },80);
+});
+
+/* ════════════════════════════════════════════════
+   MODAL DIAGNÓSTICO
+════════════════════════════════════════════════ */
+function openDiag(item) {
+  document.getElementById('diag-name').textContent=item.name;
+  document.getElementById('diag-name').style.color=item.color;
+  document.getElementById('diag-gen').textContent=item.gen;
+  document.getElementById('diag-desc').textContent=item.desc;
+  // Dibuja en canvas dentro del modal
+  const dc=document.createElement('canvas');dc.width=150;dc.height=150;
+  const dtx=dc.getContext('2d');
+  function animDiag(){dtx.clearRect(0,0,120,120);item.draw(dtx,150,150,item.color,performance.now()/1000);document.getElementById('diag-svg').innerHTML='';const img=new Image();img.onload=()=>{document.getElementById('diag-svg').innerHTML='';const im=document.createElementNS('http://www.w3.org/2000/svg','image');im.setAttribute('href',img.src);im.setAttribute('x','0');im.setAttribute('y','0');im.setAttribute('width','150');im.setAttribute('height','150');document.getElementById('diag-svg').appendChild(im)};img.src=dc.toDataURL();if(document.getElementById('diag-modal').classList.contains('open'))requestAnimationFrame(animDiag);}
+  animDiag();
+  document.getElementById('diag-specs').innerHTML=item.specs.map(([k,v])=>`
+    <div class="spec-cell"><div class="spec-k">${k}</div><div class="spec-v" style="color:${item.color}">${v}</div></div>
+  `).join('');
+  document.getElementById('diag-modal').classList.add('open');
+}
+function closeDiag(){document.getElementById('diag-modal').classList.remove('open')}
+
+/* ════════════════════════════════════════════════
+   TABLA HISTÓRICA
+════════════════════════════════════════════════ */
+const tbody=document.getElementById('tabla-body');
+const heatColors={'Crítica':'#ff4560','Media':'#f59e0b','Baja':'#00ff9d','Optimizada':'#00d4ff'};
+gens.forEach(g=>{
+  const tr=document.createElement('tr');
+  const hc=heatColors[g.heat]||'#00d4ff';
+  tr.innerHTML=`
+    <td><span class="gen-badge" style="background:${g.color}18;border:1px solid ${g.color}44;color:${g.color}">${g.num} ${g.name}</span></td>
+    <td style="font-family:var(--fM);font-size:10px;color:var(--text2);letter-spacing:.06em;white-space:nowrap">${g.period}</td>
+    <td style="font-size:12px;color:var(--text3)">${g.tech}</td>
+    <td class="td-perf">${g.perf}</td>
+    <td><span style="font-family:var(--fM);font-size:9px;padding:3px 8px;border-radius:3px;background:${hc}14;border:1px solid ${hc}44;color:${hc};letter-spacing:.06em">${g.heat}</span></td>
+    <td class="td-imp">${g.hito.split('.')[0]}.</td>
+  `;
+  tr.addEventListener('click',()=>{selectGen(g.id);document.getElementById('seccion-timeline').scrollIntoView({behavior:'smooth'})});
+  tbody.appendChild(tr);
+});
+
+/* ════════════════════════════════════════════════
+   NAV PILLS ACTIVO POR SCROLL
+════════════════════════════════════════════════ */
+const pills=document.querySelectorAll('.npill[href^="#"]');
+window.addEventListener('scroll',()=>{
+  let cur='';
+  document.querySelectorAll('section[id]').forEach(s=>{if(window.scrollY>=s.offsetTop-130)cur=s.id});
+  pills.forEach(p=>{p.classList.toggle('on',p.getAttribute('href')==='#'+cur)});
+},{passive:true});
+
+/* Arrancar auto-recorrido después de 3s */
+setTimeout(startAuto, 3000);
+</script>
+</body>
+</html>
