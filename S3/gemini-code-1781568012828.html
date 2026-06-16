@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación Interactiva - Almacenamiento Avanzado</title>
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff0055;
+            --neon-green: #39ff14;
+            --neon-purple: #b026ff;
+            --bg-dark: #0a0a12;
+            --panel-bg: rgba(16, 16, 28, 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            perspective: 1000px; /* Simulación entorno AR / 3D */
+        }
+
+        /* Fondo estilo Matriz de Puntos AR */
+        .ar-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: 
+                radial-gradient(rgba(0, 243, 255, 0.15) 1px, transparent 1px),
+                radial-gradient(rgba(255, 0, 85, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            z-index: -2;
+            transform: rotateX(20deg);
+            transform-origin: top;
+            opacity: 0.6;
+        }
+
+        /* Escáner de líneas AR */
+        .ar-scanner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            box-shadow: 0 0 15px var(--neon-blue);
+            animation: scan 6s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Contenedor Principal (HUD - Head Up Display) */
+        .hud-container {
+            width: 90%;
+            max-width: 850px;
+            background: var(--panel-bg);
+            border: 2px solid var(--neon-blue);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(12px);
+            transform: rotateY(-2deg) rotateX(2deg);
+            transition: transform 0.5s ease, border-color 0.5s ease;
+        }
+
+        /* Encabezado */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .title-neon {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+        }
+
+        .hud-stats {
+            font-size: 1rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 5px var(--neon-blue);
+            font-weight: bold;
+        }
+
+        /* Barra de Progreso SVG */
+        .progress-box {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 20%;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            box-shadow: 0 0 10px var(--neon-blue);
+            transition: width 0.4s ease;
+        }
+
+        /* Área de Pregunta */
+        .question-section {
+            margin-bottom: 25px;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        /* Grid de Opciones (Estilo Kahoot Alternativo) */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 18px 20px;
+            color: #fff;
+            font-size: 1.05rem;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Iconos SVG embebidos para cada opción geométrica (Estilo Kahoot AR) */
+        .option-btn svg {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        /* Colores Neón por Opción */
+        .opt-0 { border-color: rgba(255, 0, 85, 0.4); }
+        .opt-0:hover:not([disabled]) { 
+            background: rgba(255, 0, 85, 0.15); 
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+        }
+        
+        .opt-1 { border-color: rgba(0, 243, 255, 0.4); }
+        .opt-1:hover:not([disabled]) { 
+            background: rgba(0, 243, 255, 0.15); 
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+        }
+
+        .opt-2 { border-color: rgba(176, 38, 255, 0.4); }
+        .opt-2:hover:not([disabled]) { 
+            background: rgba(176, 38, 255, 0.15); 
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(176, 38, 255, 0.4);
+        }
+
+        .opt-3 { border-color: rgba(57, 255, 20, 0.4); }
+        .opt-3:hover:not([disabled]) { 
+            background: rgba(57, 255, 20, 0.15); 
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.4);
+        }
+
+        /* Feedback Clases */
+        .option-btn.correct {
+            background: rgba(57, 255, 20, 0.2) !important;
+            border-color: var(--neon-green) !important;
+            box-shadow: 0 0 20px var(--neon-green) !important;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+
+        .option-btn.wrong {
+            background: rgba(255, 0, 85, 0.2) !important;
+            border-color: var(--neon-pink) !important;
+            box-shadow: 0 0 20px var(--neon-pink) !important;
+            opacity: 0.7;
+        }
+
+        /* Panel de Feedback Desplegable */
+        .feedback-panel {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .feedback-panel.correct-style {
+            background: rgba(57, 255, 20, 0.05);
+            border-left: 4px solid var(--neon-green);
+        }
+
+        .feedback-panel.wrong-style {
+            background: rgba(255, 0, 85, 0.05);
+            border-left: 4px solid var(--neon-pink);
+        }
+
+        .feedback-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Botón Siguiente */
+        .next-btn {
+            margin-top: 15px;
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+            transition: all 0.2s;
+            float: right;
+        }
+
+        .next-btn:hover {
+            background: var(--neon-blue);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Pantalla de Resultados Finales */
+        .results-screen {
+            text-align: center;
+            display: none;
+        }
+
+        .score-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ar-grid"></div>
+    <div class="ar-scanner"></div>
+
+    <div class="hud-container" id="quiz-container">
+        <div id="game-view">
+            <div class="hud-header">
+                <div class="title-neon">Sistemas Operativos HUD</div>
+                <div class="hud-stats" id="question-counter">PREGUNTA: 1 / 5</div>
+            </div>
+
+            <div class="progress-box">
+                <div class="progress-bar" id="progress-indicator"></div>
+            </div>
+
+            <div class="question-section">
+                <p class="question-text" id="question-text">Cargando telemetría de la pregunta...</p>
+            </div>
+
+            <div class="options-grid" id="options-container">
+                </div>
+
+            <div class="feedback-panel id" id="feedback-panel">
+                <div class="feedback-title" id="feedback-title"></div>
+                <p id="feedback-text"></p>
+                <div class="clearfix">
+                    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Siguiente ></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-screen" id="results-view">
+            <h2 class="title-neon" style="margin-bottom: 20px;">Diagnóstico AR Completado</h2>
+            <p>Rendimiento del sistema evaluado:</p>
+            <div class="score-display" id="score-text">0 / 5</div>
+            <p id="performance-eval" style="margin-bottom: 30px; color: var(--neon-blue);"></p>
+            <button class="next-btn" style="float: none;" onclick="resetQuiz()">Reiniciar Módulo</button>
+        </div>
+    </div>
+
+    <script>
+        // Banco de preguntas basado estrictamente en el temario provisto
+        const quizData = [
+            {
+                question: "¿Qué sistema de archivos avanzado utiliza el concepto de 'Storage Pools' (Zpools) integrando la gestión de volúmenes y el sistema de archivos en una sola capa nativa?",
+                options: ["NTFS", "EXT4", "ZFS", "FAT32"],
+                correct: 2,
+                feedback: "¡Correcto! ZFS elimina el concepto tradicional de particiones rígidas mediante el uso de pools de almacenamiento virtuales, proveyendo además autoreparación e integridad de datos avanzada."
+            },
+            {
+                question: "En sistemas heredados, si las peticiones de disco se procesan moviendo el brazo continuamente de un extremo a otro, atendiendo solicitudes en una sola dirección y regresando inmediatamente al inicio sin atender peticiones de vuelta, ¿qué algoritmo se está ejecutando?",
+                options: ["SSF (Shortest Seek Time First)", "SCAN (Algoritmo del elevador)", "C-SCAN (Circular SCAN)", "FIFO (First-In, First-Out)"],
+                correct: 2,
+                feedback: "¡Correcto! C-SCAN (Circular SCAN) restringe el servicio a una sola dirección de movimiento. Al llegar al extremo, el brazo regresa al principio del disco de forma rápida sin procesar solicitudes en el trayecto de retorno, garantizando un tiempo de espera uniforme."
+            },
+            {
+                question: "Al evaluar arquitecturas de almacenamiento de estado sólido actuales, ¿qué protocolo de comunicación de baja latencia fue diseñado específicamente para interactuar de forma nativa con las memorias flash a través del bus PCIe, superando los límites de AHCI?",
+                options: ["SATA mSATA", "NVMe (Non-Volatile Memory Express)", "U.2 Form Factor", "SAS (Serial Attached SCSI)"],
+                correct: 1,
+                feedback: "¡NVMe es la respuesta correcta! A diferencia de SATA/AHCI, diseñados para discos mecánicos lentos, NVMe se comunica directamente vía PCIe y soporta múltiples colas de comandos paralelas (hasta 64k colas con 64k comandos cada una)."
+            },
+            {
+                question: "¿Cuál de los siguientes pares representa correctamente un factor de forma físico ('Form Factor') y un bus/interfaz de datos, respectivamente, en dispositivos SSD actuales?",
+                options: ["M.2 y PCIe / SATA", "NVMe y U.2", "SATA y SAS", "HDD y SSD"],
+                correct: 0,
+                feedback: "¡Exacto! M.2 (así como U.2) corresponde al factor de forma físico (dimensiones externas y pines), mientras que PCIe y SATA corresponden a la interfaz/bus de datos por el cual transitan las señales lógicas."
+            },
+            {
+                question: "En una prueba de comparación de desempeño entre un disco magnético convencional y un SSD, ¿cuál es la razón principal del salto exponencial en el rendimiento de Lecturas Aleatorias (IOPS) a favor del SSD?",
+                options: ["Mayor densidad magnética por plato.", "Ausencia de retrasos mecánicos por búsqueda de cilindro y latencia rotacional.", "Uso exclusivo del sistema de archivos NTFS.", "Aumento de la velocidad de rotación por encima de las 15,000 RPM."],
+                correct: 1,
+                feedback: "¡Correcto! Al carecer de partes mecánicas móviles (brazo actuador y platos giratorios), los SSD eliminan por completo el tiempo de búsqueda física (Seek Time) y la latencia de rotación, logrando accesos de nanosegundos basados en matrices de transistores."
+            }
+        ];
+
+        // Figuras geométricas SVG tipo Kahoot (Triángulo, Rombo, Círculo, Cuadrado)
+        const svgIcons = [
+            `<svg viewBox="0 0 24 24"><polygon points="12,2 22,22 2,22" fill="var(--neon-pink)"/></svg>`,
+            `<svg viewBox="0 0 24 24"><polygon points="12,2 22,12 12,22 2,12" fill="var(--neon-blue)"/></svg>`,
+            `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--neon-purple)"/></svg>`,
+            `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" fill="var(--neon-green)"/></svg>`
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        // Inicialización de elementos del DOM
+        const gameView = document.getElementById('game-view');
+        const resultsView = document.getElementById('results-view');
+        const questionCounter = document.getElementById('question-counter');
+        const progressIndicator = document.getElementById('progress-indicator');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackPanel = document.getElementById('feedback-panel');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+
+        function loadQuestion() {
+            answered = false;
+            feedbackPanel.style.display = 'none';
+            
+            let currentQuestion = quizData[currentQuestionIndex];
+            
+            // Actualizar HUD e indicadores
+            questionCounter.innerText = `PREGUNTA: ${currentQuestionIndex + 1} / ${quizData.length}`;
+            progressIndicator.style.width = `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
+            questionText.innerText = currentQuestion.question;
+            
+            // Renderizar Opciones de Respuesta con efectos responsivos
+            optionsContainer.innerHTML = '';
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = `option-btn opt-${index}`;
+                button.innerHTML = `${svgIcons[index]} <span>${option}</span>`;
+                button.onclick = () => selectOption(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Simular distorsión sutil en perspectiva del contenedor al cambiar pregunta
+            const container = document.getElementById('quiz-container');
+            container.style.transform = `rotateY(${(Math.random() * 4) - 2}deg) rotateX(${(Math.random() * 4) - 2}deg)`;
+        }
+
+        function selectOption(selectedIndex) {
+            if (answered) return; // Previene múltiples clicks antes del feedback
+            answered = true;
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            const buttons = optionsContainer.getElementsByClassName('option-btn');
+            
+            // Evaluar respuesta
+            const isCorrect = (selectedIndex === currentQuestion.correct);
+            if (isCorrect) {
+                score++;
+                buttons[selectedIndex].classList.add('correct');
+                feedbackPanel.className = 'feedback-panel correct-style';
+                feedbackTitle.innerHTML = `<span style="color: var(--neon-green); margin-right: 8px;">✓</span> TELEMETRÍA CORRECTA`;
+            } else {
+                buttons[selectedIndex].classList.add('wrong');
+                buttons[currentQuestion.correct].classList.add('correct'); // Resalta la correcta
+                feedbackPanel.className = 'feedback-panel wrong-style';
+                feedbackTitle.innerHTML = `<span style="color: var(--neon-pink); margin-right: 8px;">✗</span> ERROR DE COHERENCIA`;
+            }
+
+            // Deshabilitar todos los botones de opciones
+            for (let btn of buttons) {
+                btn.setAttribute('disabled', 'true');
+            }
+
+            // Desplegar panel de feedback técnico
+            feedbackText.innerText = currentQuestion.feedback;
+            feedbackPanel.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            gameView.style.display = 'none';
+            resultsView.style.display = 'block';
+            
+            const scoreText = document.getElementById('score-text');
+            const performanceEval = document.getElementById('performance-eval');
+            
+            scoreText.innerText = `${score} / ${quizData.length}`;
+            
+            // Mensaje de diagnóstico final personalizado de acuerdo al puntaje
+            if (score === quizData.length) {
+                performanceEval.innerText = "DIAGNÓSTICO: Sistemas al 100%. Sincronización completa con arquitecturas de almacenamiento.";
+                performanceEval.style.color = "var(--neon-green)";
+            } else if (score >= 3) {
+                performanceEval.innerText = "DIAGNÓSTICO: Rendimiento estable. Sectores lógicos y mecánicos comprendidos óptimamente.";
+                performanceEval.style.color = "var(--neon-blue)";
+            } else {
+                performanceEval.innerText = "DIAGNÓSTICO: Fragmentación de memoria crítica detected. Se sugiere re-lectura del temario base.";
+                performanceEval.style.color = "var(--neon-pink)";
+            }
+        }
+
+        function resetQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            resultsView.style.display = 'none';
+            gameView.style.display = 'block';
+            loadQuestion();
+        }
+
+        // Ejecutar carga inicial al abrir el archivo
+        window.onload = loadQuestion;
+    </script>
+</body>
+</html>
