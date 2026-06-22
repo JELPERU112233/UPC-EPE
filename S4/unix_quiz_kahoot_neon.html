@@ -1,0 +1,181 @@
+<h2 class="sr-only">Quiz interactivo estilo Kahoot con estética neón sobre UNIX, 5 preguntas con puntaje y retroalimentación inmediata</h2>
+<div id="quiz-app" style="background:#0b0d10; border-radius:var(--border-radius-lg); padding:1.5rem; font-family:var(--font-mono);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <i class="ti ti-terminal-2" style="font-size:20px; color:#00e5ff;" aria-hidden="true"></i>
+      <span style="font-weight:500; font-size:16px; color:#00e5ff; letter-spacing:0.5px;">UNIX QUIZ</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px; font-size:13px;">
+      <span id="progress-label" style="color:#ff2ec4;">Pregunta 1/5</span>
+      <span style="font-weight:500; color:#39ff6a;" id="score-label">Puntaje: 0</span>
+    </div>
+  </div>
+
+  <div style="height:6px; background:#1a1d22; border-radius:4px; overflow:hidden; margin-bottom:1.5rem;">
+    <div id="progress-bar" style="height:100%; width:20%; background:#00e5ff; transition:width .3s;"></div>
+  </div>
+
+  <div id="question-card" style="background:#11141a; border:2px solid #00e5ff; border-radius:var(--border-radius-lg); padding:1.25rem;">
+    <p id="question-text" style="font-size:16px; font-weight:500; margin:0 0 1rem; color:#f4f6fb;"></p>
+    <div id="options" style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px;"></div>
+    <p id="explanation" style="font-size:13px; color:#8b93a7; margin:0.75rem 0 0; display:none;"></p>
+  </div>
+
+  <div id="next-row" style="display:none; justify-content:flex-end; margin-top:1rem;">
+    <button id="next-btn" style="background:#0b0d10; border:2px solid #ff2ec4; color:#ff2ec4; border-radius:var(--border-radius-md); padding:8px 16px; font-family:var(--font-mono); font-weight:500;">Siguiente</button>
+  </div>
+
+  <div id="result-screen" style="display:none; text-align:center; padding:2rem 1rem;">
+    <i class="ti ti-trophy" style="font-size:32px; color:#39ff6a;" aria-hidden="true"></i>
+    <p style="font-size:18px; font-weight:500; margin:0.75rem 0 0.25rem; color:#39ff6a;" id="final-score"></p>
+    <p style="font-size:13px; color:#8b93a7; margin:0 0 1.25rem;" id="final-msg"></p>
+    <button id="restart-btn" style="background:#0b0d10; border:2px solid #00e5ff; color:#00e5ff; border-radius:var(--border-radius-md); padding:8px 16px; font-family:var(--font-mono); font-weight:500;">Reintentar quiz</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "¿Qué es UNIX?",
+    options: [
+      "Un sistema operativo multiusuario y multitarea",
+      "Un lenguaje de programación",
+      "Un protocolo de red",
+      "Un editor de texto"
+    ],
+    correct: 0,
+    explain: "UNIX es un sistema operativo multiusuario y multitarea, base de Linux, macOS y otros sistemas modernos."
+  },
+  {
+    q: "¿Qué comando se usa en UNIX para listar archivos de un directorio?",
+    options: ["cd", "ls", "rm", "ps"],
+    correct: 1,
+    explain: "El comando ls lista el contenido de un directorio."
+  },
+  {
+    q: "¿Cuál es la estructura jerárquica de archivos en UNIX?",
+    options: [
+      "Una red plana sin jerarquía",
+      "Un árbol invertido con raíz en /",
+      "Discos separados sin relación",
+      "Una base de datos relacional"
+    ],
+    correct: 1,
+    explain: "UNIX organiza los archivos en un árbol jerárquico cuya raíz es el directorio /."
+  },
+  {
+    q: "¿Qué tipo de interfaz caracteriza tradicionalmente a UNIX?",
+    options: [
+      "Solo interfaz gráfica",
+      "Línea de comandos (shell)",
+      "Solo interfaz táctil",
+      "Interfaz por voz"
+    ],
+    correct: 1,
+    explain: "UNIX se basa históricamente en una interfaz de línea de comandos llamada shell."
+  },
+  {
+    q: "¿Cuál de los siguientes NO es un sistema derivado o inspirado en UNIX?",
+    options: ["Linux", "macOS", "BSD", "Windows 95"],
+    correct: 3,
+    explain: "Windows 95 no se basa en UNIX; Linux, macOS y BSD sí tienen raíces o influencia UNIX."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+
+const questionText = document.getElementById('question-text');
+const optionsEl = document.getElementById('options');
+const explanationEl = document.getElementById('explanation');
+const nextRow = document.getElementById('next-row');
+const progressLabel = document.getElementById('progress-label');
+const progressBar = document.getElementById('progress-bar');
+const scoreLabel = document.getElementById('score-label');
+const questionCard = document.getElementById('question-card');
+const resultScreen = document.getElementById('result-screen');
+
+function renderQuestion() {
+  answered = false;
+  const item = questions[current];
+  questionText.textContent = item.q;
+  explanationEl.style.display = 'none';
+  nextRow.style.display = 'none';
+  progressLabel.textContent = 'Pregunta ' + (current + 1) + '/' + questions.length;
+  progressBar.style.width = Math.round(((current + 1) / questions.length) * 100) + '%';
+  optionsEl.innerHTML = '';
+  const colors = ['#00e5ff', '#ff2ec4', '#39ff6a', '#ffd400'];
+  item.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.textContent = opt;
+    btn.style.textAlign = 'left';
+    btn.style.padding = '12px 14px';
+    btn.style.fontSize = '14px';
+    btn.style.background = '#0b0d10';
+    btn.style.border = '2px solid ' + colors[idx % colors.length];
+    btn.style.color = colors[idx % colors.length];
+    btn.style.borderRadius = 'var(--border-radius-md)';
+    btn.style.fontFamily = 'var(--font-mono)';
+    btn.addEventListener('click', () => selectAnswer(idx));
+    optionsEl.appendChild(btn);
+  });
+}
+
+function selectAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  const item = questions[current];
+  const buttons = optionsEl.querySelectorAll('button');
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === item.correct) {
+      btn.style.borderColor = '#39ff6a';
+      btn.style.color = '#39ff6a';
+      btn.style.background = '#0f1a12';
+    } else if (i === idx) {
+      btn.style.borderColor = '#ff3b3b';
+      btn.style.color = '#ff3b3b';
+      btn.style.background = '#1a0f0f';
+    } else {
+      btn.style.opacity = '0.4';
+    }
+  });
+  if (idx === item.correct) score += 1;
+  scoreLabel.textContent = 'Puntaje: ' + score;
+  explanationEl.textContent = item.explain;
+  explanationEl.style.display = 'block';
+  nextRow.style.display = 'flex';
+}
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  current += 1;
+  if (current < questions.length) {
+    renderQuestion();
+  } else {
+    showResults();
+  }
+});
+
+function showResults() {
+  questionCard.style.display = 'none';
+  nextRow.style.display = 'none';
+  resultScreen.style.display = 'block';
+  document.getElementById('final-score').textContent = 'Obtuviste ' + score + ' de ' + questions.length;
+  let msg = 'Sigue repasando los conceptos de UNIX.';
+  if (score === questions.length) msg = 'Excelente, dominas los conceptos básicos de UNIX.';
+  else if (score >= questions.length - 1) msg = 'Muy buen resultado, casi perfecto.';
+  document.getElementById('final-msg').textContent = msg;
+}
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  current = 0;
+  score = 0;
+  scoreLabel.textContent = 'Puntaje: 0';
+  questionCard.style.display = 'block';
+  resultScreen.style.display = 'none';
+  renderQuestion();
+});
+
+renderQuestion();
+</script>
