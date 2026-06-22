@@ -1,0 +1,185 @@
+<h2 class="sr-only">Quiz interactivo estilo Kahoot con fondo negro sobre Linux, 5 preguntas con puntaje y retroalimentacion inmediata</h2>
+<div id="quiz-app" style="background:#000000; border-radius:var(--border-radius-lg); padding:1.5rem; font-family:var(--font-sans);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <i class="ti ti-brand-debian" style="font-size:22px; color:#00e5ff;" aria-hidden="true"></i>
+      <span style="font-weight:500; font-size:18px; color:#ffffff;">Quiz: Linux</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px; font-size:13px;">
+      <span id="progress-label" style="color:#ff2ec4; font-weight:500;">Pregunta 1/5</span>
+      <span style="font-weight:500; color:#39ff6a;" id="score-label">Puntaje: 0</span>
+    </div>
+  </div>
+
+  <div style="height:6px; background:#1a1a1a; border-radius:4px; overflow:hidden; margin-bottom:1.5rem;">
+    <div id="progress-bar" style="height:100%; width:20%; background:#00e5ff; transition:width .3s;"></div>
+  </div>
+
+  <p id="question-text" style="font-size:18px; font-weight:500; margin:0 0 1.25rem; color:#ffffff; text-align:center;"></p>
+
+  <div id="options" style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;"></div>
+
+  <p id="explanation" style="font-size:13px; color:#a3a3a3; margin:1rem 0 0; display:none; text-align:center;"></p>
+
+  <div id="next-row" style="display:none; justify-content:center; margin-top:1.25rem;">
+    <button id="next-btn" style="background:#000000; border:2px solid #ff2ec4; color:#ff2ec4; border-radius:var(--border-radius-md); padding:10px 24px; font-weight:500;">Siguiente</button>
+  </div>
+
+  <div id="result-screen" style="display:none; text-align:center; padding:2rem 1rem;">
+    <i class="ti ti-trophy" style="font-size:36px; color:#39ff6a;" aria-hidden="true"></i>
+    <p style="font-size:20px; font-weight:500; margin:0.75rem 0 0.25rem; color:#39ff6a;" id="final-score"></p>
+    <p style="font-size:14px; color:#a3a3a3; margin:0 0 1.5rem;" id="final-msg"></p>
+    <button id="restart-btn" style="background:#000000; border:2px solid #00e5ff; color:#00e5ff; border-radius:var(--border-radius-md); padding:10px 24px; font-weight:500;">Reintentar quiz</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "¿Qué es Linux, técnicamente hablando?",
+    options: [
+      "Un kernel de sistema operativo",
+      "Una distribución comercial de Microsoft",
+      "Un lenguaje de programación",
+      "Un protocolo de red"
+    ],
+    correct: 0,
+    explain: "Linux es el kernel (núcleo) creado por Linus Torvalds en 1991; las distribuciones lo combinan con herramientas GNU y otro software."
+  },
+  {
+    q: "¿Quién creó el kernel Linux y en qué año?",
+    options: [
+      "Richard Stallman, 1983",
+      "Linus Torvalds, 1991",
+      "Dennis Ritchie, 1969",
+      "Bill Gates, 1985"
+    ],
+    correct: 1,
+    explain: "Linus Torvalds, un estudiante finlandés, anunció el kernel Linux en 1991 como un proyecto personal inspirado en UNIX."
+  },
+  {
+    q: "¿Qué proyecto aportó muchas de las herramientas y licencias que acompañan al kernel Linux en una distribución típica?",
+    options: ["Proyecto GNU", "Proyecto Apache", "Proyecto Apollo", "Proyecto Mozilla"],
+    correct: 0,
+    explain: "El proyecto GNU, iniciado por Richard Stallman, aporta utilidades y la filosofía de software libre que acompaña al kernel Linux (GNU/Linux)."
+  },
+  {
+    q: "¿Cuál de las siguientes es una distribución (distro) de Linux?",
+    options: ["Windows Server", "Ubuntu", "macOS", "Solaris"],
+    correct: 1,
+    explain: "Ubuntu es una distribución Linux basada en Debian, ampliamente usada en escritorio y servidores."
+  },
+  {
+    q: "¿Bajo qué tipo de licencia se distribuye el kernel Linux?",
+    options: [
+      "Licencia propietaria de pago",
+      "GPL (software libre)",
+      "Licencia exclusiva académica",
+      "Sin ninguna licencia"
+    ],
+    correct: 1,
+    explain: "El kernel Linux se distribuye bajo la licencia GPL (GNU General Public License), que garantiza libertad de uso, estudio, modificación y distribución."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+
+const questionText = document.getElementById('question-text');
+const optionsEl = document.getElementById('options');
+const explanationEl = document.getElementById('explanation');
+const nextRow = document.getElementById('next-row');
+const progressLabel = document.getElementById('progress-label');
+const progressBar = document.getElementById('progress-bar');
+const scoreLabel = document.getElementById('score-label');
+const resultScreen = document.getElementById('result-screen');
+
+const kahootColors = ['#e21b3c', '#1368ce', '#d89e00', '#26890c'];
+const kahootIcons = ['ti-triangle', 'ti-diamond', 'ti-circle', 'ti-square'];
+
+function renderQuestion() {
+  answered = false;
+  const item = questions[current];
+  questionText.textContent = item.q;
+  explanationEl.style.display = 'none';
+  nextRow.style.display = 'none';
+  progressLabel.textContent = 'Pregunta ' + (current + 1) + '/' + questions.length;
+  progressBar.style.width = Math.round(((current + 1) / questions.length) * 100) + '%';
+  optionsEl.innerHTML = '';
+  item.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.gap = '10px';
+    btn.style.textAlign = 'left';
+    btn.style.padding = '14px 16px';
+    btn.style.fontSize = '14px';
+    btn.style.fontWeight = '500';
+    btn.style.background = kahootColors[idx % kahootColors.length];
+    btn.style.border = '2px solid ' + kahootColors[idx % kahootColors.length];
+    btn.style.color = '#ffffff';
+    btn.style.borderRadius = 'var(--border-radius-md)';
+    btn.innerHTML = '<i class="ti ' + kahootIcons[idx % kahootIcons.length] + '" style="font-size:16px;" aria-hidden="true"></i><span>' + opt + '</span>';
+    btn.addEventListener('click', () => selectAnswer(idx));
+    optionsEl.appendChild(btn);
+  });
+}
+
+function selectAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  const item = questions[current];
+  const buttons = optionsEl.querySelectorAll('button');
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === item.correct) {
+      btn.style.boxShadow = 'inset 0 0 0 2px #39ff6a';
+      btn.style.color = '#39ff6a';
+    } else if (i === idx) {
+      btn.style.boxShadow = 'inset 0 0 0 2px #ff3b3b';
+      btn.style.opacity = '0.7';
+    } else {
+      btn.style.opacity = '0.4';
+    }
+  });
+  if (idx === item.correct) score += 1;
+  scoreLabel.textContent = 'Puntaje: ' + score;
+  explanationEl.textContent = item.explain;
+  explanationEl.style.display = 'block';
+  nextRow.style.display = 'flex';
+}
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  current += 1;
+  if (current < questions.length) {
+    renderQuestion();
+  } else {
+    showResults();
+  }
+});
+
+function showResults() {
+  document.getElementById('question-text').style.display = 'none';
+  optionsEl.style.display = 'none';
+  nextRow.style.display = 'none';
+  resultScreen.style.display = 'block';
+  document.getElementById('final-score').textContent = 'Obtuviste ' + score + ' de ' + questions.length;
+  let msg = 'Sigue repasando los conceptos de Linux.';
+  if (score === questions.length) msg = 'Excelente, dominas los conceptos básicos de Linux.';
+  else if (score >= questions.length - 1) msg = 'Muy buen resultado, casi perfecto.';
+  document.getElementById('final-msg').textContent = msg;
+}
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  current = 0;
+  score = 0;
+  scoreLabel.textContent = 'Puntaje: 0';
+  document.getElementById('question-text').style.display = 'block';
+  optionsEl.style.display = 'grid';
+  resultScreen.style.display = 'none';
+  renderQuestion();
+});
+
+renderQuestion();
+</script>
