@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Línea de tiempo macOS — Neón AR (2000–2026)</title>
+<style>
+  :root{
+    --bg:#03040a;
+    --panel:#070a12;
+    --cyan:#00f6ff;
+    --magenta:#ff2df0;
+    --text:#e9fbff;
+    --muted:#86c9d8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(circle at 50% 0%, #0a1018 0%, #03040a 60%);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    color:var(--text);
+    padding:32px 0 48px;
+  }
+  h1{
+    text-align:center;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 6px;
+    color:#fff;
+    text-shadow:0 0 12px var(--cyan), 0 0 28px rgba(0,246,255,.5);
+    letter-spacing:.5px;
+  }
+  .sub{
+    text-align:center;
+    font-size:13px;
+    color:var(--muted);
+    margin:0 0 28px;
+  }
+  .hint{
+    text-align:center;
+    font-size:12px;
+    color:var(--muted);
+    opacity:.8;
+    margin-bottom:14px;
+  }
+  .stage{
+    position:relative;
+    width:100%;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:40px 0 30px;
+    cursor:grab;
+  }
+  .stage.dragging{cursor:grabbing;user-select:none;}
+  .canvas{
+    position:relative;
+    height:420px;
+  }
+  .baseline{
+    position:absolute;
+    left:0; right:0;
+    top:210px;
+    height:2px;
+    background:linear-gradient(90deg, rgba(0,246,255,.05), var(--cyan), var(--magenta), rgba(255,45,240,.05));
+    box-shadow:0 0 14px var(--cyan), 0 0 26px rgba(255,45,240,.4);
+  }
+  .tick{
+    position:absolute;
+    top:198px;
+    width:1px;
+    height:26px;
+    background:rgba(0,246,255,.25);
+  }
+  .tick-label{
+    position:absolute;
+    top:228px;
+    transform:translateX(-50%);
+    font-size:11px;
+    color:var(--muted);
+    opacity:.6;
+  }
+  .node{
+    position:absolute;
+    top:210px;
+    width:11px;
+    height:11px;
+    border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 8px 2px var(--cyan), 0 0 22px 6px rgba(0,246,255,.55);
+    transform:translate(-50%,-50%);
+    z-index:3;
+  }
+  .stem{
+    position:absolute;
+    width:2px;
+    background:linear-gradient(var(--cyan), var(--magenta));
+    box-shadow:0 0 6px var(--cyan), 0 0 6px var(--magenta);
+    transform:translateX(-50%);
+    z-index:2;
+  }
+  .card{
+    position:absolute;
+    width:172px;
+    transform:translateX(-50%);
+    background:var(--panel);
+    border:1px solid #1f4a52;
+    border-radius:12px;
+    padding:10px 13px;
+    box-shadow:0 0 0 1px rgba(0,246,255,.08), 0 0 16px -4px rgba(0,246,255,.45);
+    transition:box-shadow .25s, border-color .25s, transform .25s;
+    cursor:pointer;
+    z-index:4;
+  }
+  .card:hover{
+    border-color:var(--cyan);
+    box-shadow:0 0 20px 1px rgba(0,246,255,.6), 0 0 34px -4px rgba(255,45,240,.55);
+    transform:translateX(-50%) translateY(-3px);
+  }
+  .card .date{
+    font-size:10px;
+    font-weight:600;
+    color:var(--magenta);
+    text-shadow:0 0 6px rgba(255,45,240,.6);
+    margin:0 0 4px;
+  }
+  .card .ti{
+    font-size:13px;
+    font-weight:600;
+    color:#fff;
+    text-shadow:0 0 6px rgba(0,246,255,.5);
+    margin:0 0 5px;
+    line-height:1.3;
+  }
+  .card .ds{
+    font-size:11.5px;
+    color:var(--muted);
+    margin:0;
+    line-height:1.5;
+  }
+  .legend{
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    margin-top:10px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .dotleg{width:8px;height:8px;border-radius:50%;background:var(--cyan); box-shadow:0 0 6px var(--cyan);}
+  footer{
+    text-align:center;
+    font-size:11px;
+    color:#4d6e78;
+    margin-top:18px;
+  }
+</style>
+</head>
+<body>
+
+  <h1>Evolución de Mac OS X / macOS</h1>
+  <p class="sub">Línea de tiempo interactiva — escala proporcional real (2000–2026)</p>
+  <p class="hint">Arrastra horizontalmente o usa scroll · toca un nodo para más detalle</p>
+
+  <div class="stage" id="stage">
+    <div class="canvas" id="canvas"></div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dotleg"></span> Lanzamiento mayor</span>
+    <span>Tarjetas arriba/abajo = alternancia visual, sin jerarquía</span>
+  </div>
+  <footer>Datos: Timetoast (2001–2016, fuente del usuario) + verificación web (2017–2026) · Generado por Claude</footer>
+
+<script>
+const items = [
+  {date:"2001-03-24", t:"Mac OS X 10.0 Cheetah", d:"Primer Mac OS X estable. Memoria protegida y carga de drivers en caliente.", side:"top"},
+  {date:"2001-10-25", t:"Mac OS X 10.1 Puma", d:"Mejoras de desempeño y más utilidades UNIX open source incluidas.", side:"bot"},
+  {date:"2002-08-25", t:"Mac OS X 10.2 Jaguar", d:"Más de 150 mejoras: Quartz Extreme y filtro antispam.", side:"top"},
+  {date:"2003-10-24", t:"Mac OS X 10.3 Panther", d:"Interfaz metálica y búsqueda rápida del Finder.", side:"bot"},
+  {date:"2005-04-29", t:"Mac OS X 10.4 Tiger", d:"Llega Spotlight, búsqueda por contenido y metadatos.", side:"top"},
+  {date:"2007-10-26", t:"Mac OS X 10.5 Leopard", d:"Soporta PowerPC e Intel. Debuta Time Machine.", side:"bot"},
+  {date:"2009-08-28", t:"Mac OS X 10.6 Snow Leopard", d:"Enfocado en rendimiento. Exposé integrado en el Dock.", side:"top"},
+  {date:"2011-07-20", t:"Mac OS X 10.7 Lion", d:"Llega Launchpad y Mission Control desde iOS.", side:"bot"},
+  {date:"2012-07-25", t:"OS X 10.8 Mountain Lion", d:"Mensajes, Recordatorios y Centro de Notificaciones.", side:"top"},
+  {date:"2013-10-22", t:"OS X 10.9 Mavericks", d:"Primera actualización gratuita. Llegan Mapas e iBooks.", side:"bot"},
+  {date:"2014-10-16", t:"OS X 10.10 Yosemite", d:"Diseño plano y Handoff entre dispositivos Apple.", side:"top"},
+  {date:"2015-09-30", t:"OS X 10.11 El Capitan", d:"Split View y Metal para mejor uso de la GPU.", side:"bot"},
+  {date:"2016-09-20", t:"macOS Sierra", d:"Se abandona el nombre Mac OS X tras 16 años.", side:"top"},
+  {date:"2017-09-25", t:"macOS High Sierra", d:"Sistema de archivos APFS por defecto en SSD.", side:"bot"},
+  {date:"2018-09-24", t:"macOS Mojave", d:"Modo oscuro de sistema y Stacks en el escritorio.", side:"top"},
+  {date:"2019-10-07", t:"macOS Catalina", d:"iTunes se divide en Música, Podcasts y TV.", side:"bot"},
+  {date:"2020-11-12", t:"macOS Big Sur", d:"Rediseño total y primer macOS para Apple Silicon (M1).", side:"top"},
+  {date:"2021-10-25", t:"macOS Monterey", d:"Universal Control y mejoras en Vista Rápida y Safari.", side:"bot"},
+  {date:"2022-10-24", t:"macOS Ventura", d:"Llega Stage Manager para organizar ventanas activas.", side:"top"},
+  {date:"2023-09-26", t:"macOS Sonoma", d:"Widgets en escritorio y nuevos protectores de pantalla.", side:"bot"},
+  {date:"2024-09-16", t:"macOS Sequoia", d:"iPhone Mirroring para usar el iPhone desde el Mac.", side:"top"},
+  {date:"2025-09-15", t:"macOS 26 Tahoe", d:"Diseño Liquid Glass. Última versión con soporte para Mac Intel.", side:"bot"},
+  {date:"2026-10-01", t:"macOS 27 Golden Gate", d:"Solo Apple Silicon. Foco en rendimiento y Siri con IA integrada.", side:"top"}
+];
+
+const START_YEAR = 2000;
+const END_YEAR = 2026;
+const PX_PER_YEAR = 95;
+const MARGIN = 70;
+
+function yearFraction(dateStr){
+  const dt = new Date(dateStr + "T00:00:00Z");
+  const y = dt.getUTCFullYear();
+  const startOfYear = new Date(Date.UTC(y,0,1));
+  const endOfYear = new Date(Date.UTC(y+1,0,1));
+  const frac = (dt - startOfYear) / (endOfYear - startOfYear);
+  return (y - START_YEAR) + frac;
+}
+
+function fmtDate(dateStr){
+  const dt = new Date(dateStr + "T00:00:00Z");
+  const months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return dt.getUTCDate() + " " + months[dt.getUTCMonth()] + " " + dt.getUTCFullYear();
+}
+
+const totalWidth = MARGIN*2 + (END_YEAR-START_YEAR)*PX_PER_YEAR;
+const canvas = document.getElementById('canvas');
+canvas.style.width = totalWidth + "px";
+
+let html = '<div class="baseline"></div>';
+
+for(let y=START_YEAR; y<=END_YEAR; y++){
+  const x = MARGIN + (y-START_YEAR)*PX_PER_YEAR;
+  html += `<div class="tick" style="left:${x}px"></div>`;
+  html += `<div class="tick-label" style="left:${x}px">${y}</div>`;
+}
+
+items.forEach(it=>{
+  const x = MARGIN + yearFraction(it.date)*PX_PER_YEAR;
+  html += `<div class="node" style="left:${x}px"></div>`;
+  if(it.side === 'top'){
+    html += `<div class="stem" style="left:${x}px; top:60px; height:150px;"></div>`;
+    html += `<div class="card" style="left:${x}px; top:0px;" onclick="alert('${it.t.replace(/'/g,"")}\\n\\n${it.d.replace(/'/g,"")}')">
+      <p class="date">${fmtDate(it.date)}</p>
+      <p class="ti">${it.t}</p>
+      <p class="ds">${it.d}</p>
+    </div>`;
+  } else {
+    html += `<div class="stem" style="left:${x}px; top:210px; height:150px;"></div>`;
+    html += `<div class="card" style="left:${x}px; top:360px;" onclick="alert('${it.t.replace(/'/g,"")}\\n\\n${it.d.replace(/'/g,"")}')">
+      <p class="date">${fmtDate(it.date)}</p>
+      <p class="ti">${it.t}</p>
+      <p class="ds">${it.d}</p>
+    </div>`;
+  }
+});
+
+canvas.innerHTML = html;
+
+const stage = document.getElementById('stage');
+let isDown=false, startX, scrollLeft;
+stage.addEventListener('mousedown', e=>{
+  isDown=true; stage.classList.add('dragging');
+  startX = e.pageX - stage.offsetLeft;
+  scrollLeft = stage.scrollLeft;
+});
+stage.addEventListener('mouseleave', ()=>{ isDown=false; stage.classList.remove('dragging'); });
+stage.addEventListener('mouseup', ()=>{ isDown=false; stage.classList.remove('dragging'); });
+stage.addEventListener('mousemove', e=>{
+  if(!isDown) return;
+  e.preventDefault();
+  const x = e.pageX - stage.offsetLeft;
+  const walk = (x - startX) * 1.2;
+  stage.scrollLeft = scrollLeft - walk;
+});
+
+window.addEventListener('load', ()=>{
+  const node2020 = MARGIN + (2024-START_YEAR)*PX_PER_YEAR;
+  stage.scrollLeft = Math.max(0, node2020 - stage.clientWidth/2);
+});
+</script>
+</body>
+</html>
