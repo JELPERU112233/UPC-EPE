@@ -1,185 +1,618 @@
-<h2 class="sr-only">Quiz interactivo estilo Kahoot con fondo negro y colores neon sobre UNIX, 5 preguntas con puntaje y retroalimentacion inmediata</h2>
-<div id="quiz-app" style="background:#000000; border-radius:var(--border-radius-lg); padding:1.5rem; font-family:var(--font-sans);">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <i class="ti ti-terminal-2" style="font-size:22px; color:#00e5ff;" aria-hidden="true"></i>
-      <span style="font-weight:500; font-size:18px; color:#ffffff;">Quiz UNIX</span>
+<title>UNIX Quest</title>
+<meta name="description" content="Autoevaluación de UNIX: 5 preguntas de conocimiento y 1 de metacognición, con la paleta institucional de la EPE.">
+<style>
+  :root{
+    --navy:#EAEBEF;
+    --red:#E4002B;
+    --bg:#0A0A0C;
+    --muted:#9299A6;
+    --line:#2B2D33;
+    --row:#17181D;
+    --white:#141519;
+    --ok:#3FA56B;
+    --ok-bg:#12251A;
+    --ok-line:#2C5940;
+    --no:#E4002B;
+    --no-bg:#2A1015;
+    --no-line:#5C2530;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100%;
+    background:var(--bg);
+    color:var(--navy);
+    font-family:Arial,Helvetica,sans-serif;
+    padding-block: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+    padding-inline:16px;
+    overflow-x:hidden;
+  }
+  html,body{height:100%;}
+
+  .stage{
+    max-width:760px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    min-height:calc(100% - 48px);
+  }
+
+  h1,h2,h3{margin:0; text-wrap:balance; font-family:Arial,Helvetica,sans-serif;}
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+    padding-bottom:14px;
+  }
+
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand h1{
+    font-size:clamp(19px,4.6vw,25px);
+    font-weight:700;
+    color:var(--navy);
+    letter-spacing:.01em;
+  }
+  .brand .under{
+    display:inline-block;
+    width:56px; height:4px;
+    background:var(--red);
+    margin-top:4px;
+  }
+
+  .pill{
+    font-size:12px;
+    font-weight:700;
+    color:var(--muted);
+    border:1px solid var(--line);
+    background:var(--white);
+    padding:7px 13px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+
+  .progress-row{display:flex; gap:8px;}
+  .dot{
+    flex:1;
+    height:6px;
+    border-radius:999px;
+    background:var(--line);
+    overflow:hidden;
+    position:relative;
+  }
+  .dot.filled{background:var(--navy);}
+  .dot.current::after{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
+    animation:sweep 1.4s linear infinite;
+  }
+  @keyframes sweep{ from{transform:translateX(-100%);} to{transform:translateX(100%);} }
+
+  .timerwrap{
+    height:8px;
+    border-radius:999px;
+    background:var(--row);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .timerbar{
+    height:100%;
+    width:100%;
+    background:var(--red);
+    transform-origin:left;
+  }
+
+  .card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px;
+    box-shadow:0 1px 2px rgba(0,0,0,.5);
+  }
+
+  .qmeta{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:var(--red);
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .qtext{
+    font-size:clamp(18px,4.4vw,23px);
+    font-weight:700;
+    line-height:1.35;
+    color:var(--navy);
+  }
+
+  .answers{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  @media (max-width:520px){ .answers{grid-template-columns:1fr;} }
+
+  .ans{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-align:left;
+    padding:16px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    background:var(--white);
+    color:var(--navy);
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:15px;
+    font-weight:400;
+    line-height:1.4;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  }
+  .ans:hover:not(:disabled){
+    border-color:var(--navy);
+    background:var(--row);
+  }
+  .ans:focus-visible{outline:2px solid var(--navy); outline-offset:2px;}
+  .ans:disabled{cursor:default;}
+
+  .badge{
+    flex:0 0 auto;
+    width:28px; height:28px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    background:var(--row);
+    color:var(--navy);
+    display:grid;
+    place-items:center;
+    font-weight:700;
+    font-size:13px;
+  }
+
+  .ans.correct{
+    border-color:var(--ok-line);
+    background:var(--ok-bg);
+  }
+  .ans.correct .badge{background:var(--ok); border-color:var(--ok); color:#fff;}
+  .ans.wrong{
+    border-color:var(--no-line);
+    background:var(--no-bg);
+  }
+  .ans.wrong .badge{background:var(--no); border-color:var(--no); color:#fff;}
+  .ans.dim{opacity:.55;}
+  .ans.selected{border-color:var(--navy); background:var(--row);}
+  .ans.selected .badge{background:var(--navy); border-color:var(--navy); color:#0A0A0C;}
+
+  .feedback{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    padding:16px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--row);
+    font-size:14px;
+    color:var(--navy);
+    line-height:1.55;
+  }
+  .feedback .icon{
+    flex:0 0 auto;
+    width:26px; height:26px;
+    border-radius:50%;
+    display:grid; place-items:center;
+    font-weight:700;
+    font-size:14px;
+    color:#fff;
+  }
+  .feedback b{color:var(--navy);}
+  .feedback.ok{border-color:var(--ok-line); background:var(--ok-bg);}
+  .feedback.ok .icon{background:var(--ok);}
+  .feedback.no{border-color:var(--no-line); background:var(--no-bg);}
+  .feedback.no .icon{background:var(--no);}
+  .feedback.meta{border-color:var(--line); background:var(--row);}
+  .feedback.meta .icon{background:var(--navy); color:#0A0A0C;}
+
+  .nextbtn{
+    align-self:flex-end;
+    font-weight:700;
+    font-size:14px;
+    color:#fff;
+    background:var(--navy);
+    border:none;
+    padding:12px 24px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .nextbtn:hover{background:#12151d;}
+
+  /* ---- start / end screens ---- */
+  .screen{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:18px;
+    padding:38px 20px;
+  }
+  .screen p{color:var(--muted); max-width:46ch; line-height:1.6; margin:0;}
+
+  .startbtn{
+    font-weight:700;
+    font-size:15px;
+    color:#fff;
+    background:var(--red);
+    border:none;
+    padding:15px 34px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:background .15s ease, transform .12s ease;
+  }
+  .startbtn:hover{background:#c50026; transform:translateY(-1px);}
+  .startbtn:active{transform:translateY(0);}
+
+  .scorewrap{position:relative; width:170px; height:170px; display:grid; place-items:center;}
+  .scorewrap svg{position:absolute; inset:0;}
+  .scoretext{font-size:32px; font-weight:700; color:var(--navy);}
+
+  .rank{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.03em;
+    padding:8px 18px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:var(--row);
+    color:var(--navy);
+  }
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    padding-top:6px;
+  }
+
+  [hidden]{display:none !important;}
+
+  @media (prefers-reduced-motion: reduce){
+    .dot.current::after, .startbtn, .ans, .nextbtn{animation:none !important; transition:none !important;}
+  }
+</style>
+
+<div class="stage">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2l7 4v6c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6l7-4z" stroke="#EAEBEF" stroke-width="1.6"/>
+        <path d="M9 12l2 2 4-4" stroke="#E4002B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>UNIX Quest</h1>
+        <span class="under"></span>
+      </div>
     </div>
-    <div style="display:flex; align-items:center; gap:16px; font-size:13px;">
-      <span id="progress-label" style="color:#ff2ec4; font-weight:500;">Pregunta 1/5</span>
-      <span style="font-weight:500; color:#39ff6a;" id="score-label">Puntaje: 0</span>
+    <span class="pill" id="topPill">Historia y Fundamentos de UNIX</span>
+  </div>
+
+  <!-- START -->
+  <section class="card screen" id="startScreen">
+    <svg width="96" height="96" viewBox="0 0 120 120" aria-hidden="true">
+      <rect x="20" y="46" width="80" height="44" rx="10" fill="none" stroke="#EAEBEF" stroke-width="3"/>
+      <circle cx="60" cy="30" r="10" fill="none" stroke="#E4002B" stroke-width="3"/>
+      <line x1="60" y1="40" x2="60" y2="46" stroke="#E4002B" stroke-width="3"/>
+      <circle cx="38" cy="68" r="6" fill="#E4002B"/>
+      <circle cx="60" cy="68" r="6" fill="#EAEBEF"/>
+      <circle cx="82" cy="68" r="6" fill="#9299A6"/>
+    </svg>
+    <h2 style="font-size:clamp(21px,5.6vw,28px);">Autoevaluación relámpago</h2>
+    <p>6 preguntas sobre <b style="color:var(--navy)">Historia y Fundamentos de UNIX</b>: 5 de conocimiento y 1 de metacognición al cierre. Tienes 20 segundos por pregunta — responde con calma y confirma lo que ya sabes.</p>
+    <button class="startbtn" id="startBtn" type="button">Iniciar reto</button>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quizScreen" hidden style="display:flex; flex-direction:column; gap:18px;">
+    <div class="progress-row" id="progressRow" aria-hidden="true"></div>
+    <div class="timerwrap"><div class="timerbar" id="timerBar"></div></div>
+
+    <div class="card">
+      <div class="qmeta" id="qMeta">Pregunta 1 de 4</div>
+      <div class="qtext" id="qText">—</div>
     </div>
-  </div>
 
-  <div style="height:6px; background:#1a1a1a; border-radius:4px; overflow:hidden; margin-bottom:1.5rem;">
-    <div id="progress-bar" style="height:100%; width:20%; background:#00e5ff; transition:width .3s;"></div>
-  </div>
+    <div class="answers" id="answers"></div>
 
-  <p id="question-text" style="font-size:18px; font-weight:500; margin:0 0 1.25rem; color:#ffffff; text-align:center;"></p>
+    <div class="feedback" id="feedback" hidden></div>
 
-  <div id="options" style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;"></div>
+    <button class="nextbtn" id="nextBtn" type="button" hidden>Siguiente</button>
+  </section>
 
-  <p id="explanation" style="font-size:13px; color:#a3a3a3; margin:1rem 0 0; display:none; text-align:center;"></p>
+  <!-- END -->
+  <section class="card screen" id="endScreen" hidden>
+    <div class="scorewrap">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--line)" stroke-width="8"/>
+        <circle id="ringProgress" cx="60" cy="60" r="50" fill="none" stroke="#E4002B" stroke-width="8"
+          stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"
+          transform="rotate(-90 60 60)"/>
+      </svg>
+      <div class="scoretext" id="scoreText">0/4</div>
+    </div>
+    <div class="rank" id="rankPill">—</div>
+    <h2 id="endTitle" style="font-size:clamp(20px,5vw,25px);">Resultado</h2>
+    <p id="endMsg">—</p>
+    <button class="startbtn" id="retryBtn" type="button">Reintentar</button>
+  </section>
 
-  <div id="next-row" style="display:none; justify-content:center; margin-top:1.25rem;">
-    <button id="next-btn" style="background:#000000; border:2px solid #ff2ec4; color:#ff2ec4; border-radius:var(--border-radius-md); padding:10px 24px; font-weight:500;">Siguiente</button>
-  </div>
-
-  <div id="result-screen" style="display:none; text-align:center; padding:2rem 1rem;">
-    <i class="ti ti-trophy" style="font-size:36px; color:#39ff6a;" aria-hidden="true"></i>
-    <p style="font-size:20px; font-weight:500; margin:0.75rem 0 0.25rem; color:#39ff6a;" id="final-score"></p>
-    <p style="font-size:14px; color:#a3a3a3; margin:0 0 1.5rem;" id="final-msg"></p>
-    <button id="restart-btn" style="background:#000000; border:2px solid #00e5ff; color:#00e5ff; border-radius:var(--border-radius-md); padding:10px 24px; font-weight:500;">Reintentar quiz</button>
-  </div>
+  <footer>UPC · EPE — Arquitectura de Computadoras y Sistemas Operativos</footer>
 </div>
 
 <script>
-const questions = [
-  {
-    q: "¿Qué es UNIX?",
-    options: [
-      "Un sistema operativo multiusuario y multitarea",
-      "Un lenguaje de programación",
-      "Un protocolo de red",
-      "Un editor de texto"
-    ],
-    correct: 0,
-    explain: "UNIX es un sistema operativo multiusuario y multitarea, base de Linux, macOS y otros sistemas modernos."
-  },
-  {
-    q: "¿Qué comando se usa en UNIX para listar archivos de un directorio?",
-    options: ["cd", "ls", "rm", "ps"],
-    correct: 1,
-    explain: "El comando ls lista el contenido de un directorio."
-  },
-  {
-    q: "¿Cuál es la estructura jerárquica de archivos en UNIX?",
-    options: [
-      "Una red plana sin jerarquía",
-      "Un árbol invertido con raíz en /",
-      "Discos separados sin relación",
-      "Una base de datos relacional"
-    ],
-    correct: 1,
-    explain: "UNIX organiza los archivos en un árbol jerárquico cuya raíz es el directorio /."
-  },
-  {
-    q: "¿Qué tipo de interfaz caracteriza tradicionalmente a UNIX?",
-    options: [
-      "Solo interfaz gráfica",
-      "Línea de comandos (shell)",
-      "Solo interfaz táctil",
-      "Interfaz por voz"
-    ],
-    correct: 1,
-    explain: "UNIX se basa históricamente en una interfaz de línea de comandos llamada shell."
-  },
-  {
-    q: "¿Cuál de los siguientes NO es un sistema derivado o inspirado en UNIX?",
-    options: ["Linux", "macOS", "BSD", "Windows 95"],
-    correct: 3,
-    explain: "Windows 95 no se basa en UNIX; Linux, macOS y BSD sí tienen raíces o influencia UNIX."
-  }
-];
+(function(){
+  "use strict";
 
-let current = 0;
-let score = 0;
-let answered = false;
-
-const questionText = document.getElementById('question-text');
-const optionsEl = document.getElementById('options');
-const explanationEl = document.getElementById('explanation');
-const nextRow = document.getElementById('next-row');
-const progressLabel = document.getElementById('progress-label');
-const progressBar = document.getElementById('progress-bar');
-const scoreLabel = document.getElementById('score-label');
-const resultScreen = document.getElementById('result-screen');
-
-const kahootColors = ['#e21b3c', '#1368ce', '#d89e00', '#26890c'];
-const kahootIcons = ['ti-triangle', 'ti-diamond', 'ti-circle', 'ti-square'];
-
-function renderQuestion() {
-  answered = false;
-  const item = questions[current];
-  questionText.textContent = item.q;
-  explanationEl.style.display = 'none';
-  nextRow.style.display = 'none';
-  progressLabel.textContent = 'Pregunta ' + (current + 1) + '/' + questions.length;
-  progressBar.style.width = Math.round(((current + 1) / questions.length) * 100) + '%';
-  optionsEl.innerHTML = '';
-  item.options.forEach((opt, idx) => {
-    const btn = document.createElement('button');
-    btn.style.display = 'flex';
-    btn.style.alignItems = 'center';
-    btn.style.gap = '10px';
-    btn.style.textAlign = 'left';
-    btn.style.padding = '14px 16px';
-    btn.style.fontSize = '14px';
-    btn.style.fontWeight = '500';
-    btn.style.background = kahootColors[idx % kahootColors.length];
-    btn.style.border = '2px solid ' + kahootColors[idx % kahootColors.length];
-    btn.style.color = '#ffffff';
-    btn.style.borderRadius = 'var(--border-radius-md)';
-    btn.innerHTML = '<i class="ti ' + kahootIcons[idx % kahootIcons.length] + '" style="font-size:16px;" aria-hidden="true"></i><span>' + opt + '</span>';
-    btn.addEventListener('click', () => selectAnswer(idx));
-    optionsEl.appendChild(btn);
-  });
-}
-
-function selectAnswer(idx) {
-  if (answered) return;
-  answered = true;
-  const item = questions[current];
-  const buttons = optionsEl.querySelectorAll('button');
-  buttons.forEach((btn, i) => {
-    btn.disabled = true;
-    if (i === item.correct) {
-      btn.style.boxShadow = 'inset 0 0 0 2px #39ff6a';
-      btn.style.color = '#39ff6a';
-    } else if (i === idx) {
-      btn.style.boxShadow = 'inset 0 0 0 2px #ff3b3b';
-      btn.style.opacity = '0.7';
-    } else {
-      btn.style.opacity = '0.4';
+  var QUESTIONS = [
+    {
+      q: "¿Qué es UNIX?",
+      options: [
+        "Un sistema operativo multiusuario y multitarea",
+        "Un lenguaje de programación",
+        "Un protocolo de red",
+        "Un editor de texto"
+      ],
+      correct: 0,
+      explain: "UNIX es un sistema operativo multiusuario y multitarea, base de Linux, macOS y otros sistemas modernos."
+    },
+    {
+      q: "¿Qué comando se usa en UNIX para listar archivos de un directorio?",
+      options: ["cd", "ls", "rm", "ps"],
+      correct: 1,
+      explain: "El comando ls lista el contenido de un directorio; cd cambia de directorio, rm elimina archivos y ps muestra procesos en ejecución."
+    },
+    {
+      q: "¿Cuál es la estructura jerárquica de archivos en UNIX?",
+      options: [
+        "Una red plana sin jerarquía",
+        "Un árbol invertido con raíz en /",
+        "Discos separados sin relación",
+        "Una base de datos relacional"
+      ],
+      correct: 1,
+      explain: "UNIX organiza los archivos en un árbol jerárquico cuya raíz es el directorio /, del cual cuelgan todos los demás directorios y archivos."
+    },
+    {
+      q: "¿Qué tipo de interfaz caracteriza tradicionalmente a UNIX?",
+      options: [
+        "Solo interfaz gráfica",
+        "Línea de comandos (shell)",
+        "Solo interfaz táctil",
+        "Interfaz por voz"
+      ],
+      correct: 1,
+      explain: "UNIX se basa históricamente en una interfaz de línea de comandos llamada shell, que interpreta y ejecuta las instrucciones del usuario."
+    },
+    {
+      q: "¿Cuál de los siguientes NO es un sistema derivado o inspirado en UNIX?",
+      options: ["Linux", "macOS", "BSD", "Windows 95"],
+      correct: 3,
+      explain: "Windows 95 no se basa en UNIX; Linux, macOS (sobre Darwin/BSD) y BSD sí tienen raíces o influencia directa de UNIX."
+    },
+    {
+      meta: true,
+      q: "Metacognición: de los temas de esta autoevaluación, ¿cuál te costó más comprender y por qué crees que fue así?",
+      options: [
+        "Los comandos básicos (ls, cd, rm, ps) y su función",
+        "La estructura jerárquica de archivos (el árbol con raíz en /)",
+        "El rol del shell como interfaz de línea de comandos",
+        "La relación de UNIX con sistemas derivados (Linux, macOS, BSD)"
+      ],
+      feedback: [
+        "Los comandos se afianzan con práctica directa: abre una terminal y ejecuta ls, cd y ps sobre carpetas reales hasta que se vuelvan automáticos.",
+        "La jerarquía de archivos es más clara si la recorres tú mismo: usa cd y ls para bajar desde / hasta /home o /etc y dibuja el árbol que vayas encontrando.",
+        "Repasa la diferencia entre shell (la interfaz) y kernel (el núcleo que la atiende) — confundir ambos es el error más común en este punto.",
+        "Repasa la línea de tiempo de UNIX: qué heredó Linux, qué heredó macOS (vía BSD/Darwin) y por qué Windows 95 queda fuera de esa familia."
+      ]
     }
-  });
-  if (idx === item.correct) score += 1;
-  scoreLabel.textContent = 'Puntaje: ' + score;
-  explanationEl.textContent = item.explain;
-  explanationEl.style.display = 'block';
-  nextRow.style.display = 'flex';
-}
+  ];
 
-document.getElementById('next-btn').addEventListener('click', () => {
-  current += 1;
-  if (current < questions.length) {
-    renderQuestion();
-  } else {
-    showResults();
+  var TIME_PER_Q = 20; // seconds
+  var LETTERS = ["A","B","C","D"];
+  var SCORABLE = QUESTIONS.filter(function(q){ return !q.meta; }).length;
+
+  var state = {
+    idx: 0,
+    score: 0,
+    answered: false,
+    timer: null
+  };
+
+  var startScreen = document.getElementById('startScreen');
+  var quizScreen = document.getElementById('quizScreen');
+  var endScreen = document.getElementById('endScreen');
+  var startBtn = document.getElementById('startBtn');
+  var retryBtn = document.getElementById('retryBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var progressRow = document.getElementById('progressRow');
+  var timerBar = document.getElementById('timerBar');
+  var qMeta = document.getElementById('qMeta');
+  var qText = document.getElementById('qText');
+  var answersEl = document.getElementById('answers');
+  var feedbackEl = document.getElementById('feedback');
+  var scoreText = document.getElementById('scoreText');
+  var ringProgress = document.getElementById('ringProgress');
+  var rankPill = document.getElementById('rankPill');
+  var endTitle = document.getElementById('endTitle');
+  var endMsg = document.getElementById('endMsg');
+
+  function buildProgress(){
+    progressRow.innerHTML = "";
+    for (var i=0;i<QUESTIONS.length;i++){
+      var d = document.createElement('div');
+      d.className = 'dot' + (i < state.idx ? ' filled' : '') + (i === state.idx ? ' current' : '');
+      progressRow.appendChild(d);
+    }
   }
-});
 
-function showResults() {
-  document.getElementById('question-text').style.display = 'none';
-  optionsEl.style.display = 'none';
-  nextRow.style.display = 'none';
-  resultScreen.style.display = 'block';
-  document.getElementById('final-score').textContent = 'Obtuviste ' + score + ' de ' + questions.length;
-  let msg = 'Sigue repasando los conceptos de UNIX.';
-  if (score === questions.length) msg = 'Excelente, dominas los conceptos básicos de UNIX.';
-  else if (score >= questions.length - 1) msg = 'Muy buen resultado, casi perfecto.';
-  document.getElementById('final-msg').textContent = msg;
-}
+  function startTimer(){
+    clearTimeout(state.timer);
+    timerBar.style.transition = 'none';
+    timerBar.style.transform = 'scaleX(1)';
+    void timerBar.offsetWidth; // reflow so the transition re-applies
+    timerBar.style.transition = 'transform ' + TIME_PER_Q + 's linear';
+    timerBar.style.transform = 'scaleX(0)';
+    state.timer = setTimeout(function(){
+      if (!state.answered) handleAnswer(-1);
+    }, TIME_PER_Q * 1000);
+  }
 
-document.getElementById('restart-btn').addEventListener('click', () => {
-  current = 0;
-  score = 0;
-  scoreLabel.textContent = 'Puntaje: 0';
-  document.getElementById('question-text').style.display = 'block';
-  optionsEl.style.display = 'grid';
-  resultScreen.style.display = 'none';
-  renderQuestion();
-});
+  function renderQuestion(){
+    state.answered = false;
+    buildProgress();
+    var item = QUESTIONS[state.idx];
+    qMeta.textContent = 'Pregunta ' + (state.idx+1) + ' de ' + QUESTIONS.length;
+    qText.textContent = item.q;
+    feedbackEl.hidden = true;
+    feedbackEl.className = 'feedback';
+    nextBtn.hidden = true;
 
-renderQuestion();
+    answersEl.innerHTML = "";
+    item.options.forEach(function(opt, i){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ans';
+      btn.innerHTML = '<span class="badge">' + LETTERS[i] + '</span><span>' + opt + '</span>';
+      btn.addEventListener('click', function(){ handleAnswer(i); });
+      answersEl.appendChild(btn);
+    });
+
+    startTimer();
+  }
+
+  function handleAnswer(choice){
+    if (state.answered) return;
+    state.answered = true;
+    clearTimeout(state.timer);
+    timerBar.style.transition = 'none';
+
+    var item = QUESTIONS[state.idx];
+    var buttons = answersEl.querySelectorAll('.ans');
+
+    feedbackEl.hidden = false;
+
+    if (item.meta){
+      // Metacognitive question: no right/wrong, just a reflective response.
+      buttons.forEach(function(b, i){
+        b.disabled = true;
+        if (i === choice) b.classList.add('selected');
+        else b.classList.add('dim');
+      });
+      feedbackEl.classList.add('meta');
+      if (choice === -1){
+        feedbackEl.innerHTML = '<span class="icon">&#8635;</span><span><b>Respuesta olvidada.</b> ' + item.feedback[2] + '</span>';
+      } else {
+        feedbackEl.innerHTML = '<span class="icon">&#8635;</span><span><b>Gracias por reflexionar.</b> ' + item.feedback[choice] + '</span>';
+      }
+    } else {
+      var correct = choice === item.correct;
+      buttons.forEach(function(b, i){
+        b.disabled = true;
+        if (i === item.correct) b.classList.add('correct');
+        else if (i === choice) b.classList.add('wrong');
+        else b.classList.add('dim');
+      });
+      if (correct){
+        state.score++;
+        feedbackEl.classList.add('ok');
+        feedbackEl.innerHTML = '<span class="icon">&#10003;</span><span><b>Correcto.</b> ' + item.explain + '</span>';
+      } else {
+        feedbackEl.classList.add('no');
+        var lead = (choice === -1) ? '<b>Se acabó el tiempo.</b> ' : '<b>No es la respuesta.</b> ';
+        feedbackEl.innerHTML = '<span class="icon">&#10005;</span><span>' + lead + item.explain + '</span>';
+      }
+    }
+
+    nextBtn.hidden = false;
+    nextBtn.textContent = (state.idx === QUESTIONS.length - 1) ? 'Ver resultado' : 'Siguiente';
+  }
+
+  function goNext(){
+    state.idx++;
+    if (state.idx >= QUESTIONS.length){
+      showEnd();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  function showEnd(){
+    quizScreen.hidden = true;
+    endScreen.hidden = false;
+    var total = SCORABLE;
+    scoreText.textContent = state.score + '/' + total;
+
+    var pct = state.score / total;
+    var circumference = 314;
+    ringProgress.style.transition = 'stroke-dashoffset 1s ease';
+    requestAnimationFrame(function(){
+      ringProgress.style.strokeDashoffset = String(circumference * (1 - pct));
+    });
+
+    var rank, title, msg;
+    if (state.score === total){
+      rank = 'NIVEL: RAÍZ (/) SÓLIDA'; title = 'Dominas el tema';
+      msg = 'Puntaje perfecto: entiendes con claridad qué es UNIX, sus comandos básicos, su estructura de archivos, su shell y sus principales sistemas derivados.';
+    } else if (state.score >= total - 1){
+      rank = 'NIVEL: AVANZADO'; title = 'Muy sólido';
+      msg = 'Estás muy cerca del puntaje perfecto. Repasa la explicación de la pregunta que falló y quedará completamente afianzado.';
+    } else if (state.score >= total/2){
+      rank = 'NIVEL: EN PROCESO'; title = 'Vas por buen camino';
+      msg = 'Tienes las bases, pero conviene repasar los comandos básicos y la estructura jerárquica de archivos antes de la siguiente sesión.';
+    } else {
+      rank = 'NIVEL: A REFORZAR'; title = 'A reforzar conceptos';
+      msg = 'Vuelve a revisar el material sobre historia y fundamentos de UNIX y repite el reto — verás cómo sube el puntaje.';
+    }
+    rankPill.textContent = rank;
+    endTitle.textContent = title;
+    endMsg.textContent = msg;
+
+    try { localStorage.setItem('unixquest_best', String(Math.max(state.score, Number(localStorage.getItem('unixquest_best')||0)))); } catch(e){}
+  }
+
+  function reset(){
+    state.idx = 0;
+    state.score = 0;
+    state.answered = false;
+    clearTimeout(state.timer);
+  }
+
+  startBtn.addEventListener('click', function(){
+    reset();
+    startScreen.hidden = true;
+    endScreen.hidden = true;
+    quizScreen.hidden = false;
+    renderQuestion();
+  });
+
+  retryBtn.addEventListener('click', function(){
+    reset();
+    endScreen.hidden = true;
+    quizScreen.hidden = false;
+    renderQuestion();
+  });
+
+  nextBtn.addEventListener('click', goNext);
+
+  try {
+    var best = localStorage.getItem('unixquest_best');
+    if (best) document.getElementById('topPill').textContent = 'Mejor puntaje: ' + best + '/' + SCORABLE;
+  } catch(e){}
+})();
 </script>
