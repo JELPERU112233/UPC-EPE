@@ -1,1 +1,638 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reto Anatomía de un Proceso</title>
+<style>
+/* Concepto: pantalla de juego oscura como la diapositiva (azul pizarra + rojo UPN), respuestas con forma y color, y una capa AR 3D sobre un fondo de superficie o foto propia. */
+:root{
+  --bg:#1c202b; --bg2:#262c3b; --bg3:#323a4d; --line:#3d465c;
+  --fg:#f4f5f8; --muted:#a3a9ba; --red:#e4002b;
+  --c1:#e4002b; --c2:#2f6fe0; --c3:#f2b01e; --c4:#178a47;
+  --ok:#3ecf7a; --bad:#ff6b7d;
+  color-scheme:dark;
+  font-family:Arial,Helvetica,sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.45;padding-inline:16px;padding-block:16px 40px;min-height:100vh;position:relative;overflow-x:hidden}
+body::after{content:"";position:fixed;right:-140px;bottom:-190px;width:460px;height:460px;border-radius:50%;background:var(--bg2);z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:880px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--c3);outline-offset:2px}
+.muted{color:var(--muted)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.brand{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hud{display:flex;gap:8px;align-items:center}
+.chip{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;font-variant-numeric:tabular-nums}
+.chip small{color:var(--muted);margin-right:6px}
+.chip b{font-size:18px}
+.chip.streak{border-color:var(--c3);color:var(--c3);font-weight:bold}
+
+/* inicio */
+.start h1{font-size:clamp(2.3rem,9vw,4.4rem);line-height:1.02;color:var(--red);margin:18px 0 22px;text-wrap:balance}
+.lead{font-size:clamp(1.15rem,3.2vw,1.6rem);font-weight:bold;max-width:34ch;margin:0 0 14px;text-wrap:balance}
+.bar{width:96px;height:4px;background:var(--red);margin:0 0 26px}
+.rules{display:grid;gap:10px;max-width:560px;margin:0 0 26px;padding:0;list-style:none}
+.rules li{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--muted)}
+.rules b{color:var(--fg)}
+.field{display:grid;gap:6px;max-width:320px;margin-bottom:18px}
+.field label{font-size:13px;color:var(--muted)}
+.field input{font:inherit;background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.btn{border:0;border-radius:10px;padding:14px 22px;font-weight:bold;font-size:17px;background:var(--bg3);color:var(--fg);border:1px solid var(--line)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn:hover{filter:brightness(1.12)}
+.fine{font-size:13px;color:var(--muted);max-width:56ch;margin-top:18px}
+
+/* pregunta */
+.meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.pips{display:flex;gap:6px}
+.pip{width:28px;height:6px;border-radius:3px;background:var(--bg3)}
+.pip.now{background:var(--fg)}
+.pip.ok{background:var(--ok)}
+.pip.no{background:var(--bad)}
+.timer{position:relative;height:30px;background:var(--bg2);border-radius:15px;overflow:hidden;margin-bottom:16px;border:1px solid var(--line)}
+#bar{position:absolute;inset:0 auto 0 0;width:100%;background:var(--c2);transition:background .3s}
+#bar.low{background:var(--red)}
+#secs{position:absolute;right:12px;top:0;line-height:28px;font-weight:bold;font-variant-numeric:tabular-nums}
+h2#qt{font-size:clamp(1.25rem,3.6vw,1.8rem);line-height:1.25;margin:0 0 16px;text-wrap:balance}
+.fig{margin:0 0 16px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px;justify-items:center}
+#svgBox{width:100%;max-width:520px}
+#svgBox svg{width:100%;height:auto;max-height:240px;display:block}
+.btn.ar{display:inline-flex;align-items:center;gap:10px;border-color:var(--c3);color:var(--c3);background:transparent}
+.btn.ar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}
+.btn.ar .cnt{font-size:13px;color:var(--muted);font-weight:normal}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ans{display:flex;align-items:center;gap:12px;text-align:left;border:0;border-radius:10px;padding:16px 14px;min-height:76px;font-size:16px;font-weight:bold;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .08s,opacity .2s}
+.ans:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.ans svg{flex:none;width:26px;height:26px;fill:currentColor}
+.ans span{min-width:0}
+.ans.a0{background:var(--c1)}
+.ans.a1{background:var(--c2)}
+.ans.a2{background:var(--c3);color:#1c202b}
+.ans.a3{background:var(--c4)}
+.ans[disabled]{cursor:default}
+.ans.dim{opacity:.35}
+.ans.right{outline:4px solid var(--ok);outline-offset:2px}
+.ans.wrong{outline:4px solid var(--bad);outline-offset:2px}
+.fb{margin-top:16px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px}
+.fb h3{margin:0;font-size:22px}
+.fb h3.ok{color:var(--ok)}
+.fb h3.no{color:var(--bad)}
+.pts{display:flex;flex-wrap:wrap;gap:8px}
+.pts span{background:var(--bg3);border-radius:999px;padding:4px 12px;font-size:14px;font-variant-numeric:tabular-nums}
+.pts .tot{background:var(--fg);color:var(--bg);font-weight:bold}
+.fb p{margin:0;color:var(--muted);max-width:65ch}
+.fb .row{display:flex;gap:10px;flex-wrap:wrap}
+
+/* figuras SVG */
+svg .box{fill:var(--bg3);stroke:var(--line);stroke-width:1.5}
+svg .dash{stroke-dasharray:5 4}
+svg .file{fill:var(--bg2);stroke:var(--muted);stroke-width:1.5}
+svg .seg{fill:var(--bg2);stroke-width:2}
+svg .arrow{stroke:var(--muted);stroke-width:2;fill:none}
+svg .t{fill:var(--fg);font:bold 12px Arial,Helvetica,sans-serif}
+svg .tm{fill:var(--muted);font:11px Arial,Helvetica,sans-serif}
+svg .hit .box,svg .hit .seg{stroke:var(--ok);stroke-width:3.5}
+svg .hit{filter:drop-shadow(0 0 7px rgba(62,207,122,.55))}
+
+/* fin */
+.end h2{font-size:clamp(1.8rem,6vw,2.8rem);margin:6px 0 4px;color:var(--red)}
+.big{font-size:clamp(3rem,12vw,5rem);font-weight:bold;font-variant-numeric:tabular-nums;line-height:1}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.stats .chip b{display:block}
+.list{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:8px;max-width:560px}
+.list li{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.list .m{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:bold;color:#1c202b;font-size:14px}
+.list .m.ok{background:var(--ok)}
+.list .m.no{background:var(--bad)}
+.list .p{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+
+/* AR */
+#ar{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.ar-top{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.ar-top h3{margin:0;font-size:16px;flex:1;min-width:0}
+.ar-top .chip{white-space:nowrap}
+#arStage{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none}
+#arBg{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 0%,#46526e 0%,#252c3e 55%,#171b26 100%);background-size:cover;background-position:center}
+#arBg::after{content:"";position:absolute;left:-50%;right:-50%;bottom:0;height:52%;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/46px 46px,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/46px 46px;transform:perspective(480px) rotateX(64deg);transform-origin:bottom;opacity:.6;-webkit-mask-image:linear-gradient(to top,#000,transparent);mask-image:linear-gradient(to top,#000,transparent)}
+#arBg.photo::after{display:none}
+#arBg.photo::before{content:"";position:absolute;inset:0;background:rgba(15,18,26,.28)}
+#arCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.br{position:absolute;width:30px;height:30px;border:3px solid rgba(255,255,255,.75);pointer-events:none}
+.br.tl{left:12px;top:12px;border-right:0;border-bottom:0}
+.br.tr{right:12px;top:12px;border-left:0;border-bottom:0}
+.br.bl{left:12px;bottom:12px;border-right:0;border-top:0}
+.br.brr{right:12px;bottom:12px;border-left:0;border-top:0}
+#arStatus{position:absolute;left:50%;top:16px;transform:translateX(-50%);background:rgba(28,32,43,.85);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;white-space:nowrap;pointer-events:none}
+#arInfo{position:absolute;left:16px;right:16px;bottom:16px;background:rgba(28,32,43,.94);border:1px solid var(--line);border-radius:12px;padding:12px 14px;max-height:42%;overflow:auto}
+#arInfo b{display:block;margin-bottom:4px;color:var(--c3)}
+#arInfo p{margin:0;font-size:14px;color:var(--fg);max-width:65ch}
+.ar-bot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.ar-bot .btn{padding:10px 14px;font-size:14px}
+.ar-bot .sp{flex:1}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--c3);color:#1c202b;font-weight:bold;border-radius:999px;padding:8px 18px;z-index:60}
+@media (max-width:560px){.answers{grid-template-columns:1fr}.ans{min-height:64px}body::after{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+body{margin:0}
+</style>
+</head>
+<body>
+
+
+<main class="wrap">
+  <header class="top">
+    <div class="brand">Arquitectura de Computadoras y SO</div>
+    <div class="hud" id="hud" hidden>
+      <span class="chip streak" id="streak" hidden></span>
+      <span class="chip"><small>Puntos</small><b id="score">0</b></span>
+    </div>
+  </header>
+
+  <section id="sStart" class="start">
+    <h1>Anatomía de un Proceso</h1>
+    <p class="lead">Un proceso es un programa activo y cargado en memoria, delimitado en un espacio operativo completamente aislado.</p>
+    <div class="bar"></div>
+    <ul class="rules">
+      <li><b>4 preguntas, 20 segundos cada una.</b> Cuanto más rápido aciertes, más puntos suma (hasta 1000).</li>
+      <li><b>Racha:</b> cada acierto seguido añade 100 puntos extra, hasta 300.</li>
+      <li><b>Ver en AR:</b> cada pregunta tiene una escena 3D. Toca todas sus piezas antes de responder y ganas 100 puntos de explorador. El reloj se detiene mientras la miras.</li>
+    </ul>
+    <div class="field">
+      <label for="nick">Tu apodo</label>
+      <input id="nick" maxlength="20" placeholder="Ej. Ada" autocomplete="off">
+    </div>
+    <button id="go" class="btn primary">Empezar</button>
+    <p class="fine">La cámara del dispositivo no está disponible dentro de esta página. La escena AR se ancla sobre una superficie simulada, o sobre una foto de tu aula o tu escritorio que puedes cargar desde la propia vista AR.</p>
+  </section>
+
+  <section id="sQ" hidden>
+    <div class="meta"><div class="pips" id="pips"></div><span id="qn" class="muted"></span></div>
+    <div class="timer" aria-label="Tiempo restante"><div id="bar"></div><span id="secs">20</span></div>
+    <h2 id="qt"></h2>
+    <figure class="fig">
+      <div id="svgBox"></div>
+      <button id="arBtn" class="btn ar" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 12l9-5M12 12L3 7M12 12v10"/></svg>
+        <span>Ver en AR</span><span class="cnt" id="arCount"></span>
+      </button>
+    </figure>
+    <div class="answers" id="ans"></div>
+    <div class="fb" id="fb" hidden aria-live="polite"></div>
+  </section>
+
+  <section id="sEnd" class="end" hidden>
+    <div class="muted" id="endNick"></div>
+    <h2 id="endTier"></h2>
+    <div class="big" id="endScore">0</div>
+    <div class="stats" id="endStats"></div>
+    <ul class="list" id="endList"></ul>
+    <button id="again" class="btn primary">Jugar de nuevo</button>
+  </section>
+</main>
+
+<div id="ar" hidden role="dialog" aria-label="Vista de realidad aumentada">
+  <div class="ar-top">
+    <h3 id="arTitle"></h3>
+    <span class="chip" id="arProg"></span>
+    <button class="btn" id="arClose" type="button">Cerrar</button>
+  </div>
+  <div id="arStage">
+    <div id="arBg"></div>
+    <canvas id="arCanvas"></canvas>
+    <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
+    <div id="arStatus">Escaneando superficie…</div>
+    <div id="arInfo"><b>Cómo explorar</b><p>Arrastra para girar, pellizca o usa la rueda para acercar, y toca una pieza para ver qué es.</p></div>
+  </div>
+  <div class="ar-bot">
+    <button class="btn" id="arPhoto" type="button">Usar mi foto de fondo</button>
+    <button class="btn" id="arClear" type="button" hidden>Fondo simulado</button>
+    <button class="btn" id="arReset" type="button">Reiniciar vista</button>
+    <span class="sp"></span>
+    <button class="btn primary" id="arDone" type="button">Volver a la pregunta</button>
+    <input type="file" id="arFile" accept="image/*" hidden>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var LIMIT=20;
+var $=function(s){return document.querySelector(s)};
+
+/* ---------- figuras SVG ---------- */
+var MARK='<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker></defs>';
+var SVG=[
+'<svg viewBox="0 0 360 190" role="img" aria-label="Un archivo del disco se carga en la RAM y pasa a ser un proceso con PID">'+MARK+
+ '<g data-k="disk"><text class="tm" x="74" y="22" text-anchor="middle">DISCO</text><rect class="box dash" x="14" y="32" width="120" height="130" rx="8"/><rect class="file" x="34" y="52" width="80" height="62" rx="5"/><text class="t" x="74" y="88" text-anchor="middle">app.exe</text><text class="tm" x="74" y="140" text-anchor="middle">bytes guardados</text></g>'+
+ '<path class="arrow" d="M142 97H216" marker-end="url(#ah)"/><text class="tm" x="179" y="86" text-anchor="middle">cargar</text>'+
+ '<g data-k="ram"><text class="tm" x="286" y="22" text-anchor="middle">RAM</text><rect class="box" x="226" y="32" width="120" height="130" rx="8"/>'+
+ '<rect x="238" y="40" width="96" height="18" rx="9" style="fill:var(--fg)"/><text x="286" y="53" text-anchor="middle" style="fill:var(--bg);font:bold 10px Arial,Helvetica,sans-serif">PID 4021 · activo</text>'+
+ '<rect class="seg" x="238" y="66" width="96" height="22" rx="4" style="stroke:var(--c1)"/><text class="t" x="286" y="81" text-anchor="middle">código</text>'+
+ '<rect class="seg" x="238" y="94" width="96" height="22" rx="4" style="stroke:var(--c3)"/><text class="t" x="286" y="109" text-anchor="middle">datos</text>'+
+ '<rect class="seg" x="238" y="122" width="96" height="22" rx="4" style="stroke:var(--c2)"/><text class="t" x="286" y="137" text-anchor="middle">pila</text></g></svg>',
+
+'<svg viewBox="0 0 360 190" role="img" aria-label="Espacio de direcciones: pila arriba, heap, datos y código abajo">'+MARK+
+ '<text class="tm" x="14" y="24">direcciones</text><text class="tm" x="14" y="37">altas</text><text class="tm" x="14" y="174">bajas</text>'+
+ '<g data-k="stack"><rect class="seg" x="110" y="12" width="150" height="36" rx="6" style="stroke:var(--c2)"/><text class="t" x="185" y="35" text-anchor="middle">Pila (stack)</text></g>'+
+ '<path class="arrow" d="M140 52V74" marker-end="url(#ah)"/><path class="arrow" d="M230 78V56" marker-end="url(#ah)"/><text class="tm" x="185" y="69" text-anchor="middle">libre</text>'+
+ '<g data-k="heap"><rect class="seg" x="110" y="82" width="150" height="36" rx="6" style="stroke:var(--c3)"/><text class="t" x="185" y="105" text-anchor="middle">Heap</text></g>'+
+ '<g data-k="data"><rect class="seg" x="110" y="122" width="150" height="26" rx="6" style="stroke:var(--c4)"/><text class="t" x="185" y="139" text-anchor="middle">Datos globales</text></g>'+
+ '<g data-k="text"><rect class="seg" x="110" y="152" width="150" height="26" rx="6" style="stroke:var(--c1)"/><text class="t" x="185" y="169" text-anchor="middle">Código (text)</text></g></svg>',
+
+'<svg viewBox="0 0 360 190" role="img" aria-label="Ficha con PID, estado, contador de programa, registros, memoria y archivos">'+
+ '<g data-k="card"><rect class="box" x="60" y="8" width="240" height="176" rx="10"/><rect x="60" y="8" width="240" height="30" rx="10" style="fill:var(--bg2)"/><rect x="60" y="26" width="240" height="12" style="fill:var(--bg2)"/>'+
+ '<text class="t" x="180" y="28" text-anchor="middle" style="font-size:14px">¿ ?  ficha del proceso</text>'+
+ '<text class="tm" x="76" y="62">PID</text><text class="t" x="284" y="62" text-anchor="end">4021</text>'+
+ '<text class="tm" x="76" y="84">Estado</text><text class="t" x="284" y="84" text-anchor="end">Listo</text>'+
+ '<text class="tm" x="76" y="106">Cont. de programa</text><text class="t" x="284" y="106" text-anchor="end">0x00401A3C</text>'+
+ '<text class="tm" x="76" y="128">Registros</text><text class="t" x="284" y="128" text-anchor="end">EAX, EBX, ESP…</text>'+
+ '<text class="tm" x="76" y="150">Memoria</text><text class="t" x="284" y="150" text-anchor="end">tabla de páginas</text>'+
+ '<text class="tm" x="76" y="172">Archivos</text><text class="t" x="284" y="172" text-anchor="end">fd 0, 1, 2</text></g></svg>',
+
+'<svg viewBox="0 0 360 190" role="img" aria-label="Dos procesos con direcciones virtuales propias, traducidas por la MMU a marcos distintos de la RAM">'+MARK+
+ '<g data-k="p1"><rect class="box" x="10" y="22" width="100" height="62" rx="8" style="stroke:var(--c2)"/><text class="t" x="60" y="48" text-anchor="middle">Proceso P1</text><text class="tm" x="60" y="66" text-anchor="middle">0x0000…0xFFFF</text></g>'+
+ '<g data-k="p2"><rect class="box" x="10" y="106" width="100" height="62" rx="8" style="stroke:var(--c4)"/><text class="t" x="60" y="132" text-anchor="middle">Proceso P2</text><text class="tm" x="60" y="150" text-anchor="middle">0x0000…0xFFFF</text></g>'+
+ '<path class="arrow" d="M110 55L140 82" marker-end="url(#ah)"/><path class="arrow" d="M110 137L140 108" marker-end="url(#ah)"/>'+
+ '<g data-k="mmu"><rect class="box" x="142" y="64" width="76" height="62" rx="8"/><text class="t" x="180" y="92" text-anchor="middle">MMU</text><text class="tm" x="180" y="109" text-anchor="middle">traduce</text></g>'+
+ '<path class="arrow" d="M218 95H246" marker-end="url(#ah)"/><text class="tm" x="300" y="14" text-anchor="middle">RAM física</text>'+
+ '<rect class="seg" x="252" y="22" width="96" height="22" rx="4" style="stroke:var(--c2)"/><rect class="seg" x="252" y="48" width="96" height="22" rx="4" style="stroke:var(--c4)"/><rect class="seg" x="252" y="74" width="96" height="22" rx="4" style="stroke:var(--c2)"/><rect class="seg" x="252" y="100" width="96" height="22" rx="4" style="stroke:var(--c2)"/><rect class="seg" x="252" y="126" width="96" height="22" rx="4" style="stroke:var(--c4)"/><rect class="seg" x="252" y="152" width="96" height="22" rx="4" style="stroke:var(--c4)"/></svg>'
+];
+
+/* ---------- preguntas (la opción 0 es la correcta) ---------- */
+var Q=[
+{short:'Programa vs. proceso',t:'¿Qué distingue a un proceso de un programa?',hit:'ram',ar:0,
+ o:['Es el programa en ejecución, con PID, estado y memoria asignada','Es el archivo ejecutable guardado en el disco','Es una función que se llama dentro de otro programa','Es cualquier archivo que el usuario abre'],
+ e:'Un programa es una entidad pasiva: bytes en disco. Al ejecutarlo, el sistema operativo crea un proceso: carga el código en memoria y le asigna PID, estado y recursos.'},
+{short:'Memoria dinámica',t:'¿Qué segmento del espacio de direcciones se amplía cuando el programa pide memoria con malloc() o new?',hit:'heap',ar:1,
+ o:['Heap','Pila (stack)','Código (text)','Datos globales'],
+ e:'El heap es la zona de memoria dinámica. La pila guarda variables locales y marcos de llamadas. Es habitual que la pila crezca hacia direcciones bajas y el heap hacia altas, aunque el sentido exacto depende de la plataforma.'},
+{short:'Bloque de control',t:'¿Qué estructura guarda el sistema operativo con el PID, el estado y los registros de cada proceso?',hit:'card',ar:2,
+ o:['PCB (bloque de control de proceso)','MBR (registro de arranque)','TLB (caché de traducciones)','Tabla de interrupciones'],
+ e:'El PCB reúne lo necesario para suspender y reanudar un proceso en un cambio de contexto. En Linux se implementa como task_struct.'},
+{short:'Aislamiento',t:'¿Qué mecanismo mantiene aislada la memoria de un proceso respecto a la de otro?',hit:'mmu',ar:3,
+ o:['Memoria virtual: la MMU traduce las direcciones de cada proceso a marcos propios','Que todos los procesos compartan el mismo heap','Ejecutar un solo proceso a la vez','Que cada proceso conozca las direcciones físicas de los demás'],
+ e:'Cada proceso trabaja con direcciones virtuales propias. La MMU las traduce con tablas de páginas distintas y bloquea los accesos fuera de su mapa (fallo de segmentación).'}
+];
+var SHAPES=[
+ '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L22 21H2z"/></svg>',
+ '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L22 12L12 22L2 12z"/></svg>',
+ '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>',
+ '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>'
+];
+
+/* ---------- estado del juego ---------- */
+var S={q:0,score:0,streak:0,right:0,res:[],elapsed:0,paused:false,answered:false,order:[],last:0,times:[]};
+var AR=null;
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function show(id){['sStart','sQ','sEnd'].forEach(function(k){$('#'+k).hidden=(k!==id)})}
+
+function setScore(){$('#score').textContent=S.score;var st=$('#streak');if(S.streak>1){st.hidden=false;st.textContent='Racha ×'+S.streak}else st.hidden=true}
+function pips(){var h='';for(var i=0;i<Q.length;i++){var c='pip';if(i<S.res.length)c+=S.res[i].ok?' ok':' no';else if(i===S.q)c+=' now';h+='<span class="'+c+'"></span>'}$('#pips').innerHTML=h}
+function arCount(){var q=S.q;if(!AR){$('#arCount').textContent='';return}var n=AR.count(q),t=AR.total[q];$('#arCount').textContent=n>=t?'· explorado (+100)':'· '+n+'/'+t+' piezas'}
+
+function start(){
+  S.q=0;S.score=0;S.streak=0;S.right=0;S.res=[];S.times=[];
+  $('#hud').hidden=false;setScore();
+  if(AR)AR.reset();
+  loadQ();
+}
+function loadQ(){
+  var q=Q[S.q];
+  S.elapsed=0;S.answered=false;S.paused=false;S.last=performance.now();
+  S.order=shuffle([0,1,2,3]);
+  show('sQ');pips();
+  $('#qn').textContent='Pregunta '+(S.q+1)+' de '+Q.length;
+  $('#qt').textContent=q.t;
+  $('#svgBox').innerHTML=SVG[S.q];
+  $('#fb').hidden=true;$('#fb').innerHTML='';
+  var h='';
+  for(var k=0;k<4;k++){h+='<button class="ans a'+k+'" data-k="'+k+'" type="button">'+SHAPES[k]+'<span></span></button>'}
+  var box=$('#ans');box.innerHTML=h;
+  var bs=box.querySelectorAll('.ans');
+  for(var k2=0;k2<4;k2++){bs[k2].querySelector('span').textContent=q.o[S.order[k2]];bs[k2].addEventListener('click',onAns)}
+  $('#bar').style.width='100%';$('#bar').className='';$('#secs').textContent=LIMIT;
+  arCount();
+  window.scrollTo(0,0);
+}
+function onAns(e){answer(parseInt(e.currentTarget.getAttribute('data-k'),10))}
+
+function answer(k){
+  if(S.answered)return;
+  S.answered=true;
+  var q=Q[S.q],cp=S.order.indexOf(0),ok=(k===cp),up=(k<0);
+  var base=0,sb=0,ab=0;
+  if(ok){
+    S.streak++;S.right++;
+    base=Math.round(1000*(1-(S.elapsed/LIMIT)/2));
+    sb=Math.min(300,100*(S.streak-1));
+    ab=(AR&&AR.complete(S.q))?100:0;
+  }else S.streak=0;
+  var total=base+sb+ab;
+  S.score+=total;S.times.push(S.elapsed);
+  S.res.push({ok:ok,pts:total});
+  setScore();pips();
+  var bs=$('#ans').querySelectorAll('.ans');
+  for(var i=0;i<4;i++){bs[i].disabled=true;if(i===cp)bs[i].classList.add('right');else if(i===k)bs[i].classList.add('wrong');else bs[i].classList.add('dim')}
+  var hit=$('#svgBox').querySelector('[data-k="'+q.hit+'"]');if(hit)hit.classList.add('hit');
+  var last=(S.q===Q.length-1);
+  var h='<h3 class="'+(ok?'ok':'no')+'">'+(ok?'¡Correcto!':(up?'Se acabó el tiempo':'Incorrecto'))+'</h3>';
+  h+='<div class="pts">';
+  if(ok){h+='<span>Velocidad +'+base+'</span>';if(sb)h+='<span>Racha +'+sb+'</span>';if(ab)h+='<span>Explorador AR +'+ab+'</span>'}
+  h+='<span class="tot">'+(ok?'+':'')+total+' pts</span></div>';
+  h+='<p></p><div class="row"><button class="btn primary" id="next" type="button">'+(last?'Ver resultados':'Siguiente pregunta')+'</button><button class="btn ar" id="arAgain" type="button">Ver en AR</button></div>';
+  var fb=$('#fb');fb.innerHTML=h;fb.querySelector('p').textContent=q.e;fb.hidden=false;
+  $('#next').addEventListener('click',function(){if(last)finish();else{S.q++;loadQ()}});
+  $('#arAgain').addEventListener('click',function(){if(AR)AR.open(S.q)});
+  $('#next').focus({preventScroll:true});
+  fb.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function finish(){
+  show('sEnd');
+  var nick=($('#nick').value||'').trim();
+  $('#endNick').textContent=nick?('Resultado de '+nick):'Resultado final';
+  var tier=S.right===4?'Arquitecto de procesos':S.right===3?'Planificador experto':S.right===2?'Proceso en cola de listos':'A repasar el PCB';
+  $('#endTier').textContent=tier;
+  $('#endScore').textContent=S.score;
+  var avg=S.times.length?(S.times.reduce(function(a,b){return a+b},0)/S.times.length):0;
+  $('#endStats').innerHTML='<span class="chip"><small>Aciertos</small><b>'+S.right+' de '+Q.length+'</b></span><span class="chip"><small>Tiempo medio</small><b>'+avg.toFixed(1)+' s</b></span>';
+  var h='';
+  for(var i=0;i<Q.length;i++){h+='<li><span class="m '+(S.res[i].ok?'ok':'no')+'">'+(S.res[i].ok?'✓':'×')+'</span><span>'+Q[i].short+'</span><span class="p">'+S.res[i].pts+' pts</span></li>'}
+  $('#endList').innerHTML=h;
+  window.scrollTo(0,0);
+}
+
+/* reloj */
+function loop(now){
+  requestAnimationFrame(loop);
+  var dt=(now-S.last)/1000;S.last=now;
+  if($('#sQ').hidden||S.answered||S.paused)return;
+  S.elapsed+=Math.min(dt,.25);
+  var left=Math.max(0,LIMIT-S.elapsed);
+  $('#bar').style.width=(left/LIMIT*100)+'%';
+  $('#bar').className=left<=5?'low':'';
+  $('#secs').textContent=Math.ceil(left);
+  if(left<=0)answer(-1);
+}
+requestAnimationFrame(function(t){S.last=t;requestAnimationFrame(loop)});
+
+$('#go').addEventListener('click',start);
+$('#again').addEventListener('click',function(){show('sStart');$('#hud').hidden=true});
+$('#arBtn').addEventListener('click',function(){if(AR)AR.open(S.q)});
+document.addEventListener('keydown',function(e){
+  if(!$('#ar').hidden){if(e.key==='Escape'&&AR)AR.close();return}
+  if($('#sQ').hidden||S.answered)return;
+  var n=parseInt(e.key,10);if(n>=1&&n<=4)answer(n-1);
+});
+
+/* ---------- realidad aumentada (Three.js) ---------- */
+if(typeof THREE==='undefined'){
+  $('#arBtn').hidden=true;
+  return;
+}
+AR=(function(){
+  var el=$('#ar'),stage=$('#arStage'),bg=$('#arBg'),cv=$('#arCanvas'),info=$('#arInfo'),status=$('#arStatus'),prog=$('#arProg');
+  var C1=0xe4002b,C2=0x2f6fe0,C3=0xf2b01e,C4=0x1f9d55;
+  var total=[3,4,6,4],sets=[{},{},{},{}];
+  var renderer=null,scene,camera,group,raycaster,pick=[],tick=[],raf=0,isOpen=false,qi=0,anchored=false,t0=0,t1=0,selected=null,toastEl=null,photoUrl=null;
+  var sph={t:.55,p:1.1,r:9.5},DEF={t:.55,p:1.1,r:9.5},tgt=new THREE.Vector3(0,.2,0);
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var titles=['Programa en disco y proceso en RAM','Espacio de direcciones de un proceso','Ficha PCB de un proceso','Aislamiento con memoria virtual'];
+
+  function count(q){return Object.keys(sets[q]).length}
+  function complete(q){return count(q)>=total[q]}
+  function reset(){sets=[{},{},{},{}]}
+
+  function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+  function label(text,color,s){
+    var c=document.createElement('canvas');c.width=512;c.height=128;
+    var g=c.getContext('2d');g.font='bold 52px Arial,Helvetica,sans-serif';g.textAlign='center';g.textBaseline='middle';
+    var w=Math.min(500,g.measureText(text).width+56);
+    g.fillStyle='rgba(20,24,34,.88)';rr(g,(512-w)/2,16,w,96,24);g.fill();
+    g.fillStyle=color||'#fff';g.fillText(text,256,66,w-30);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));
+    var k=s||1;sp.scale.set(2.4*k,.6*k,1);sp.renderOrder=10;return sp;
+  }
+  function box(w,h,d,col,op){
+    var o=(op===undefined)?1:op;
+    var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:.55,metalness:.1,transparent:o<1,opacity:o}));
+    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.5})));
+    return m;
+  }
+  function reg(o,id,title,text){o.userData.part={id:id,title:title,text:text};pick.push(o);return o}
+  function put(o,x,y,z,parent){o.position.set(x,y,z);(parent||group).add(o);return o}
+  function lab(text,x,y,z,color,s,parent){return put(label(text,color,s),x,y,z,parent)}
+  function ln(a,b,col,parent){var g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0],a[1],a[2]),new THREE.Vector3(b[0],b[1],b[2])]);var l=new THREE.Line(g,new THREE.LineBasicMaterial({color:col||0xa3a9ba}));(parent||group).add(l);return l}
+  function wm(c){return new THREE.MeshBasicMaterial({color:c})}
+
+  var builders=[
+  function(){ /* programa vs proceso */
+    tgt.set(0,.3,0);
+    var slab=reg(box(2.6,.2,1.7,0x6b7388),'disco','Programa en disco','Es un archivo ejecutable: instrucciones y datos guardados. No tiene PID, ni estado, ni memoria asignada. Es una entidad pasiva.');
+    put(slab,-2.6,-.4,0);
+    for(var i=0;i<3;i++)put(box(1.7,.05,1.05,0x8d94a8),-2.6,-.25+i*.08,0);
+    lab('Programa (disco)',-2.6,.45,0,'#cfd3df');
+    var proc=new THREE.Group();
+    proc.add(box(1.7,1.7,1.7,C1,.28));
+    proc.add(put(box(1.1,.28,1.1,C1),0,-.45,0,proc));
+    proc.add(put(box(1.1,.28,1.1,C3),0,-.1,0,proc));
+    proc.add(put(box(1.1,.28,1.1,C2),0,.25,0,proc));
+    var ring=new THREE.Mesh(new THREE.TorusGeometry(1.4,.04,12,72),wm(0xffffff));ring.rotation.x=Math.PI/2;proc.add(ring);
+    reg(proc,'proceso','Proceso en RAM','Es el programa en ejecución: tiene código, datos y pila cargados en memoria, un PID, un estado (listo, ejecutando, bloqueado) y su propio espacio de direcciones.');
+    put(proc,2.6,.5,0);
+    lab('Proceso (RAM)',2.6,1.95,0,'#ffb3c0');
+    tick.push(function(t){ring.rotation.z=t*.9;proc.position.y=.5+Math.sin(t*1.6)*.08});
+    var arr=new THREE.Group(),shaft=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,1.5,12),wm(0xffffff)),head=new THREE.Mesh(new THREE.ConeGeometry(.2,.4,16),wm(0xffffff));
+    shaft.rotation.z=Math.PI/2;head.rotation.z=-Math.PI/2;head.position.x=.9;arr.add(shaft,head);
+    reg(arr,'carga','Carga (loader)','El cargador del sistema operativo lee el ejecutable, reserva memoria, copia el código y los datos, crea la pila y registra el proceso con un PID nuevo.');
+    put(arr,0,.3,0);lab('cargar',0,.95,0,'#fff',.8);
+  },
+  function(){ /* layout de memoria */
+    tgt.set(0,.25,0);
+    var d=[
+     ['stack','Pila (stack)',1.5,C2,'#9dbcf5','Guarda variables locales, parámetros y direcciones de retorno. Cada llamada a función apila un marco y cada retorno lo libera. Suele crecer hacia direcciones bajas.'],
+     ['heap','Heap',.6,C3,'#f9d687','Memoria dinámica: crece cuando el programa pide memoria con malloc(), new o similares. Es habitual que crezca hacia direcciones altas, hacia la pila.'],
+     ['data','Datos globales',-.2,C4,'#8fe0b2','Variables globales y estáticas. Tienen tamaño fijo y existen durante toda la vida del proceso.'],
+     ['text','Código (text)',-1,C1,'#ff9fb0','Las instrucciones del programa. Normalmente es de solo lectura y ejecutable, para que un error no sobrescriba el propio código.']];
+    for(var i=0;i<d.length;i++){
+      var s=reg(box(3,.62,1.6,d[i][3]),d[i][0],d[i][1],d[i][5]);put(s,0,d[i][2],0);
+      lab(d[i][1],2.9,d[i][2],0,d[i][4]);
+    }
+    var down=new THREE.Mesh(new THREE.ConeGeometry(.14,.3,16),wm(0xffffff));down.rotation.z=Math.PI;put(down,-.7,1.05,0);
+    var up=new THREE.Mesh(new THREE.ConeGeometry(.14,.3,16),wm(0xffffff));put(up,.7,1.05,0);
+    lab('direcciones altas',-2.7,2.0,0,'#a3a9ba',.8);lab('direcciones bajas',-2.7,-1.6,0,'#a3a9ba',.8);
+    tick.push(function(t){down.position.y=1.05-Math.abs(Math.sin(t*2))*.06;up.position.y=1.05+Math.abs(Math.sin(t*2))*.06});
+  },
+  function(){ /* PCB */
+    tgt.set(0,.2,0);
+    var core=reg(box(1.5,1.5,1.5,0x3d465c),'pcb','PCB: bloque de control de proceso','Agrupa todo lo que el sistema operativo necesita para suspender y reanudar un proceso. En Linux se implementa como task_struct.');
+    put(core,0,.2,0);lab('PCB',0,1.35,0,'#fff',1);
+    var ringG=new THREE.Group();ringG.position.y=.2;group.add(ringG);
+    var d=[
+     ['PID',C1,'Identificador único que el sistema operativo asigna al proceso. Se puede ver con ps o top.'],
+     ['Estado',C3,'Nuevo, listo, ejecutando, bloqueado o terminado. El planificador decide quién pasa a ejecutando.'],
+     ['Contador de programa',C2,'Dirección de la próxima instrucción. Se guarda al sacar al proceso de la CPU.'],
+     ['Registros',C4,'Copia de los registros de la CPU para continuar justo donde quedó tras un cambio de contexto.'],
+     ['Memoria y archivos',0xb86bd6,'Punteros a la tabla de páginas y a la tabla de archivos abiertos del proceso.']];
+    for(var i=0;i<d.length;i++){
+      var a=i/d.length*Math.PI*2,x=Math.cos(a)*2.9,z=Math.sin(a)*2.9;
+      var chip=reg(box(1.2,.55,.6,d[i][1]),'c'+i,d[i][0],d[i][2]);
+      put(chip,x,0,z,ringG);lab(d[i][0],x,.6,z,'#fff',.9,ringG);ln([0,0,0],[x,0,z],0x8a92a8,ringG);
+    }
+    tick.push(function(t){ringG.rotation.y=t*.22});
+  },
+  function(){ /* aislamiento */
+    tgt.set(0,.1,0);
+    function proc(x,col,id,name,txt){
+      var g=new THREE.Group();
+      g.add(box(2.1,2.1,2.1,col,.22));
+      g.add(put(box(.9,.5,.9,col),0,-.3,0,g));g.add(put(box(.9,.3,.9,col),0,.25,0,g));
+      reg(g,id,name,txt);put(g,x,.9,0);lab(name,x,2.35,0,'#fff',.9);return g;
+    }
+    proc(-3.1,C2,'p1','Proceso P1','Tiene un espacio virtual propio, que va de 0 hasta el máximo. Si intenta tocar una dirección que no está en su mapa, la MMU lanza un fallo y el sistema operativo lo termina (fallo de segmentación).');
+    proc(3.1,C4,'p2','Proceso P2','También ve direcciones desde 0, pero las suyas apuntan a marcos físicos distintos. Dos procesos pueden usar la misma dirección virtual sin pisarse.');
+    var mmu=reg(box(1.2,1.5,.5,0xc9ced9),'mmu','MMU y tablas de páginas','Traduce cada dirección virtual a una física con la tabla de páginas del proceso activo. Si no hay traducción permitida, bloquea el acceso.');
+    put(mmu,0,.9,0);lab('MMU',0,1.95,0,'#fff',.9);
+    var ram=new THREE.Group();ram.add(put(box(7.6,.14,2.6,0x4a5368),0,0,0,ram));
+    var cols=[C2,C4,C2,C2,C4,C4,C2,C4];
+    for(var i=0;i<8;i++)ram.add(put(box(.78,.2,1,cols[i]),-2.65+(i%4)*1.78+(i>3?.0:0),.17,i<4?-.55:.55,ram));
+    reg(ram,'ram','RAM física','La memoria real se divide en marcos. Los marcos de P1 (azul) y de P2 (verde) están mezclados, pero cada proceso solo puede alcanzar los suyos.');
+    put(ram,0,-1.2,0);lab('RAM física',0,-.65,2.1,'#cfd3df',.9);
+    ln([-2.1,.9,0],[-.6,.9,0],0x8a92a8);ln([2.1,.9,0],[.6,.9,0],0x8a92a8);
+    ln([0,.2,0],[-2.6,-.95,-.55],C2);ln([0,.2,0],[-.9,-.95,.55],C2);ln([0,.2,0],[.9,-.95,-.55],C4);ln([0,.2,0],[2.6,-.95,.55],C4);
+  }];
+
+  function init(){
+    try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true})}catch(e){renderer=null;return false}
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    renderer.setClearColor(0x000000,0);
+    scene=new THREE.Scene();
+    camera=new THREE.PerspectiveCamera(45,1,.1,100);
+    scene.add(new THREE.AmbientLight(0xffffff,.75));
+    var dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(4,8,6);scene.add(dl);
+    raycaster=new THREE.Raycaster();
+    bindPointer();
+    window.addEventListener('resize',function(){if(isOpen)resize()});
+    return true;
+  }
+  function dispose(o){o.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material){if(n.material.map)n.material.map.dispose();n.material.dispose()}})}
+  function load(q){
+    if(group){scene.remove(group);dispose(group)}
+    group=new THREE.Group();scene.add(group);pick=[];tick=[];selected=null;
+    builders[q]();
+    group.scale.setScalar(.001);
+  }
+  function resize(){
+    var w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;
+    renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=(w/h<.8)?64:45;camera.updateProjectionMatrix();
+  }
+  function placeCam(){
+    var sp=Math.sin(sph.p);
+    camera.position.set(tgt.x+sph.r*sp*Math.sin(sph.t),tgt.y+sph.r*Math.cos(sph.p),tgt.z+sph.r*sp*Math.cos(sph.t));
+    camera.lookAt(tgt);
+  }
+  function frame(now){
+    raf=requestAnimationFrame(frame);
+    if(!anchored){
+      if(now-t0>(reduce?150:1100)){anchored=true;t1=now;status.textContent='Superficie detectada · toca las piezas';if(!selected&&pick.length)info.querySelector('b').textContent='Cómo explorar'}
+    }else{
+      var k=Math.min(1,(now-t1)/(reduce?1:900)),c1=1.70158,c3=c1+1,e=1+c3*Math.pow(k-1,3)+c1*Math.pow(k-1,2);
+      group.scale.setScalar(Math.max(.001,e));
+    }
+    var t=now/1000;
+    for(var i=0;i<tick.length;i++)tick[i](t);
+    for(var j=0;j<pick.length;j++){var p=pick[j],s=(p===selected)?1.07+.025*Math.sin(t*6):1;p.scale.setScalar(p.scale.x+(s-p.scale.x)*.25)}
+    placeCam();renderer.render(scene,camera);
+  }
+  function toast(msg){
+    if(toastEl)toastEl.remove();
+    toastEl=document.createElement('div');toastEl.className='toast';toastEl.textContent=msg;document.body.appendChild(toastEl);
+    var me=toastEl;setTimeout(function(){me.remove()},2600);
+  }
+  function refreshProg(){prog.textContent=count(qi)+' de '+total[qi]+' piezas'}
+  function choose(o){
+    selected=o;var p=o.userData.part;
+    info.innerHTML='<b></b><p></p>';info.querySelector('b').textContent=p.title;info.querySelector('p').textContent=p.text;
+    if(!sets[qi][p.id]){
+      var was=complete(qi);sets[qi][p.id]=1;refreshProg();arCount();
+      if(!was&&complete(qi)){toast(S.answered?'Todas las piezas exploradas':'Explorador: +100 puntos si aciertas')}
+    }
+  }
+  function bindPointer(){
+    var ptrs={},moved=0,down=0,startPos=null,pinch=0;
+    function dist(){var k=Object.keys(ptrs);if(k.length<2)return 0;var a=ptrs[k[0]],b=ptrs[k[1]];return Math.hypot(a.x-b.x,a.y-b.y)}
+    cv.addEventListener('pointerdown',function(e){
+      cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]={x:e.clientX,y:e.clientY};
+      if(Object.keys(ptrs).length===1){moved=0;down=performance.now();startPos={x:e.clientX,y:e.clientY}}
+      pinch=dist();cv.style.cursor='grabbing';
+    });
+    cv.addEventListener('pointermove',function(e){
+      var p=ptrs[e.pointerId];if(!p)return;
+      var n=Object.keys(ptrs).length;
+      if(n===1){
+        var dx=e.clientX-p.x,dy=e.clientY-p.y;
+        sph.t-=dx*.008;sph.p=Math.max(.35,Math.min(1.6,sph.p-dy*.008));
+        moved=Math.max(moved,Math.hypot(e.clientX-startPos.x,e.clientY-startPos.y));
+      }
+      p.x=e.clientX;p.y=e.clientY;
+      if(n>=2){var d=dist();if(pinch){sph.r=Math.max(4,Math.min(16,sph.r*pinch/d))}pinch=d;moved=99}
+    });
+    function up(e){
+      var had=!!ptrs[e.pointerId];delete ptrs[e.pointerId];pinch=0;cv.style.cursor='grab';
+      if(had&&Object.keys(ptrs).length===0&&moved<6&&performance.now()-down<500&&e.type==='pointerup')tap(e);
+    }
+    cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+    cv.addEventListener('wheel',function(e){e.preventDefault();sph.r=Math.max(4,Math.min(16,sph.r*(1+e.deltaY*.001)))},{passive:false});
+  }
+  function tap(e){
+    if(!anchored)return;
+    var r=cv.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);
+    raycaster.setFromCamera(m,camera);
+    var hits=raycaster.intersectObjects(pick,true);
+    for(var i=0;i<hits.length;i++){
+      var o=hits[i].object;
+      while(o&&!(o.userData&&o.userData.part))o=o.parent;
+      if(o){choose(o);return}
+    }
+  }
+  function open(q){
+    if(!renderer&&!init()){toast('Tu navegador no permite gráficos 3D aquí');return}
+    qi=q;isOpen=true;S.paused=true;
+    el.hidden=false;document.body.style.overflow='hidden';
+    $('#arTitle').textContent=titles[q];refreshProg();
+    info.innerHTML='<b>Cómo explorar</b><p>Arrastra para girar, pellizca o usa la rueda para acercar, y toca una pieza para ver qué es.</p>';
+    status.textContent='Escaneando superficie…';
+    load(q);anchored=false;t0=performance.now();
+    sph.t=DEF.t;sph.p=DEF.p;sph.r=DEF.r;
+    resize();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
+    $('#arDone').focus();
+  }
+  function close(){
+    isOpen=false;cancelAnimationFrame(raf);el.hidden=true;document.body.style.overflow='';
+    S.paused=false;S.last=performance.now();arCount();
+  }
+  $('#arClose').addEventListener('click',close);
+  $('#arDone').addEventListener('click',close);
+  $('#arReset').addEventListener('click',function(){sph.t=DEF.t;sph.p=DEF.p;sph.r=DEF.r});
+  $('#arPhoto').addEventListener('click',function(){$('#arFile').click()});
+  $('#arFile').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];if(!f)return;
+    if(photoUrl)URL.revokeObjectURL(photoUrl);
+    photoUrl=URL.createObjectURL(f);
+    bg.style.backgroundImage='url("'+photoUrl+'")';bg.classList.add('photo');$('#arClear').hidden=false;e.target.value='';
+  });
+  $('#arClear').addEventListener('click',function(){
+    bg.style.backgroundImage='';bg.classList.remove('photo');$('#arClear').hidden=true;
+    if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null}
+  });
+  return {open:open,close:close,count:count,complete:complete,total:total,reset:reset};
+})();
+arCount();
+})();
+</script>
+
+</body>
+</html>
 
