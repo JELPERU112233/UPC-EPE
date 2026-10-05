@@ -1,1 +1,520 @@
 
+<title>MemoriaQuiz RA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ── layout: one-screen quiz arena, dark-committed navy/red world (brand: UPC EPE decks), single topic "Memoria Física y Virtual" — 4 questions, draggable CSS-3D "holograma" per question ── */
+:root{
+  --bg:#0c0f16;
+  --panel:#151a24;
+  --panel-raised:#1c2230;
+  --line:rgba(255,255,255,.09);
+  --ink:#f3f5f8;
+  --muted:#9aa3b5;
+  --red:#e4002b;
+  --blue:#3b6fed;
+  --gold:#f2a93b;
+  --teal:#23d3a6;
+  --font-display:'Sora',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg)}
+#app{
+  min-height:100%;
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(228,0,43,.16), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, rgba(59,111,237,.14), transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:28px 16px calc(28px + env(safe-area-inset-bottom,0px));
+}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.wrap{width:100%;max-width:760px}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,.opt-card:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+[hidden]{display:none!important}
+::selection{background:var(--red);color:#fff}
+
+/* ---------- lobby ---------- */
+.lobby{display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding:40px 4px 10px}
+.kicker{font-family:var(--font-mono);letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:var(--gold)}
+.lobby h1{font-size:clamp(32px,7vw,52px);font-weight:800;line-height:1.05}
+.lobby h1 span{color:var(--red)}
+.lobby p{color:var(--muted);font-size:15.5px;max-width:46ch;line-height:1.55}
+.topic-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:12.5px;padding:6px 12px;border-radius:999px}
+.start-btn{
+  margin-top:10px;border:none;border-radius:14px;padding:16px 34px;
+  background:var(--red);color:#fff;font-weight:700;font-size:17px;
+  box-shadow:0 10px 30px -10px rgba(228,0,43,.55);
+  transition:transform .15s ease;
+}
+.start-btn:hover{transform:translateY(-2px)}
+.start-btn:active{transform:translateY(0)}
+.rules{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.rule{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.rule .dot{width:9px;height:9px;border-radius:3px}
+
+/* ---------- top bar (quiz) ---------- */
+.topbar{width:100%;display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.progress{display:flex;gap:6px;flex:1}
+.pstep{flex:1;height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+.pstep i{display:block;height:100%;width:0%;background:var(--teal);transition:width .35s ease}
+.pstep.done i{width:100%}
+.score-pill{font-family:var(--font-mono);font-weight:600;font-size:14px;background:var(--panel);border:1px solid var(--line);padding:7px 13px;border-radius:999px;white-space:nowrap}
+.score-pill b{color:var(--gold)}
+
+/* ---------- question card ---------- */
+.qcard{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.qmeta{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.qtag{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal)}
+.timerwrap{flex:1;max-width:180px;height:7px;border-radius:5px;background:var(--panel-raised);overflow:hidden}
+.timerbar{height:100%;width:100%;background:linear-gradient(90deg,var(--teal),var(--gold));transform-origin:left;transition:width .18s linear}
+.timerbar.low{background:linear-gradient(90deg,var(--gold),var(--red))}
+.qbody{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:center}
+@media (max-width:620px){.qbody{grid-template-columns:1fr}}
+.qtext{font-size:clamp(18px,3vw,22px);font-weight:700;line-height:1.35}
+.qillus{background:var(--panel-raised);border:1px solid var(--line);border-radius:16px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;padding:10px}
+.qillus svg{width:100%;height:100%}
+
+.options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:460px){.options{grid-template-columns:1fr}}
+.opt-card{
+  display:flex;align-items:center;gap:12px;text-align:left;
+  border:none;border-radius:14px;padding:16px 14px;color:#fff;font-weight:600;font-size:15px;
+  position:relative;transition:transform .12s ease, filter .12s ease;line-height:1.3;
+}
+.opt-card:hover{filter:brightness(1.08)}
+.opt-card:active{transform:scale(.98)}
+.opt-card .shape{width:22px;height:22px;flex:none;display:block}
+.opt-card.o0{background:var(--red)}
+.opt-card.o1{background:var(--blue)}
+.opt-card.o2{background:#c98f1f}
+.opt-card.o3{background:#1a9d7c}
+.opt-card[disabled]{cursor:default}
+.opt-card.correct{outline:3px solid #fff;box-shadow:0 0 0 5px rgba(35,211,166,.35)}
+.opt-card.wrong{opacity:.45;filter:grayscale(.4)}
+.opt-card.fadeout{opacity:.35}
+
+.feedback{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:14px;padding:14px 16px;border:1px solid var(--line);background:var(--panel-raised)}
+.feedback .fmsg{font-weight:700;font-family:var(--font-display);font-size:16px}
+.feedback.ok .fmsg{color:var(--teal)}
+.feedback.bad .fmsg{color:var(--red)}
+.feedback .fexp{color:var(--muted);font-size:13.5px;margin-top:4px;line-height:1.5}
+.feedback-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:10px 16px;font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:rgba(255,255,255,.25)}
+.btn.primary{background:var(--teal);border-color:transparent;color:#05221a}
+.btn.ar{background:linear-gradient(135deg,var(--red),#8a1430);border-color:transparent;color:#fff}
+
+/* ---------- AR modal ---------- */
+.ar-overlay{position:fixed;inset:0;background:rgba(6,8,12,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;z-index:40}
+.ar-modal{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto}
+.ar-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ar-head h3{font-size:17px}
+.ar-head p{color:var(--muted);font-size:13px;margin-top:4px}
+.ar-close{border:none;background:var(--panel-raised);color:var(--muted);width:30px;height:30px;border-radius:9px;flex:none}
+.stage{
+  aspect-ratio:1/1;border-radius:16px;background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.06),transparent 60%),var(--panel-raised);
+  border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;perspective:900px;overflow:hidden;touch-action:none;cursor:grab;position:relative;
+}
+.stage:active{cursor:grabbing}
+.rig{width:62%;height:62%;position:relative;transform-style:preserve-3d;transition:transform .05s linear}
+.layer{position:absolute;inset:0;transform-style:preserve-3d;display:flex;align-items:center;justify-content:center}
+.layer svg{width:100%;height:100%;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.hint{text-align:center;color:var(--muted);font-size:11.5px;font-family:var(--font-mono)}
+
+/* ---------- podium ---------- */
+.podium{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:30px 4px 10px}
+.score-big{font-family:var(--font-display);font-weight:800;font-size:clamp(44px,12vw,72px);line-height:1}
+.score-big span{color:var(--gold);font-size:.4em;display:block;font-family:var(--font-mono);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.tier{font-size:18px;color:var(--teal);font-weight:700}
+.breakdown{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.brow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+.brow .bi{width:20px;height:20px;flex:none}
+.brow .bt{flex:1;text-align:left;color:var(--muted)}
+.brow .bv{font-family:var(--font-mono);font-weight:600}
+.brow.yes .bv{color:var(--teal)}
+.brow.no .bv{color:var(--red)}
+.again{margin-top:6px}
+
+@media (prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;animation-duration:.001ms!important}}
+</style>
+
+<div id="app">
+  <div class="wrap" id="screen-lobby">
+    <section class="lobby">
+      <span class="kicker">Arquitectura de Computadoras y SO · Memoria Física y Virtual</span>
+      <h1>Memoria<span>Quiz</span> RA</h1>
+      <p>4 preguntas enfocadas solo en memoria física y virtual — RAM, MMU, fallos de página, FIFO vs. LRU y thrashing — con holograma 3D interactivo por pregunta.</p>
+      <div class="topic-chips">
+        <span class="chip">🧠 RAM y MMU</span>
+        <span class="chip">📄 Fallos de página</span>
+        <span class="chip">🔁 FIFO vs. LRU</span>
+        <span class="chip">⚠️ Thrashing</span>
+      </div>
+      <button class="start-btn" id="btn-start">Comenzar quiz</button>
+      <div class="rules">
+        <span class="rule"><span class="dot" style="background:var(--teal)"></span>20&nbsp;s por pregunta</span>
+        <span class="rule"><span class="dot" style="background:var(--gold)"></span>Responder rápido suma más puntos</span>
+        <span class="rule"><span class="dot" style="background:var(--red)"></span>Modo RA interactivo por pregunta</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap" id="screen-quiz" hidden>
+    <div class="topbar">
+      <div class="progress" id="progress"></div>
+      <div class="score-pill">⭐ <b id="score-live">0</b></div>
+    </div>
+    <div class="qcard">
+      <div class="qmeta">
+        <span class="qtag" id="qtag"></span>
+        <div class="timerwrap"><div class="timerbar" id="timerbar"></div></div>
+        <span class="mono" id="timenum" style="font-size:13px;color:var(--muted)">20s</span>
+      </div>
+      <div class="qbody">
+        <div class="qtext" id="qtext"></div>
+        <div class="qillus" id="qillus"></div>
+      </div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback" hidden>
+        <div>
+          <div class="fmsg" id="fmsg"></div>
+          <div class="fexp" id="fexp"></div>
+        </div>
+        <div class="feedback-actions">
+          <button class="btn ar" id="btn-ar">🔮 Ver holograma RA</button>
+          <button class="btn primary" id="btn-next">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" id="screen-end" hidden>
+    <section class="podium">
+      <div class="score-big"><span>Puntaje final</span><span id="score-final">0</span></div>
+      <div class="tier" id="tier-msg"></div>
+      <div class="breakdown" id="breakdown"></div>
+      <button class="start-btn again" id="btn-again">Jugar de nuevo</button>
+    </section>
+  </div>
+</div>
+
+<div class="ar-overlay" id="ar-overlay" hidden>
+  <div class="ar-modal">
+    <div class="ar-head">
+      <div>
+        <h3 id="ar-title"></h3>
+        <p id="ar-sub"></p>
+      </div>
+      <button class="ar-close" id="ar-close" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="stage" id="stage">
+      <div class="rig" id="rig"></div>
+    </div>
+    <div class="hint">Arrastra para rotar el holograma · suéltalo para que siga girando</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ---------- SVG icon library ----------
+var ICONS = {
+  triangle:'<svg viewBox="0 0 24 24" class="shape"><polygon points="12,3 21,20 3,20" fill="currentColor"/></svg>',
+  diamond:'<svg viewBox="0 0 24 24" class="shape"><polygon points="12,2 22,12 12,22 2,12" fill="currentColor"/></svg>',
+  circle:'<svg viewBox="0 0 24 24" class="shape"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>',
+  square:'<svg viewBox="0 0 24 24" class="shape"><rect x="3" y="3" width="18" height="18" rx="3" fill="currentColor"/></svg>',
+
+  mmu:'<svg viewBox="0 0 220 170"><rect x="10" y="60" width="54" height="50" rx="8" fill="#3b6fed"/><text x="37" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#fff" font-weight="700">CPU</text>' +
+      '<path d="M64 85 h30" stroke="#f2a93b" stroke-width="2.5" marker-end="url(#a1)"/>' +
+      '<rect x="94" y="52" width="60" height="66" rx="8" fill="#e4002b"/><text x="124" y="80" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#fff" font-weight="700">MMU</text><text x="124" y="96" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#ffd9e0">dir. virtual→física</text>' +
+      '<path d="M154 70 h32" stroke="#23d3a6" stroke-width="2.5" marker-end="url(#a1)"/>' +
+      '<rect x="186" y="56" width="30" height="24" rx="4" fill="#23d3a6"/><text x="201" y="72" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="#06261e" font-weight="700">RAM</text>' +
+      '<path d="M154 100 h32" stroke="#9aa3b5" stroke-width="2.5" marker-end="url(#a1)"/>' +
+      '<rect x="186" y="88" width="30" height="24" rx="4" fill="#454c5e"/><text x="201" y="104" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#e8ebf0" font-weight="700">TLB</text>' +
+      '<defs><marker id="a1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f2a93b"/></marker></defs></svg>',
+
+  fault:'<svg viewBox="0 0 220 170"><rect x="10" y="18" width="110" height="26" rx="6" fill="#3b6fed"/><text x="65" y="35" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="#fff" font-weight="700">Proceso pide página X</text>' +
+       '<path d="M65 44 v18" stroke="#9aa3b5" stroke-width="2.5" marker-end="url(#a2)"/>' +
+       '<rect x="10" y="64" width="110" height="26" rx="6" fill="#c98f1f"/><text x="65" y="81" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="#1c1200" font-weight="700">¿Está en RAM?  NO</text>' +
+       '<path d="M65 90 v18" stroke="#e4002b" stroke-width="2.5" marker-end="url(#a2)"/>' +
+       '<rect x="10" y="110" width="110" height="26" rx="6" fill="#e4002b"/><text x="65" y="127" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="#fff" font-weight="700">FALLO DE PÁGINA</text>' +
+       '<path d="M120 123 h60" stroke="#23d3a6" stroke-width="2.5" marker-end="url(#a2)"/>' +
+       '<rect x="182" y="96" width="32" height="56" rx="6" fill="#454c5e"/><text x="198" y="128" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#e8ebf0" font-weight="700" transform="rotate(-90 198 128)">DISCO</text>' +
+       '<defs><marker id="a2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b5"/></marker></defs></svg>',
+
+  fifolru:'<svg viewBox="0 0 220 170"><text x="55" y="18" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#9aa3b5" font-weight="700">FIFO</text>' +
+       '<rect x="10" y="26" width="90" height="22" rx="4" fill="#e4002b"/><text x="55" y="41" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#fff">más antigua →</text>' +
+       '<rect x="10" y="52" width="90" height="22" rx="4" fill="#3b6fed"/><rect x="10" y="78" width="90" height="22" rx="4" fill="#3b6fed"/>' +
+       '<text x="55" y="112" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#e4002b" font-weight="700">se desaloja ↑</text>' +
+       '<text x="165" y="18" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#9aa3b5" font-weight="700">LRU</text>' +
+       '<rect x="120" y="26" width="90" height="22" rx="4" fill="#23d3a6"/><rect x="120" y="52" width="90" height="22" rx="4" fill="#23d3a6"/>' +
+       '<rect x="120" y="78" width="90" height="22" rx="4" fill="#e4002b"/><text x="165" y="93" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#fff">menos usada</text>' +
+       '<text x="165" y="112" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#e4002b" font-weight="700">se desaloja ↑</text></svg>',
+
+  thrash:'<svg viewBox="0 0 220 170"><line x1="20" y1="20" x2="20" y2="140" stroke="#4a5063" stroke-width="2"/><line x1="20" y1="140" x2="205" y2="140" stroke="#4a5063" stroke-width="2"/>' +
+       '<text x="10" y="18" font-family="IBM Plex Mono" font-size="9" fill="#9aa3b5">uso CPU</text><text x="150" y="155" font-family="IBM Plex Mono" font-size="9" fill="#9aa3b5">procesos activos →</text>' +
+       '<path d="M20 120 C 60 55, 90 40, 110 42 C 140 46, 150 90, 170 115 C 185 132, 195 136, 205 138" fill="none" stroke="#23d3a6" stroke-width="3"/>' +
+       '<circle cx="110" cy="42" r="5" fill="#f2a93b"/><text x="110" y="30" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#f2a93b" font-weight="700">punto óptimo</text>' +
+       '<circle cx="185" cy="131" r="5" fill="#e4002b"/><text x="150" y="128" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#e4002b" font-weight="700">thrashing</text></svg>'
+};
+
+// 3D "holograma" layer sets (reuses the Memoria stack: RAM, Tabla de Páginas, Disco)
+var HOLO = {
+  mem:[
+    {z:-34, scale:1.05, svg: box('DISCO (SWAP)', '#454c5e', '#e8ebf0')},
+    {z:0,   scale:1.0,  svg: box('MARCOS EN RAM', '#3b6fed', '#fff')},
+    {z:34,  scale:0.9,  svg: box('TABLA DE PÁGINAS', '#f2a93b', '#1c1200')},
+    {z:66,  scale:0.8,  svg: box('PÁGINA ACTIVA', '#23d3a6', '#06261e')}
+  ]
+};
+function box(label, fill, ink){
+  return '<svg viewBox="0 0 220 60"><rect x="4" y="4" width="212" height="52" rx="10" fill="'+fill+'" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>' +
+    '<text x="110" y="37" text-anchor="middle" font-family="IBM Plex Mono" font-size="14" font-weight="700" fill="'+ink+'">'+label+'</text></svg>';
+}
+
+// ---------- quiz data: 4 questions, all on Memoria Física y Virtual ----------
+var QUESTIONS = [
+  {
+    tag:'RAM, MMU y TLB',
+    icon:'mmu',
+    text:'¿Cuál es la función principal de la Unidad de Gestión de Memoria (MMU)?',
+    options:['Planificar qué proceso usa la CPU','Traducir direcciones virtuales a direcciones físicas','Gestionar la cola de impresión','Comprimir los datos antes de guardarlos en disco'],
+    correct:1,
+    explanation:'La MMU es el hardware que traduce cada dirección virtual que genera un proceso en la dirección física real dentro de la RAM, apoyándose en la tabla de páginas y la TLB.',
+    ar:{title:'Del CPU a la RAM', sub:'Gira el holograma y repasa el camino RAM → Tabla de Páginas → Disco que sigue una dirección de memoria.'}
+  },
+  {
+    tag:'Fallos de Página',
+    icon:'fault',
+    text:'¿Cómo se llama el evento que ocurre cuando un proceso accede a una página que no está presente en RAM?',
+    options:['Desbordamiento de pila (stack overflow)','Interrupción de E/S','Fallo de página (page fault)','Error de paridad de memoria'],
+    correct:2,
+    explanation:'Un fallo de página ocurre cuando la MMU detecta que la página solicitada no tiene marco físico asignado; el SO la busca entonces en disco (swap).',
+    ar:{title:'Ruta de un Fallo de Página', sub:'Observa en 3D cómo una página ausente viaja desde el disco hasta convertirse en un marco activo en RAM.'}
+  },
+  {
+    tag:'Algoritmos de Reemplazo',
+    icon:'fifolru',
+    text:'¿Qué desventaja tiene el algoritmo FIFO frente a LRU al reemplazar páginas?',
+    options:['Puede sufrir la anomalía de Belady','Necesita hardware especializado y costoso','No puede implementarse en software','Solo funciona con memoria física, nunca con virtual'],
+    correct:0,
+    explanation:'FIFO puede presentar la anomalía de Belady: aumentar el número de marcos de página puede, contraintuitivamente, incrementar el número de fallos de página.',
+    ar:{title:'FIFO vs. LRU en 3D', sub:'Rota el holograma de la jerarquía de memoria y piensa qué página desalojaría cada algoritmo.'}
+  },
+  {
+    tag:'Consecuencias de una Mala Gestión',
+    icon:'thrash',
+    text:'¿Cómo se llama el fenómeno en que el sistema pasa más tiempo intercambiando páginas con el disco que ejecutando trabajo útil?',
+    options:['Fragmentación externa','Spooling','Cambio de contexto excesivo','Thrashing (hiperpaginación)'],
+    correct:3,
+    explanation:'El thrashing ocurre cuando hay tantos procesos compitiendo por RAM que el SO dedica casi todo su tiempo a resolver fallos de página en vez de ejecutar procesos.',
+    ar:{title:'Cuando la Memoria Colapsa', sub:'Visualiza en 3D la misma jerarquía RAM–Disco que se satura cuando ocurre el thrashing.'}
+  }
+];
+
+var TILE_SHAPES = ['triangle','diamond','circle','square'];
+var TIME_LIMIT = 20;
+
+// ---------- state ----------
+var current = 0, score = 0, timer = null, timeLeft = TIME_LIMIT, answered = false, log = [];
+
+// ---------- elements ----------
+var $ = function(id){ return document.getElementById(id); };
+var elLobby = $('screen-lobby'), elQuiz = $('screen-quiz'), elEnd = $('screen-end');
+var elProgress = $('progress'), elScoreLive = $('score-live');
+var elQtag = $('qtag'), elTimerbar = $('timerbar'), elTimenum = $('timenum');
+var elQtext = $('qtext'), elQillus = $('qillus'), elOptions = $('options');
+var elFeedback = $('feedback'), elFmsg = $('fmsg'), elFexp = $('fexp');
+var elBtnAr = $('btn-ar'), elBtnNext = $('btn-next');
+var elArOverlay = $('ar-overlay'), elArTitle = $('ar-title'), elArSub = $('ar-sub');
+var elStage = $('stage'), elRig = $('rig'), elArClose = $('ar-close');
+
+QUESTIONS.forEach(function(){
+  var d = document.createElement('div');
+  d.className = 'pstep';
+  d.innerHTML = '<i></i>';
+  elProgress.appendChild(d);
+});
+
+function startQuiz(){
+  current = 0; score = 0; log = [];
+  elScoreLive.textContent = '0';
+  elLobby.hidden = true; elEnd.hidden = true; elQuiz.hidden = false;
+  loadQuestion();
+}
+
+function loadQuestion(){
+  answered = false;
+  var q = QUESTIONS[current];
+  elQtag.textContent = 'Pregunta ' + (current+1) + '/' + QUESTIONS.length + ' · ' + q.tag;
+  elQtext.textContent = q.text;
+  elQillus.innerHTML = ICONS[q.icon];
+  elFeedback.hidden = true;
+
+  Array.prototype.forEach.call(elProgress.children, function(el, i){
+    el.classList.toggle('done', i < current);
+    el.querySelector('i').style.width = i < current ? '100%' : (i === current ? '12%' : '0%');
+  });
+
+  elOptions.innerHTML = '';
+  q.options.forEach(function(opt, i){
+    var b = document.createElement('button');
+    b.className = 'opt-card o' + i;
+    b.innerHTML = ICONS[TILE_SHAPES[i]] + '<span>' + opt + '</span>';
+    b.addEventListener('click', function(){ selectAnswer(i); });
+    elOptions.appendChild(b);
+  });
+
+  timeLeft = TIME_LIMIT;
+  elTimenum.textContent = timeLeft + 's';
+  elTimerbar.style.width = '100%';
+  elTimerbar.classList.remove('low');
+  clearInterval(timer);
+  timer = setInterval(function(){
+    timeLeft -= 0.1;
+    if (timeLeft <= 0){
+      timeLeft = 0;
+      clearInterval(timer);
+      if (!answered) selectAnswer(-1);
+    }
+    elTimerbar.style.width = (timeLeft / TIME_LIMIT * 100) + '%';
+    elTimenum.textContent = Math.ceil(timeLeft) + 's';
+    if (timeLeft < TIME_LIMIT*0.3) elTimerbar.classList.add('low');
+  }, 100);
+}
+
+function selectAnswer(i){
+  if (answered) return;
+  answered = true;
+  clearInterval(timer);
+  var q = QUESTIONS[current];
+  var correct = (i === q.correct);
+  var pts = 0;
+  if (correct) pts = Math.max(400, Math.round(400 + (timeLeft/TIME_LIMIT) * 600));
+  score += pts;
+  log.push({tag:q.tag, correct:correct, pts:pts});
+  elScoreLive.textContent = score;
+
+  Array.prototype.forEach.call(elOptions.children, function(b, idx){
+    b.disabled = true;
+    if (idx === q.correct) b.classList.add('correct');
+    else if (idx === i) b.classList.add('wrong');
+    else b.classList.add('fadeout');
+  });
+
+  elFeedback.hidden = false;
+  elFeedback.className = 'feedback ' + (correct ? 'ok' : 'bad');
+  elFmsg.textContent = correct ? ('¡Correcto! +' + pts + ' pts') : (i === -1 ? 'Se acabó el tiempo' : 'Incorrecto');
+  elFexp.textContent = q.explanation;
+  elBtnNext.textContent = (current === QUESTIONS.length - 1) ? 'Ver resultado →' : 'Siguiente →';
+}
+
+elBtnNext.addEventListener('click', function(){
+  current++;
+  if (current < QUESTIONS.length) loadQuestion();
+  else showEnd();
+});
+
+function showEnd(){
+  elQuiz.hidden = true; elEnd.hidden = false;
+  $('score-final').textContent = score;
+  var max = QUESTIONS.length * 1000;
+  var pct = score / max;
+  var tier = pct >= 0.85 ? '🏆 Dominio total de memoria física y virtual' :
+             pct >= 0.6  ? '🥈 Muy bien — repasa los fallos y listo' :
+             pct >= 0.35 ? '🥉 Vas bien encaminado' :
+                            '💡 Toca repasar Memoria Física y Virtual';
+  $('tier-msg').textContent = tier;
+  var bd = $('breakdown');
+  bd.innerHTML = '';
+  log.forEach(function(l){
+    var row = document.createElement('div');
+    row.className = 'brow ' + (l.correct ? 'yes' : 'no');
+    row.innerHTML = '<span class="bi">' + (l.correct ? '✅' : '❌') + '</span><span class="bt">' + l.tag + '</span><span class="bv mono">' + (l.correct ? '+' + l.pts : '0') + '</span>';
+    bd.appendChild(row);
+  });
+}
+
+$('btn-start').addEventListener('click', startQuiz);
+$('btn-again').addEventListener('click', startQuiz);
+
+// ---------- AR / hologram modal ----------
+var dragging = false, lastX = 0, lastY = 0, rotX = -14, rotY = 20, spinTimer = null, spinVY = 0.25;
+
+function openAr(){
+  var q = QUESTIONS[current];
+  elArTitle.textContent = '🔮 ' + q.ar.title;
+  elArSub.textContent = q.ar.sub;
+  elRig.innerHTML = '';
+  HOLO.mem.forEach(function(layer){
+    var d = document.createElement('div');
+    d.className = 'layer';
+    d.style.transform = 'translateZ(' + layer.z + 'px) scale(' + layer.scale + ')';
+    d.innerHTML = layer.svg;
+    elRig.appendChild(d);
+  });
+  rotX = -14; rotY = 20;
+  applyRig();
+  elArOverlay.hidden = false;
+  spin(true);
+}
+function closeAr(){
+  elArOverlay.hidden = true;
+  spin(false);
+}
+function applyRig(){
+  elRig.style.transform = 'rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+}
+function spin(on){
+  cancelAnimationFrame(spinTimer);
+  if (!on) return;
+  function step(){
+    if (!dragging){
+      rotY += spinVY;
+      rotX = -14 + Math.sin(rotY/40) * 6;
+      applyRig();
+    }
+    spinTimer = requestAnimationFrame(step);
+  }
+  spinTimer = requestAnimationFrame(step);
+}
+
+elBtnAr.addEventListener('click', openAr);
+elArClose.addEventListener('click', closeAr);
+elArOverlay.addEventListener('click', function(e){ if (e.target === elArOverlay) closeAr(); });
+
+elStage.addEventListener('pointerdown', function(e){
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  elStage.setPointerCapture(e.pointerId);
+});
+elStage.addEventListener('pointermove', function(e){
+  if (!dragging) return;
+  var dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  rotY += dx * 0.4;
+  rotX -= dy * 0.4;
+  rotX = Math.max(-70, Math.min(70, rotX));
+  applyRig();
+});
+function endDrag(){ dragging = false; }
+elStage.addEventListener('pointerup', endDrag);
+elStage.addEventListener('pointercancel', endDrag);
+elStage.addEventListener('pointerleave', endDrag);
+
+})();
+</script>
