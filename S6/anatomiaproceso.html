@@ -15,7 +15,8 @@
   font-family:Arial,Helvetica,sans-serif;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.45;padding-inline:16px;padding-block:16px 40px;min-height:100vh;position:relative;overflow-x:hidden}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.45;padding-inline:16px;padding-block:16px 40px;min-height:100vh;position:relative;overflow-x:hidden}
 body::after{content:"";position:fixed;right:-140px;bottom:-190px;width:460px;height:460px;border-radius:50%;background:var(--bg2);z-index:0;pointer-events:none}
 .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -132,9 +133,28 @@ svg .hit{filter:drop-shadow(0 0 7px rgba(62,207,122,.55))}
 .ar-bot .btn{padding:10px 14px;font-size:14px}
 .ar-bot .sp{flex:1}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--c3);color:#1c202b;font-weight:bold;border-radius:999px;padding:8px 18px;z-index:60}
+.chip.btnchip{font:inherit;color:var(--fg);cursor:pointer}
+.chip.btnchip[aria-pressed="false"]{color:var(--muted);text-decoration:line-through}
+.flash{position:fixed;inset:0;z-index:40;pointer-events:none;animation:fl .7s ease-out forwards}
+.flash.ok{background:rgba(62,207,122,.38)}
+.flash.no{background:rgba(255,107,125,.38)}
+@keyframes fl{from{opacity:1}to{opacity:0}}
+#conf{position:fixed;inset:0;z-index:41;pointer-events:none;overflow:hidden}
+.cf{position:absolute;top:-16px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+#intro{position:fixed;inset:0;z-index:45;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;cursor:pointer}
+#intro small{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#intro strong{font-size:clamp(2rem,8vw,3.6rem);color:var(--red);line-height:1.1;text-wrap:balance}
+#intro .dots{display:flex;gap:8px;margin-top:10px}
+#intro .dots i{width:12px;height:12px;border-radius:50%;background:var(--bg3);animation:pulse 1.2s infinite}
+#intro .dots i:nth-child(2){animation-delay:.2s}
+#intro .dots i:nth-child(3){animation-delay:.4s}
+@keyframes pulse{50%{background:var(--fg)}}
+.fb .good{color:var(--ok);font-weight:bold}
+#arVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+#arBg.cam::after{display:none}
 @media (max-width:560px){.answers{grid-template-columns:1fr}.ans{min-height:64px}body::after{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-body{margin:0}
 </style>
 </head>
 <body>
@@ -143,9 +163,10 @@ body{margin:0}
 <main class="wrap">
   <header class="top">
     <div class="brand">Arquitectura de Computadoras y SO</div>
-    <div class="hud" id="hud" hidden>
+    <div class="hud">
+      <button class="chip btnchip" id="snd" type="button" aria-pressed="true">Sonido</button>
       <span class="chip streak" id="streak" hidden></span>
-      <span class="chip"><small>Puntos</small><b id="score">0</b></span>
+      <span class="chip" id="scoreChip" hidden><small>Puntos</small><b id="score">0</b></span>
     </div>
   </header>
 
@@ -163,7 +184,7 @@ body{margin:0}
       <input id="nick" maxlength="20" placeholder="Ej. Ada" autocomplete="off">
     </div>
     <button id="go" class="btn primary">Empezar</button>
-    <p class="fine">La cámara del dispositivo no está disponible dentro de esta página. La escena AR se ancla sobre una superficie simulada, o sobre una foto de tu aula o tu escritorio que puedes cargar desde la propia vista AR.</p>
+    <p class="fine">En la vista AR puedes activar la cámara del dispositivo como fondo (el navegador pedirá permiso; en el móvil exige HTTPS o abrir el archivo en local). Si no está disponible, usa una foto de tu aula o la superficie simulada.</p>
   </section>
 
   <section id="sQ" hidden>
@@ -191,6 +212,10 @@ body{margin:0}
   </section>
 </main>
 
+<div id="flash" hidden></div>
+<div id="conf" aria-hidden="true"></div>
+<div id="intro" hidden><small id="introN"></small><strong id="introT"></strong><div class="dots"><i></i><i></i><i></i></div></div>
+
 <div id="ar" hidden role="dialog" aria-label="Vista de realidad aumentada">
   <div class="ar-top">
     <h3 id="arTitle"></h3>
@@ -199,13 +224,15 @@ body{margin:0}
   </div>
   <div id="arStage">
     <div id="arBg"></div>
+    <video id="arVideo" playsinline muted autoplay hidden></video>
     <canvas id="arCanvas"></canvas>
     <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
     <div id="arStatus">Escaneando superficie…</div>
     <div id="arInfo"><b>Cómo explorar</b><p>Arrastra para girar, pellizca o usa la rueda para acercar, y toca una pieza para ver qué es.</p></div>
   </div>
   <div class="ar-bot">
-    <button class="btn" id="arPhoto" type="button">Usar mi foto de fondo</button>
+    <button class="btn" id="arCam" type="button">Usar cámara</button>
+    <button class="btn" id="arPhoto" type="button">Usar una foto</button>
     <button class="btn" id="arClear" type="button" hidden>Fondo simulado</button>
     <button class="btn" id="arReset" type="button">Reiniciar vista</button>
     <span class="sp"></span>
@@ -262,16 +289,16 @@ var SVG=[
 
 /* ---------- preguntas (la opción 0 es la correcta) ---------- */
 var Q=[
-{short:'Programa vs. proceso',t:'¿Qué distingue a un proceso de un programa?',hit:'ram',ar:0,
+{short:'Programa vs. proceso',t:'¿Qué distingue a un proceso de un programa?',hit:'ram',ar:0,focus:'proceso',
  o:['Es el programa en ejecución, con PID, estado y memoria asignada','Es el archivo ejecutable guardado en el disco','Es una función que se llama dentro de otro programa','Es cualquier archivo que el usuario abre'],
  e:'Un programa es una entidad pasiva: bytes en disco. Al ejecutarlo, el sistema operativo crea un proceso: carga el código en memoria y le asigna PID, estado y recursos.'},
-{short:'Memoria dinámica',t:'¿Qué segmento del espacio de direcciones se amplía cuando el programa pide memoria con malloc() o new?',hit:'heap',ar:1,
+{short:'Memoria dinámica',t:'¿Qué segmento del espacio de direcciones se amplía cuando el programa pide memoria con malloc() o new?',hit:'heap',ar:1,focus:'heap',
  o:['Heap','Pila (stack)','Código (text)','Datos globales'],
  e:'El heap es la zona de memoria dinámica. La pila guarda variables locales y marcos de llamadas. Es habitual que la pila crezca hacia direcciones bajas y el heap hacia altas, aunque el sentido exacto depende de la plataforma.'},
-{short:'Bloque de control',t:'¿Qué estructura guarda el sistema operativo con el PID, el estado y los registros de cada proceso?',hit:'card',ar:2,
+{short:'Bloque de control',t:'¿Qué estructura guarda el sistema operativo con el PID, el estado y los registros de cada proceso?',hit:'card',ar:2,focus:'pcb',
  o:['PCB (bloque de control de proceso)','MBR (registro de arranque)','TLB (caché de traducciones)','Tabla de interrupciones'],
  e:'El PCB reúne lo necesario para suspender y reanudar un proceso en un cambio de contexto. En Linux se implementa como task_struct.'},
-{short:'Aislamiento',t:'¿Qué mecanismo mantiene aislada la memoria de un proceso respecto a la de otro?',hit:'mmu',ar:3,
+{short:'Aislamiento',t:'¿Qué mecanismo mantiene aislada la memoria de un proceso respecto a la de otro?',hit:'mmu',ar:3,focus:'mmu',
  o:['Memoria virtual: la MMU traduce las direcciones de cada proceso a marcos propios','Que todos los procesos compartan el mismo heap','Ejecutar un solo proceso a la vez','Que cada proceso conozca las direcciones físicas de los demás'],
  e:'Cada proceso trabaja con direcciones virtuales propias. La MMU las traduce con tablas de páginas distintas y bloquea los accesos fuera de su mapa (fallo de segmentación).'}
 ];
@@ -283,8 +310,49 @@ var SHAPES=[
 ];
 
 /* ---------- estado del juego ---------- */
-var S={q:0,score:0,streak:0,right:0,res:[],elapsed:0,paused:false,answered:false,order:[],last:0,times:[]};
+var S={q:0,score:0,streak:0,right:0,res:[],elapsed:0,paused:false,intro:false,answered:false,order:[],last:0,times:[],tickSec:99};
 var AR=null;
+
+/* ---------- sonido y efectos ---------- */
+var AC=null,muted=false;
+function tone(f,d,type,vol,delay){
+  if(muted)return;
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended')AC.resume();
+    var o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+(delay||0);
+    o.type=type||'sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol||.15,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.05);
+  }catch(e){}
+}
+function sfx(k){
+  if(k==='ok'){tone(523,.14,'triangle',.18,0);tone(659,.14,'triangle',.18,.12);tone(784,.3,'triangle',.18,.24)}
+  else if(k==='no'){tone(196,.3,'sawtooth',.11,0);tone(147,.45,'sawtooth',.11,.2)}
+  else if(k==='tick'){tone(880,.05,'square',.05,0)}
+  else if(k==='go'){tone(440,.1,'triangle',.14,0);tone(660,.18,'triangle',.14,.1)}
+  else if(k==='end'){tone(392,.16,'triangle',.16,0);tone(523,.16,'triangle',.16,.16);tone(659,.16,'triangle',.16,.32);tone(784,.4,'triangle',.16,.48)}
+}
+function flash(ok){var f=$('#flash');f.className='flash '+(ok?'ok':'no');f.hidden=false;setTimeout(function(){f.hidden=true},720)}
+function confetti(){
+  var c=$('#conf'),cols=['#e4002b','#2f6fe0','#f2b01e','#1fb25d','#ffffff'];
+  for(var i=0;i<34;i++){
+    var s=document.createElement('span');s.className='cf';
+    s.style.left=(Math.random()*100)+'%';s.style.background=cols[i%cols.length];
+    s.style.animationDuration=(1.3+Math.random()*1.2)+'s';s.style.animationDelay=(Math.random()*.3)+'s';
+    c.appendChild(s);
+  }
+  setTimeout(function(){c.innerHTML=''},3200);
+}
+function intro(){
+  var o=$('#intro');S.intro=true;
+  $('#introN').textContent='Pregunta '+(S.q+1)+' de '+Q.length;
+  $('#introT').textContent=Q[S.q].short;
+  o.hidden=false;sfx('go');
+  var done=false;
+  function end(){if(done)return;done=true;o.hidden=true;S.intro=false;S.last=performance.now();S.tickSec=99}
+  o.onclick=end;setTimeout(end,1600);
+}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
 function show(id){['sStart','sQ','sEnd'].forEach(function(k){$('#'+k).hidden=(k!==id)})}
 
@@ -294,7 +362,7 @@ function arCount(){var q=S.q;if(!AR){$('#arCount').textContent='';return}var n=A
 
 function start(){
   S.q=0;S.score=0;S.streak=0;S.right=0;S.res=[];S.times=[];
-  $('#hud').hidden=false;setScore();
+  $('#scoreChip').hidden=false;setScore();
   if(AR)AR.reset();
   loadQ();
 }
@@ -315,11 +383,12 @@ function loadQ(){
   $('#bar').style.width='100%';$('#bar').className='';$('#secs').textContent=LIMIT;
   arCount();
   window.scrollTo(0,0);
+  intro();
 }
 function onAns(e){answer(parseInt(e.currentTarget.getAttribute('data-k'),10))}
 
 function answer(k){
-  if(S.answered)return;
+  if(S.answered||S.intro)return;
   S.answered=true;
   var q=Q[S.q],cp=S.order.indexOf(0),ok=(k===cp),up=(k<0);
   var base=0,sb=0,ab=0;
@@ -341,10 +410,14 @@ function answer(k){
   h+='<div class="pts">';
   if(ok){h+='<span>Velocidad +'+base+'</span>';if(sb)h+='<span>Racha +'+sb+'</span>';if(ab)h+='<span>Explorador AR +'+ab+'</span>'}
   h+='<span class="tot">'+(ok?'+':'')+total+' pts</span></div>';
-  h+='<p></p><div class="row"><button class="btn primary" id="next" type="button">'+(last?'Ver resultados':'Siguiente pregunta')+'</button><button class="btn ar" id="arAgain" type="button">Ver en AR</button></div>';
-  var fb=$('#fb');fb.innerHTML=h;fb.querySelector('p').textContent=q.e;fb.hidden=false;
+  if(!ok)h+='<p class="good"></p>';
+  h+='<p class="why"></p><div class="row"><button class="btn primary" id="next" type="button">'+(last?'Ver resultados':'Siguiente pregunta')+'</button>'+(AR?'<button class="btn ar" id="arAgain" type="button">Ver la respuesta en AR</button>':'')+'</div>';
+  var fb=$('#fb');fb.innerHTML=h;fb.querySelector('.why').textContent=q.e;
+  if(!ok)fb.querySelector('.good').textContent='Respuesta correcta: '+q.o[0];
+  fb.hidden=false;
+  flash(ok);sfx(ok?'ok':'no');if(ok)confetti();
   $('#next').addEventListener('click',function(){if(last)finish();else{S.q++;loadQ()}});
-  $('#arAgain').addEventListener('click',function(){if(AR)AR.open(S.q)});
+  if(AR)$('#arAgain').addEventListener('click',function(){AR.open(S.q,true)});
   $('#next').focus({preventScroll:true});
   fb.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
@@ -362,15 +435,18 @@ function finish(){
   for(var i=0;i<Q.length;i++){h+='<li><span class="m '+(S.res[i].ok?'ok':'no')+'">'+(S.res[i].ok?'✓':'×')+'</span><span>'+Q[i].short+'</span><span class="p">'+S.res[i].pts+' pts</span></li>'}
   $('#endList').innerHTML=h;
   window.scrollTo(0,0);
+  sfx('end');if(S.right>=3)confetti();
 }
 
 /* reloj */
 function loop(now){
   requestAnimationFrame(loop);
   var dt=(now-S.last)/1000;S.last=now;
-  if($('#sQ').hidden||S.answered||S.paused)return;
+  if($('#sQ').hidden||S.answered||S.paused||S.intro)return;
   S.elapsed+=Math.min(dt,.25);
   var left=Math.max(0,LIMIT-S.elapsed);
+  var sec=Math.ceil(left);
+  if(sec<=5&&sec>0&&sec!==S.tickSec){S.tickSec=sec;sfx('tick')}
   $('#bar').style.width=(left/LIMIT*100)+'%';
   $('#bar').className=left<=5?'low':'';
   $('#secs').textContent=Math.ceil(left);
@@ -379,7 +455,8 @@ function loop(now){
 requestAnimationFrame(function(t){S.last=t;requestAnimationFrame(loop)});
 
 $('#go').addEventListener('click',start);
-$('#again').addEventListener('click',function(){show('sStart');$('#hud').hidden=true});
+$('#again').addEventListener('click',function(){show('sStart');$('#scoreChip').hidden=true;$('#streak').hidden=true});
+$('#snd').addEventListener('click',function(){muted=!muted;this.setAttribute('aria-pressed',muted?'false':'true');if(!muted)sfx('go')});
 $('#arBtn').addEventListener('click',function(){if(AR)AR.open(S.q)});
 document.addEventListener('keydown',function(e){
   if(!$('#ar').hidden){if(e.key==='Escape'&&AR)AR.close();return}
@@ -396,7 +473,7 @@ AR=(function(){
   var el=$('#ar'),stage=$('#arStage'),bg=$('#arBg'),cv=$('#arCanvas'),info=$('#arInfo'),status=$('#arStatus'),prog=$('#arProg');
   var C1=0xe4002b,C2=0x2f6fe0,C3=0xf2b01e,C4=0x1f9d55;
   var total=[3,4,6,4],sets=[{},{},{},{}];
-  var renderer=null,scene,camera,group,raycaster,pick=[],tick=[],raf=0,isOpen=false,qi=0,anchored=false,t0=0,t1=0,selected=null,toastEl=null,photoUrl=null;
+  var renderer=null,scene,camera,group,raycaster,pick=[],tick=[],raf=0,isOpen=false,qi=0,anchored=false,t0=0,t1=0,selected=null,toastEl=null,photoUrl=null,autoFocus=false,stream=null,vid=$('#arVideo');
   var sph={t:.55,p:1.1,r:9.5},DEF={t:.55,p:1.1,r:9.5},tgt=new THREE.Vector3(0,.2,0);
   var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var titles=['Programa en disco y proceso en RAM','Espacio de direcciones de un proceso','Ficha PCB de un proceso','Aislamiento con memoria virtual'];
@@ -536,7 +613,13 @@ AR=(function(){
   function frame(now){
     raf=requestAnimationFrame(frame);
     if(!anchored){
-      if(now-t0>(reduce?150:1100)){anchored=true;t1=now;status.textContent='Superficie detectada · toca las piezas';if(!selected&&pick.length)info.querySelector('b').textContent='Cómo explorar'}
+      if(now-t0>(reduce?150:1100)){
+        anchored=true;t1=now;status.textContent='Superficie detectada · toca las piezas';
+        if(autoFocus){
+          autoFocus=false;
+          for(var f=0;f<pick.length;f++){if(pick[f].userData.part.id===Q[qi].focus){choose(pick[f]);status.textContent='Respuesta correcta resaltada';break}}
+        }
+      }
     }else{
       var k=Math.min(1,(now-t1)/(reduce?1:900)),c1=1.70158,c3=c1+1,e=1+c3*Math.pow(k-1,3)+c1*Math.pow(k-1,2);
       group.scale.setScalar(Math.max(.001,e));
@@ -597,9 +680,9 @@ AR=(function(){
       if(o){choose(o);return}
     }
   }
-  function open(q){
+  function open(q,focus){
     if(!renderer&&!init()){toast('Tu navegador no permite gráficos 3D aquí');return}
-    qi=q;isOpen=true;S.paused=true;
+    qi=q;isOpen=true;S.paused=true;autoFocus=!!focus;
     el.hidden=false;document.body.style.overflow='hidden';
     $('#arTitle').textContent=titles[q];refreshProg();
     info.innerHTML='<b>Cómo explorar</b><p>Arrastra para girar, pellizca o usa la rueda para acercar, y toca una pieza para ver qué es.</p>';
@@ -610,15 +693,29 @@ AR=(function(){
     $('#arDone').focus();
   }
   function close(){
-    isOpen=false;cancelAnimationFrame(raf);el.hidden=true;document.body.style.overflow='';
+    isOpen=false;cancelAnimationFrame(raf);el.hidden=true;document.body.style.overflow='';stopCam();
     S.paused=false;S.last=performance.now();arCount();
   }
   $('#arClose').addEventListener('click',close);
   $('#arDone').addEventListener('click',close);
   $('#arReset').addEventListener('click',function(){sph.t=DEF.t;sph.p=DEF.p;sph.r=DEF.r});
+  function stopCam(){
+    if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}
+    vid.srcObject=null;vid.hidden=true;bg.classList.remove('cam');$('#arCam').textContent='Usar cámara';
+  }
+  $('#arCam').addEventListener('click',function(){
+    if(stream){stopCam();return}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Este navegador no ofrece cámara aquí. Usa una foto.');return}
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}).then(function(s){
+      if(!isOpen){s.getTracks().forEach(function(t){t.stop()});return}
+      stream=s;vid.srcObject=s;vid.hidden=false;bg.classList.add('cam');
+      var pl=vid.play();if(pl&&pl.catch)pl.catch(function(){});
+      $('#arCam').textContent='Apagar cámara';
+    }).catch(function(){toast('No se pudo abrir la cámara. Revisa el permiso o usa una foto.')});
+  });
   $('#arPhoto').addEventListener('click',function(){$('#arFile').click()});
   $('#arFile').addEventListener('change',function(e){
-    var f=e.target.files&&e.target.files[0];if(!f)return;
+    var f=e.target.files&&e.target.files[0];if(!f)return;stopCam();
     if(photoUrl)URL.revokeObjectURL(photoUrl);
     photoUrl=URL.createObjectURL(f);
     bg.style.backgroundImage='url("'+photoUrl+'")';bg.classList.add('photo');$('#arClear').hidden=false;e.target.value='';
@@ -635,4 +732,3 @@ arCount();
 
 </body>
 </html>
-
