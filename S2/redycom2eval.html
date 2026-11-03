@@ -1,1 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autoevaluación AR · Cableado estructurado · Semana 2</title>
+<style>
+:root{--bg:#070d1a;--cy:#22d3ee;--or:#c8793a;--tx:#e6f1ff;--mut:#8fa6c4}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(1200px 600px at 70% -10%,#12294d 0%,var(--bg) 60%);color:var(--tx);min-height:100vh}
+#cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;z-index:0;transition:opacity .4s}
+#cam.on{opacity:.45}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:14px 16px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.brand{font-size:12px;letter-spacing:.18em;color:var(--or);font-weight:bold;text-transform:uppercase}
+.pill{background:rgba(8,20,40,.7);border:1px solid rgba(34,211,238,.4);color:var(--cy);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:bold}
+button.ar{background:transparent;border:1px solid var(--cy);color:var(--cy);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
+button.ar:hover{background:rgba(34,211,238,.15)}
+h1{font-size:34px;margin:6px 0 8px;line-height:1.15}
+h2{font-size:22px;margin:0 0 6px}
+p{line-height:1.5;color:#cfe0f5}
+.card{background:rgba(8,20,40,.72);border:1px solid rgba(34,211,238,.25);border-radius:14px;padding:18px;backdrop-filter:blur(3px)}
+.hide{display:none!important}
+.btn{background:var(--or);color:#fff;border:0;border-radius:10px;padding:13px 26px;font-size:17px;font-weight:bold;cursor:pointer;font-family:inherit;box-shadow:0 4px 0 #8a5326}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8a5326}
+.btn.sec{background:#1b3354;box-shadow:0 4px 0 #0f2038}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0 18px}
+.rules div{background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.2);border-radius:10px;padding:10px 12px;font-size:14px;color:#cfe0f5}
+.rules b{color:var(--cy);display:block;margin-bottom:3px}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;color:var(--mut)}
+.tb{height:10px;background:#12233f;border-radius:6px;overflow:hidden;margin-bottom:10px}
+.tb i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--cy),var(--or));transition:width .1s linear}
+.qt{font-size:21px;font-weight:bold;line-height:1.3;margin:6px 0 12px}
+.stage{position:relative;border:1px solid rgba(34,211,238,.4);border-radius:14px;background:rgba(6,16,32,.6);overflow:hidden;margin-bottom:12px}
+.stage::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(34,211,238,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.08) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+.stage::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cy),transparent);box-shadow:0 0 12px var(--cy);animation:scan 3.2s linear infinite;pointer-events:none}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.stage svg{display:block;width:100%;height:auto;max-height:230px;position:relative}
+.cn{position:absolute;width:18px;height:18px;border:2px solid var(--cy);z-index:2}
+.cn.a{top:6px;left:6px;border-right:0;border-bottom:0}.cn.b{top:6px;right:6px;border-left:0;border-bottom:0}
+.cn.c{bottom:6px;left:6px;border-right:0;border-top:0}.cn.d{bottom:6px;right:6px;border-left:0;border-top:0}
+.tag{position:absolute;top:8px;left:30px;font-size:11px;letter-spacing:.14em;color:var(--cy);z-index:2;animation:blink 2s infinite}
+@keyframes blink{50%{opacity:.45}}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;min-height:84px;border:0;border-radius:10px;color:#fff;font-family:inherit;font-size:16px;font-weight:bold;text-align:left;padding:10px 14px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .1s,opacity .2s}
+.opt:hover:not(:disabled){transform:translateY(-2px)}
+.opt svg{flex:none;width:30px;height:30px}
+.c0{background:#e21b3c}.c1{background:#1368ce}.c2{background:#d89e00}.c3{background:#26890c}
+.opt:disabled{cursor:default}
+.opt.dim{opacity:.35}
+.opt.good{outline:4px solid #fff;box-shadow:0 0 22px #fff}
+.fb{margin-top:12px;border-left:5px solid var(--cy);animation:pop .3s}
+.fb.ok{border-color:#3ddc84}.fb.ko{border-color:#ff5d6c}
+@keyframes pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}
+.fb .v{font-size:20px;font-weight:bold;margin-bottom:6px}
+.fb .pts{display:inline-block;background:#12233f;border-radius:999px;padding:3px 12px;font-size:14px;color:var(--cy);margin-left:8px}
+.ref{font-size:12px;color:var(--mut);margin-top:6px}
+.big{font-size:64px;font-weight:bold;color:var(--or);line-height:1}
+.lvl{display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(200,121,58,.2);border:1px solid var(--or);color:#ffd2a8;font-weight:bold;margin:8px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+th{background:#12294d;color:#fff;text-align:left;padding:8px}
+td{padding:8px;border-bottom:1px solid #1c3558;vertical-align:top}
+.rec{border-left:4px solid var(--or);background:rgba(200,121,58,.08);padding:10px 12px;margin:8px 0;border-radius:6px;font-size:14px;color:#e8d8c8}
+.rec b{color:#ffd2a8}
+.note{font-size:12px;color:var(--mut);margin-top:10px}
+@media(max-width:640px){.opts{grid-template-columns:1fr}.qt{font-size:18px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<video id="cam" autoplay playsinline muted></video>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Redes y Comunicación de Datos I · Semana 2</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="pill">Puntaje: <span id="sc">0</span></span>
+      <button class="ar" id="camBtn" onclick="toggleCam()">Activar cámara AR</button>
+    </div>
+  </div>
 
+  <!-- INICIO -->
+  <section id="start" class="card">
+    <h1>Autoevaluación AR<br>Infraestructura de cableado estructurado</h1>
+    <p>Cinco preguntas estilo Kahoot sobre cobre y fibra óptica para el diseño de un Data Center. Cada pregunta viene con un holograma que te ayuda a visualizar el concepto, feedback inmediato y recomendaciones de repaso al final.</p>
+    <div class="rules">
+      <div><b>5 preguntas</b>Una sola respuesta correcta; 20 segundos por pregunta.</div>
+      <div><b>Puntaje</b>Correcta: 1000 puntos si respondes al instante, bajando hasta 500 al agotar el tiempo. Incorrecta o sin respuesta: 0. Máximo: 5000.</div>
+      <div><b>Modo AR</b>Los hologramas se ven sobre tu cámara si pulsas "Activar cámara AR" (opcional; no se graba ni se envía nada).</div>
+      <div><b>Teclado</b>Puedes responder con las teclas 1, 2, 3 y 4.</div>
+    </div>
+    <button class="btn" onclick="start()">Comenzar</button>
+    <p class="note">Contenido basado en las láminas de la Semana 2 (ISO/IEC 11801, TIA-942). El puntaje mide aciertos y rapidez; el nivel final se determina solo por la cantidad de aciertos.</p>
+  </section>
+
+  <!-- PREGUNTA -->
+  <section id="quiz" class="hide">
+    <div class="qhead"><span id="qn"></span><span>Tiempo: <b id="tnum">20</b> s</span></div>
+    <div class="tb"><i id="tbar"></i></div>
+    <div class="qt" id="qt"></div>
+    <div class="stage"><span class="cn a"></span><span class="cn b"></span><span class="cn c"></span><span class="cn d"></span><span class="tag">● HOLOGRAMA AR</span><div id="svgbox"></div></div>
+    <div class="opts" id="opts"></div>
+    <div class="card fb hide" id="fb"></div>
+  </section>
+
+  <!-- FINAL -->
+  <section id="end" class="card hide">
+    <div class="qhead"><span>Resultado final</span></div>
+    <div class="big"><span id="fs">0</span><span style="font-size:24px;color:var(--mut)"> / 5000</span></div>
+    <div class="lvl" id="lvl"></div>
+    <p id="lvlTxt"></p>
+    <table id="tbl"></table>
+    <h2>Recomendaciones</h2>
+    <div id="recs"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn" onclick="start()">Reintentar</button>
+      <button class="btn sec" onclick="copyRes()">Copiar resumen</button>
+    </div>
+    <p class="note" id="copied"></p>
+  </section>
+</div>
+
+<script>
+const T=20;
+const SH=[
+ '<svg viewBox="0 0 30 30"><polygon points="15,3 28,27 2,27" fill="#fff"/></svg>',
+ '<svg viewBox="0 0 30 30"><polygon points="15,2 28,15 15,28 2,15" fill="#fff"/></svg>',
+ '<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="#fff"/></svg>',
+ '<svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24" fill="#fff"/></svg>'
+];
+const HD='font-size:13px';
+const S1=`<svg viewBox="0 0 520 200" style="${HD}">
+<text x="260" y="30" text-anchor="middle" fill="#22d3ee" font-size="13" letter-spacing="2">CANAL CATEGORÍA 8 · CLASE I / II</text>
+<line x1="30" y1="110" x2="490" y2="110" stroke="#22d3ee" stroke-width="4" opacity=".8"/>
+<rect x="125" y="86" width="24" height="48" rx="4" fill="#0b2a3a" stroke="#22d3ee" stroke-width="2"/>
+<rect x="371" y="86" width="24" height="48" rx="4" fill="#0b2a3a" stroke="#22d3ee" stroke-width="2"/>
+<g fill="#cfeaff" text-anchor="middle"><text x="77" y="86">tramo A ?</text><text x="260" y="86">enlace permanente ?</text><text x="443" y="86">tramo C ?</text>
+<text x="137" y="156">conexión 1</text><text x="383" y="156">conexión 2</text></g>
+<circle r="6" fill="#c8793a"><animateMotion dur="3s" repeatCount="indefinite" path="M30,110 L490,110"/></circle>
+<circle r="6" fill="#c8793a" opacity=".5"><animateMotion dur="3s" begin="1s" repeatCount="indefinite" path="M30,110 L490,110"/></circle>
+<text x="260" y="188" text-anchor="middle" fill="#8fa6c4">¿Qué topología admite y cuánto mide el canal total?</text></svg>`;
+const S2=`<svg viewBox="0 0 520 200" style="${HD}">
+<g transform="translate(260,108)">
+<circle r="84" fill="#1a2a44" stroke="#7d8ba3" stroke-width="3"/>
+<circle r="72" fill="none" stroke="#22d3ee" stroke-width="5" stroke-dasharray="6 4"><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="14s" repeatCount="indefinite"/></circle>
+<g fill="#0b1a30" stroke="#d8e2ef" stroke-width="2"><circle cx="-26" cy="-26" r="24"/><circle cx="26" cy="-26" r="24"/><circle cx="-26" cy="26" r="24"/><circle cx="26" cy="26" r="24"/></g>
+<g stroke-width="5" fill="none"><circle cx="-31" cy="-26" r="7" stroke="#1368ce"/><circle cx="-21" cy="-26" r="7" stroke="#eee"/><circle cx="21" cy="-26" r="7" stroke="#e8801e"/><circle cx="31" cy="-26" r="7" stroke="#eee"/><circle cx="-31" cy="26" r="7" stroke="#8a5a3a"/><circle cx="-21" cy="26" r="7" stroke="#eee"/><circle cx="21" cy="26" r="7" stroke="#2fb26a"/><circle cx="31" cy="26" r="7" stroke="#eee"/></g>
+</g>
+<g stroke="#22d3ee" stroke-width="1.5" fill="none"><path d="M130,60 L176,70"/><path d="M130,112 L215,112"/><path d="M390,60 L336,76"/><path d="M390,150 L300,130"/></g>
+<g fill="#cfeaff"><text x="40" y="58">capa externa: ?</text><text x="40" y="116">cada par: ?</text><text x="394" y="58">chaqueta</text><text x="394" y="154">forma del par: ?</text></g>
+</svg>`;
+const S3=`<svg viewBox="0 0 520 200" style="${HD}">
+<text x="260" y="28" text-anchor="middle" fill="#22d3ee" font-size="13" letter-spacing="2">40GBASE-SR4 · 850 nm · QSFP+</text>
+<g stroke-linecap="round">
+<line x1="70" y1="80" x2="430" y2="80" stroke="#1368ce" stroke-width="10" opacity=".85"/>
+<line x1="70" y1="135" x2="430" y2="135" stroke="#22d3ee" stroke-width="10" opacity=".85"/></g>
+<g fill="#cfeaff"><text x="14" y="85">OM3</text><text x="14" y="140">OM4</text></g>
+<circle r="5" fill="#fff"><animateMotion dur="2.2s" repeatCount="indefinite" path="M70,80 L430,80"/></circle>
+<circle r="5" fill="#fff"><animateMotion dur="1.6s" repeatCount="indefinite" path="M70,135 L430,135"/></circle>
+<g fill="#c8793a" font-size="18" font-weight="bold"><text x="445" y="86">? m</text><text x="445" y="141">? m</text></g>
+<rect x="60" y="62" width="14" height="92" rx="3" fill="none" stroke="#c8793a" stroke-width="2"/>
+<text x="260" y="186" text-anchor="middle" fill="#8fa6c4">¿Hasta dónde llega el enlace sobre OM4?</text></svg>`;
+const S4=`<svg viewBox="0 0 520 200" style="${HD}">
+<rect x="50" y="26" width="26" height="130" rx="13" fill="none" stroke="#22d3ee" stroke-width="2.5"/>
+<rect x="56" y="150" width="14" height="0" fill="#ff5d6c"><animate attributeName="y" values="150;40;150" dur="6s" repeatCount="indefinite"/><animate attributeName="height" values="0;110;0" dur="6s" repeatCount="indefinite"/></rect>
+<circle cx="63" cy="164" r="14" fill="#ff5d6c"/>
+<g fill="#cfeaff"><text x="86" y="154">22 °C</text><text x="86" y="100">40 °C</text><text x="86" y="46">60 °C</text></g>
+<g fill="none" stroke-width="3">
+<path d="M190,60 q20,-26 40,0 t40,0 t40,0 t40,0 t40,0" stroke="#ff5d6c"><animate attributeName="stroke-dashoffset" values="0;-60" dur="2s" repeatCount="indefinite"/></path>
+<path d="M190,110 q20,-18 40,0 t40,0 t40,0 t40,0 t40,0" stroke="#22d3ee"/>
+<path d="M190,160 q20,-18 40,0 t40,0 t40,0 t40,0 t40,0" stroke="#3ddc84"/></g>
+<g fill="#cfeaff"><text x="190" y="38">PVC · atenuación ?</text><text x="190" y="88">FEP · atenuación ?</text><text x="190" y="138">ECTFE · atenuación ?</text></g>
+<text x="400" y="186" fill="#8fa6c4">a 135 MHz</text></svg>`;
+const S5=`<svg viewBox="0 0 520 200" style="${HD}">
+<rect x="50" y="46" width="120" height="104" rx="8" fill="#0b2a3a" stroke="#22d3ee" stroke-width="2"/>
+<text x="110" y="92" text-anchor="middle" fill="#fff" font-size="18" font-weight="bold">QSFP+</text>
+<text x="110" y="114" text-anchor="middle" fill="#22d3ee" font-size="12">40GBASE-SR4</text>
+<g stroke="#c8793a" stroke-width="3" stroke-dasharray="8 6"><line x1="170" y1="60" x2="330" y2="60"><animate attributeName="stroke-dashoffset" values="0;-28" dur="1s" repeatCount="indefinite"/></line>
+<line x1="170" y1="76" x2="330" y2="76"><animate attributeName="stroke-dashoffset" values="0;-28" dur="1s" repeatCount="indefinite"/></line>
+<line x1="170" y1="92" x2="330" y2="92"><animate attributeName="stroke-dashoffset" values="0;-28" dur="1s" repeatCount="indefinite"/></line>
+<line x1="170" y1="108" x2="330" y2="108"><animate attributeName="stroke-dashoffset" values="0;28" dur="1s" repeatCount="indefinite"/></line>
+<line x1="170" y1="124" x2="330" y2="124"><animate attributeName="stroke-dashoffset" values="0;28" dur="1s" repeatCount="indefinite"/></line>
+<line x1="170" y1="140" x2="330" y2="140"><animate attributeName="stroke-dashoffset" values="0;28" dur="1s" repeatCount="indefinite"/></line></g>
+<rect x="330" y="46" width="90" height="104" rx="8" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="375" y="106" text-anchor="middle" fill="#ffd2a8" font-size="26" font-weight="bold">?</text>
+<text x="260" y="186" text-anchor="middle" fill="#8fa6c4">Varias fibras en paralelo: ¿qué conector las agrupa?</text></svg>`;
+
+const Q=[
+{t:'En un enlace de cobre Categoría 8 (Clase I y II), ¿qué topología exige y cuál es la longitud total del canal?',svg:S1,
+ o:['Cross-connect con 3 conexiones y canal de 90 m','Interconnect con 2 conexiones y canal de 30 m (3 + 24 + 3)','Interconnect con 4 conexiones y canal de 100 m','Cross-connect o interconnect, indistintamente, hasta 50 m'],ok:1,
+ why:'Categoría 8 REQUIERE topología interconnect y NO admite cross-connect. El canal total es de 30 m con 2 conexiones: 3 m + enlace de 24 m + 3 m.',
+ note:'Los 90 m / 100 m son el límite típico del cobre de categorías inferiores (conocimiento general; no figura en las láminas).',
+ ref:'Lámina 16',
+ rec:'Repasa las láminas 15 y 16: Cat 8 opera a 2 GHz, solo en interconnect y con canal de 30 m. Práctica: dibuja el canal con sus 2 conexiones y rotula 3 + 24 + 3 m.'},
+{t:'Un cable viene rotulado S/FTP. Según la nomenclatura XX/YZZ, ¿qué significa?',svg:S2,
+ o:['Malla global (S), lámina por par (F), par trenzado (TP)','Lámina global (F), malla por par (S), cuádruple trenzado (TQ)','Sin blindaje global (U), lámina por par (F), par trenzado (TP)','Malla y lámina global (SF), pares sin blindar (U), par trenzado (TP)'],ok:0,
+ why:'XX = construcción global (S = malla trenzada); Y = elemento, es decir cada par (F = lámina); ZZ = TP, par trenzado. Es la construcción que usa Cat 8: pares en lámina metálica con malla general.',
+ note:'',ref:'Láminas 5, 10 y 16',
+ rec:'Repasa las láminas 5 y 10. Práctica: decodifica U/UTP, F/UTP, SF/UTP y S/FTP separando construcción global, elemento y tipo de par.'},
+{t:'Con fibra multimodo a 850 nm, ¿qué distancia máxima alcanza 40GBASE-SR4 sobre fibra OM4?',svg:S3,
+ o:['100 m','400 m','860 m','150 m'],ok:3,
+ why:'Según la tabla OM1–OM5: 40GBASE-SR4 llega a 100 m en OM3 y a 150 m en OM4. Los 400 m corresponden a 10GBASE-SR en OM4 y los 860 m a 1000BASE-SX en OM3/OM4.',
+ note:'',ref:'Láminas 29 y 36',
+ rec:'Repasa la lámina 29 (tabla OM1–OM5) y la 36. Regla práctica de la síntesis: 10G hasta 300–400 m y 40G/100G hasta 100–150 m en OM3/OM4; por eso TIA-942 recomienda OM4 u OM5.'},
+{t:'Al subir la temperatura de 22 °C a 60 °C, ¿cómo cambia la atenuación del cable según su aislamiento?',svg:S4,
+ o:['Disminuye, porque el cobre conduce mejor al calentarse','Se mantiene constante en todos los aislamientos','Aumenta; el PVC es el más afectado (≈210 → ≈460 dB a 135 MHz) y FEP y ECTFE son más estables','Aumenta por igual en PVC, FEP y ECTFE'],ok:2,
+ why:'A mayor temperatura aumenta la atenuación. En las gráficas, el PVC pasa de ≈210 dB (22 °C) a ≈300 dB (40 °C) y ≈460 dB (60 °C) a 135 MHz; FEP y ECTFE se mantienen más estables.',
+ note:'Los valores en dB son los que leen las gráficas de la lámina 12 (lectura aproximada). Ojo: la lámina 7 lista ETFE y las gráficas rotulan ECTFE.',ref:'Láminas 7 y 12',
+ rec:'Repasa las láminas 7 y 12. Idea clave para el diseño: en zonas calientes (pasillos calientes, ductos, techos) prefiere aislamientos tipo FEP/ECTFE frente a PVC.'},
+{t:'¿Qué conector óptico se usa con un módulo QSFP+ 40GBASE-SR4?',svg:S5,
+ o:['LC dúplex','MPO (multifibra)','SC dúplex','RJ45'],ok:1,
+ why:'40GBASE-SR4 en QSFP+ usa conectores MPO. SC va con módulos GBIC (1000BASE-SX) y LC con SFP (1000BASE-SX y 10GBASE-SR). MPO-8, MPO-12 y MPO-24 comparten tamaño de férula, desempeño de pérdida y alineación de pines.',
+ note:'',ref:'Láminas 30, 31 y 32',
+ rec:'Repasa las láminas 30 a 32. Práctica: arma una tabla módulo → conector → aplicación (GBIC/SC, SFP/LC, QSFP+/MPO) y la diferencia entre troncales de 8, 12 y 24 fibras.'}
+];
+const LV=[
+ [5,'Dominio total','Excelente: manejas cobre, fibra y conectores con criterio de diseño. Siguiente paso: aplica estos criterios al dimensionamiento de tu Data Center.'],
+ [4,'Nivel sólido','Muy bien: te falta afinar un punto. Revisa la recomendación de la pregunta fallada y vuelve a intentarlo.'],
+ [3,'Nivel intermedio','Vas por buen camino, pero conviene repasar las láminas indicadas antes de pasar al diseño.'],
+ [2,'En proceso','Hay conceptos base por reforzar. Relee los dos temas con calma y repite la autoevaluación.'],
+ [0,'Inicial','Empieza por los resúmenes de cada tema (láminas 5–8 para cobre y 24–29 para fibra) y repite la autoevaluación.']
+];
+let i=0,score=0,res=[],t0=0,tm=null,locked=false;
+const $=id=>document.getElementById(id);
+function show(id){['start','quiz','end'].forEach(s=>$(s).classList.toggle('hide',s!==id))}
+function start(){i=0;score=0;res=[];$('sc').textContent=0;show('quiz');load()}
+function load(){
+ locked=false;const q=Q[i];
+ $('qn').textContent='Pregunta '+(i+1)+' de '+Q.length;
+ $('qt').textContent=q.t;$('svgbox').innerHTML=q.svg;
+ $('fb').classList.add('hide');
+ const o=$('opts');o.innerHTML='';
+ q.o.forEach((txt,k)=>{const b=document.createElement('button');b.className='opt c'+k;b.innerHTML=SH[k]+'<span></span>';b.querySelector('span').textContent=txt;b.onclick=()=>pick(k);o.appendChild(b)});
+ t0=Date.now();clearInterval(tm);tm=setInterval(tick,100);tick();
+}
+function tick(){const r=Math.max(0,T-(Date.now()-t0)/1000);$('tbar').style.width=(r/T*100)+'%';$('tnum').textContent=Math.ceil(r);if(r<=0)pick(-1)}
+function pick(k){
+ if(locked)return;locked=true;clearInterval(tm);
+ const q=Q[i];const e=Math.min(T,(Date.now()-t0)/1000);
+ const ok=k===q.ok;const pts=ok?Math.round(1000*(1-0.5*e/T)):0;
+ score+=pts;res.push({k,ok,pts,e});$('sc').textContent=score;
+ [...$('opts').children].forEach((b,n)=>{b.disabled=true;if(n===q.ok)b.classList.add('good');else b.classList.add('dim')});
+ const f=$('fb');f.className='card fb '+(ok?'ok':'ko');
+ const v=k===-1?'Se acabó el tiempo':(ok?'¡Correcto!':'Incorrecto');
+ f.innerHTML='<div class="v">'+v+'<span class="pts">+'+pts+' pts</span></div><p style="margin:0 0 6px">'+q.why+'</p>'+(q.note?'<p style="margin:0 0 6px;font-size:13px;color:#8fa6c4">'+q.note+'</p>':'')+'<div class="ref">Fuente: '+q.ref+' de la presentación de la Semana 2.</div><div style="margin-top:12px"><button class="btn" id="nx">'+(i<Q.length-1?'Siguiente pregunta':'Ver resultado')+'</button></div>';
+ $('nx').onclick=next;f.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function next(){if(i<Q.length-1){i++;load();window.scrollTo({top:0,behavior:'smooth'})}else finish()}
+function finish(){
+ show('end');const hits=res.filter(r=>r.ok).length;
+ $('fs').textContent=score;
+ const L=LV.find(l=>hits>=l[0]);$('lvl').textContent=L[1]+' · '+hits+' de '+Q.length+' aciertos';$('lvlTxt').textContent=L[2];
+ let h='<tr><th>#</th><th>Resultado</th><th>Puntos</th><th>Tiempo</th><th>Referencia</th></tr>';
+ res.forEach((r,n)=>{h+='<tr><td>'+(n+1)+'</td><td>'+(r.k===-1?'Sin respuesta':(r.ok?'✔ Correcta':'✘ Incorrecta'))+'</td><td>'+r.pts+'</td><td>'+r.e.toFixed(1)+' s</td><td>'+Q[n].ref+'</td></tr>'});
+ $('tbl').innerHTML=h;
+ let rc='';
+ res.forEach((r,n)=>{if(!r.ok)rc+='<div class="rec"><b>Pregunta '+(n+1)+':</b> '+Q[n].rec+'</div>'});
+ if(!rc)rc='<div class="rec"><b>Reto siguiente:</b> con 5 de 5, practica el diseño: elige medio (cobre Cat 6A/8 o fibra OM4/OM5/OS2) para backbone y horizontal de un Data Center y justifica distancia, velocidad y conectores.</div>';
+ else if(hits<5&&score<hits*1000-1)rc+='<div class="rec"><b>Velocidad:</b> tus aciertos pueden dar hasta 1000 pts cada uno; responder más rápido sube el puntaje, pero prioriza comprender.</div>';
+ $('recs').innerHTML=rc;$('copied').textContent='';
+}
+function copyRes(){
+ const hits=res.filter(r=>r.ok).length;
+ const txt='Autoevaluación AR · Cableado estructurado (Semana 2): '+score+'/5000 pts · '+hits+' de '+Q.length+' aciertos.';
+ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>$('copied').textContent='Resumen copiado.').catch(()=>$('copied').textContent=txt);
+}
+async function toggleCam(){
+ const v=$('cam'),b=$('camBtn');
+ if(v.classList.contains('on')){v.classList.remove('on');if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null}b.textContent='Activar cámara AR';return}
+ try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});v.srcObject=s;v.classList.add('on');b.textContent='Desactivar cámara AR'}
+ catch(e){b.textContent='Cámara no disponible (modo holograma)'}
+}
+document.addEventListener('keydown',e=>{
+ if($('quiz').classList.contains('hide'))return;
+ const k=parseInt(e.key,10);
+ if(k>=1&&k<=4&&!locked)pick(k-1);
+ else if(e.key==='Enter'&&locked&&$('nx'))next();
+});
+</script>
+</body>
+</html>
