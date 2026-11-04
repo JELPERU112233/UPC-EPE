@@ -1,1 +1,593 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datacenter - Mapa Interactivo AR 3D</title>
+<style>
+:root{--bg:#030d18;--pn:#071a2b;--ln:#14405f;--cy:#29d3ff;--tx:#d9f1ff;--mu:#86abc4}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:Arial,Helvetica,sans-serif;font-size:14px}
+button,input,select{font-family:Arial,Helvetica,sans-serif}
+.app{display:grid;grid-template-columns:1fr 350px;grid-template-rows:auto 1fr auto;height:100%}
+header{grid-column:1/-1;padding:10px 16px;border-bottom:1px solid var(--ln);background:#05121f}
+header h1{margin:0;font-size:17px;letter-spacing:.3px}
+header p{margin:3px 0 0;color:var(--mu);font-size:12px}
+footer{grid-column:1/-1;padding:7px 16px;border-top:1px solid var(--ln);background:#05121f;color:var(--mu);font-size:11px;text-align:center}
+#stage,#panel{min-height:0}
+#stage{position:relative;overflow:hidden;perspective:1700px;perspective-origin:50% 50%;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+ background:radial-gradient(ellipse at 50% 42%,#0b2d49 0,#04121f 65%,#030d18 100%)}
+#stage.drag{cursor:grabbing}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#stage.ar #video{display:block}
+#stage.ar{background:#000}
+#world{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;will-change:transform}
+.grp,.fl{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.bx{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.fc{position:absolute;left:50%;top:50%;display:block;border:1px solid var(--ed,rgba(255,255,255,.35));
+ background:linear-gradient(var(--sh),var(--sh)),var(--c)}
+.win .fc.fr,.win .fc.bk,.win .fc.lf,.win .fc.rt{
+ background:repeating-linear-gradient(90deg,rgba(150,220,255,.20) 0 14px,transparent 14px 28px),linear-gradient(var(--sh),var(--sh)),var(--c)}
+.fc.led{background:repeating-linear-gradient(180deg,rgba(60,255,140,.95) 0 2px,rgba(0,0,0,0) 2px 7px),linear-gradient(var(--sh),var(--sh)),var(--c)}
+.pl{position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:bold;letter-spacing:.5px;overflow:hidden}
+.ground{background:linear-gradient(rgba(41,211,255,.13) 1px,transparent 1px) 0 0/40px 40px,linear-gradient(90deg,rgba(41,211,255,.13) 1px,transparent 1px) 0 0/40px 40px,rgba(8,36,58,.55);border:1px solid rgba(41,211,255,.4)}
+.street{background:rgba(70,95,120,.35)}
+.dash{background:repeating-linear-gradient(90deg,rgba(255,255,255,.45) 0 14px,transparent 14px 28px)}
+.dash.v{background:repeating-linear-gradient(180deg,rgba(255,255,255,.45) 0 14px,transparent 14px 28px)}
+.plate{background:linear-gradient(rgba(41,211,255,.13) 1px,transparent 1px) 0 0/20px 20px,linear-gradient(90deg,rgba(41,211,255,.13) 1px,transparent 1px) 0 0/20px 20px,rgba(8,40,66,.92)}
+.mh{border-radius:50%;border:3px solid var(--c);background:rgba(0,0,0,.55);box-shadow:0 0 8px var(--c)}
+.st{position:absolute;left:0;top:0}
+.flow{background:repeating-linear-gradient(90deg,var(--c) 0 9px,rgba(255,255,255,.10) 9px 22px);background-size:22px 100%;animation:fl .7s linear infinite;box-shadow:0 0 7px var(--c);border-radius:3px}
+.flowv{background:repeating-linear-gradient(180deg,var(--c) 0 9px,rgba(255,255,255,.10) 9px 22px);background-size:100% 22px;animation:flv .7s linear infinite;box-shadow:0 0 7px var(--c)}
+.solid{background:var(--c);box-shadow:0 0 6px var(--c)}
+@keyframes fl{to{background-position:22px 0}}
+@keyframes flv{to{background-position:0 22px}}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;border:2px solid var(--pc,#29d3ff);background:rgba(3,13,24,.9);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;pointer-events:auto;padding:0;display:flex;align-items:center;justify-content:center;animation:pp 2.2s infinite}
+.pin:hover{background:var(--pc,#29d3ff);color:#000}
+.pin::after{content:attr(data-t);position:absolute;left:50%;bottom:135%;transform:translateX(-50%);white-space:nowrap;background:#04202f;color:var(--tx);border:1px solid var(--ln);padding:3px 7px;border-radius:5px;font-size:11px;font-weight:normal;opacity:0;pointer-events:none;transition:opacity .15s}
+.pin:hover::after{opacity:1}
+@keyframes pp{0%{box-shadow:0 0 0 0 rgba(41,211,255,.55)}70%{box-shadow:0 0 0 12px rgba(41,211,255,0)}100%{box-shadow:0 0 0 0 rgba(41,211,255,0)}}
+.lbl{position:absolute;left:0;top:0;font-size:11px;font-weight:bold;color:#a9d6ee;white-space:nowrap;pointer-events:none;text-shadow:0 0 5px #000,0 0 3px #000}
+#hud{position:absolute;inset:8px;pointer-events:none;border:1px solid rgba(41,211,255,.22);z-index:4000}
+#hud span{position:absolute;top:8px;left:12px;font-size:11px;letter-spacing:1.5px;color:var(--cy)}
+#hud::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(41,211,255,.035) 0 1px,transparent 1px 4px)}
+.ctl{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;max-width:96%;z-index:5000}
+.b{background:rgba(5,25,42,.9);border:1px solid var(--ln);color:var(--tx);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px}
+.b:hover{border-color:var(--cy)}
+.b.on{background:#0c4a6a;border-color:var(--cy)}
+.rng{display:flex;align-items:center;gap:6px;background:rgba(5,25,42,.9);border:1px solid var(--ln);border-radius:6px;padding:4px 10px;font-size:12px}
+.rng input{width:110px;accent-color:#29d3ff}
+#toast{position:absolute;top:34px;left:50%;transform:translateX(-50%);background:#052338;border:1px solid var(--cy);padding:7px 12px;border-radius:6px;font-size:12px;z-index:6000}
+.tabs{display:flex;border-bottom:1px solid var(--ln);position:sticky;top:0;background:var(--pn);z-index:2}
+.tabs button{flex:1;padding:10px 4px;background:none;border:0;border-bottom:2px solid transparent;color:var(--mu);cursor:pointer;font-size:12px}
+.tabs button.on{color:var(--tx);border-bottom-color:var(--cy)}
+.sec{padding:14px}
+.sec h2{margin:0 0 6px;font-size:15px;color:var(--cy)}
+.sec p{margin:0 0 10px;line-height:1.5;color:#c4e2f2}
+.nav{display:flex;gap:6px;margin:10px 0}
+.nav .b{flex:1}
+.dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.dots button{width:26px;height:26px;border-radius:50%;border:1px solid var(--ln);background:#05121f;color:var(--tx);cursor:pointer;font-size:11px}
+.dots button.on{background:var(--cy);color:#000}
+.lay{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #0d2c44;cursor:pointer}
+.lay input{accent-color:#29d3ff}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.cl{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid #0d2c44;color:var(--tx);padding:8px 2px;cursor:pointer;font-size:13px}
+.cl:hover{background:#0a2840}
+.cl i{font-style:normal;min-width:22px;height:22px;border-radius:50%;border:2px solid var(--pc);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold}
+details{margin-top:12px;color:var(--mu);font-size:12px}
+details img{width:100%;border:1px solid var(--ln);margin-top:6px}
+#modal{position:fixed;inset:0;background:rgba(1,8,15,.72);z-index:9000;display:flex;align-items:center;justify-content:center;padding:14px}
+#modal .card{position:relative;max-width:560px;width:100%;max-height:92vh;overflow:auto;background:#071a2b;border:1px solid var(--cy);border-radius:10px;padding:20px 22px;box-shadow:0 0 30px rgba(41,211,255,.25)}
+#mx{position:absolute;top:8px;right:12px;background:none;border:0;color:var(--tx);font-size:26px;cursor:pointer}
+.kick{font-size:11px;letter-spacing:2px;color:var(--mu);text-transform:uppercase}
+#modal h2{margin:4px 30px 10px 0;font-size:19px;color:var(--cy)}
+#modal h3{margin:14px 0 4px;font-size:13px;color:#fff}
+#modal p{margin:0;line-height:1.55;color:#c4e2f2}
+#modal ul{margin:0;padding-left:18px;line-height:1.55;color:#c4e2f2}
+.src{margin-top:14px!important;padding:8px 10px;border-left:3px solid #ffb02e;background:#0b2236;font-size:11px;color:var(--mu)!important}
+.acts{margin-top:14px}
+@media(max-width:860px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr 42vh auto}#panel{border-left:0!important;border-top:1px solid var(--ln)}header p{display:none}}
+#panel{border-left:1px solid var(--ln);background:var(--pn);overflow:auto}
+</style>
+</head>
+<body>
+<div class="app">
+ <header>
+  <h1>Datacenter ISP · Cableado estructurado — Caso 1: acometida eléctrica y fibra óptica</h1>
+  <p>Arrastra para rotar · rueda o pellizco = zoom · Mayús+arrastrar o botón ✥ = mover · toca los marcadores numerados para ver cada componente</p>
+ </header>
+
+ <div id="stage">
+  <video id="video" playsinline muted></video>
+  <div id="world"></div>
+  <div id="pins"></div>
+  <div id="hud"><span>AR · HOLOGRAMA INTERACTIVO</span></div>
+  <div id="toast" hidden></div>
+  <div class="ctl">
+   <button class="b" data-v="3d">3D</button>
+   <button class="b" data-v="plan">Planta</button>
+   <button class="b" data-v="front">Frente</button>
+   <button class="b" data-v="side">Lateral</button>
+   <button class="b" id="bpan">✥ Mover</button>
+   <button class="b" id="bauto">⟳ Auto-rotar</button>
+   <button class="b" id="bar">📷 Cámara AR</button>
+   <button class="b" id="breset">Reiniciar</button>
+   <label class="rng">Explosión de pisos <input type="range" id="rex" min="0" max="60" value="0"></label>
+  </div>
+ </div>
+
+ <aside id="panel">
+  <nav class="tabs">
+   <button class="on" data-tab="tour">Recorrido</button>
+   <button data-tab="layers">Capas</button>
+   <button data-tab="comp">Componentes</button>
+  </nav>
+  <section class="sec" id="tab-tour">
+   <div id="stepn" style="font-size:11px;color:var(--mu)"></div>
+   <h2 id="stept"></h2>
+   <p id="stepd"></p>
+   <div class="nav"><button class="b" id="prev">◀ Anterior</button><button class="b" id="next">Siguiente ▶</button></div>
+   <div class="dots" id="dots"></div>
+   <details><summary>Plano de referencia (del HTML base)</summary>
+    <img src="https://jelperu112233.github.io/UPC-EPE/S5/mapa_datacenter.png" alt="Plano del Datacenter" onerror="this.parentNode.hidden=true">
+   </details>
+  </section>
+  <section class="sec" id="tab-layers" hidden>
+   <h2>Capas</h2>
+   <div id="layl"></div>
+   <p style="margin-top:12px;font-size:12px;color:var(--mu)">Convención de la escena: energía entra por la Calle A (lado este); fibra ruta 1 por la Calle B (frente); fibra ruta 2 por la Calle C (posterior). El dibujo de texto de la respuesta anterior usaba otra rotulación de puntos cardinales: aquí lo importante es que las tres entradas van por lados distintos.</p>
+  </section>
+  <section class="sec" id="tab-comp" hidden>
+   <h2>Componentes</h2>
+   <div id="compl"></div>
+  </section>
+ </aside>
+
+ <footer>© 2026 — Experiencia Técnica Interactiva. Fines educativos - UPC.</footer>
+</div>
+
+<div id="modal" hidden>
+ <div class="card">
+  <button id="mx" aria-label="Cerrar">×</button>
+  <div class="kick">Componente</div>
+  <h2 id="mt"></h2>
+  <h3>Definición</h3><p id="md"></p>
+  <h3>Uso y Función Principal</h3><p id="mu"></p>
+  <h3>Equipos Reales (Marcas Reconocidas)</h3><ul id="me"></ul>
+  <p class="src">Procedencia: conocimiento de entrenamiento + inferencia de buenas prácticas; no verificado con búsqueda web. Las marcas son ejemplos, no recomendaciones; contrasta modelos, cifras y normas (TIA-942, CNE, RNE) con fichas técnicas y la edición vigente.</p>
+  <div class="acts"><button class="b" id="mf">Enfocar en 3D</button></div>
+ </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var D=Math.PI/180, PERSP=1700;
+var $=function(s,r){return (r||document).querySelector(s);};
+var stage=$('#stage'), world=$('#world'), pinsEl=$('#pins');
+var C={pw:'#ff5a4d',gen:'#ffa534',f1:'#29d3ff',f2:'#ff58e0',fi:'#ffe14d',gr:'#3dff7a'};
+var cam={rx:-24,ry:-32,s:.8,px:0,py:0,ex:0};
+var G={}, fls=[], pins=[], anim=0;
+var layers={bld:true,shell:true,eq:true,pw:true,f1:true,f2:true,fi:true,gnd:true,und:true,pins:true};
+var K=function(){return Math.min(1,stage.clientWidth/1000);};
+
+/* ---------- primitivas 3D ---------- */
+function grp(k,parent){var g=document.createElement('div');g.className='grp L-'+k;(parent||world).appendChild(g);G[k]=g;return g;}
+function box(par,o){
+ var el=document.createElement('div');el.className='bx '+(o.cls||'');
+ el.style.transform='translate3d('+o.x+'px,'+(-o.y)+'px,'+o.z+'px)';
+ el.style.setProperty('--c',o.c||'#2a6');
+ if(o.e)el.style.setProperty('--ed',o.e);
+ var w=o.w,h=o.h,d=o.d;
+ var defs=[['fr',w,h,'translateZ('+d/2+'px)','rgba(0,0,0,0)'],
+  ['bk',w,h,'rotateY(180deg) translateZ('+d/2+'px)','rgba(0,0,0,.35)'],
+  ['rt',d,h,'rotateY(90deg) translateZ('+w/2+'px)','rgba(0,0,0,.22)'],
+  ['lf',d,h,'rotateY(-90deg) translateZ('+w/2+'px)','rgba(0,0,0,.42)'],
+  ['tp',w,d,'rotateX(90deg) translateZ('+h/2+'px)','rgba(255,255,255,.12)'],
+  ['bt',w,d,'rotateX(-90deg) translateZ('+h/2+'px)','rgba(0,0,0,.5)']];
+ defs.forEach(function(f){
+  if(o.hide&&o.hide.indexOf(f[0])>-1)return;
+  var i=document.createElement('i');i.className='fc '+f[0]+(o.led===f[0]?' led':'');
+  i.style.width=f[1]+'px';i.style.height=f[2]+'px';
+  i.style.transform='translate(-50%,-50%) '+f[3];
+  i.style.setProperty('--sh',f[4]);
+  el.appendChild(i);
+ });
+ par.appendChild(el);return el;
+}
+function plane(par,o){
+ var e=document.createElement('div');e.className='pl '+(o.cls||'');
+ e.style.cssText='width:'+o.w+'px;height:'+o.d+'px;margin-left:'+(-o.w/2)+'px;margin-top:'+(-o.d/2)+'px;transform:translate3d('+o.x+'px,'+(-o.y)+'px,'+o.z+'px) rotateX(90deg);'+(o.css||'');
+ if(o.t)e.textContent=o.t;
+ par.appendChild(e);return e;
+}
+function path(par,pts,y,col,o){
+ o=o||{};var w=o.w||5,cls=o.cls||'flow';
+ for(var i=0;i<pts.length-1;i++){
+  var x1=pts[i][0],z1=pts[i][1],x2=pts[i+1][0],z2=pts[i+1][1];
+  var L=Math.hypot(x2-x1,z2-z1);if(L<.5)continue;
+  var a=Math.atan2(z2-z1,x2-x1)/D;
+  var el=document.createElement('div');el.className='st '+cls;
+  el.style.cssText='width:'+L+'px;height:'+w+'px;margin-left:'+(-L/2)+'px;margin-top:'+(-w/2)+'px;--c:'+col+';transform:translate3d('+((x1+x2)/2)+'px,'+(-y)+'px,'+((z1+z2)/2)+'px) rotateX(90deg) rotateZ('+a+'deg)';
+  par.appendChild(el);
+ }
+}
+function vbar(par,x,z,y1,y2,col,w){
+ w=w||5;var h=Math.abs(y2-y1),ym=(y1+y2)/2;
+ [0,90].forEach(function(r){
+  var el=document.createElement('div');el.className='st flowv';
+  el.style.cssText='width:'+w+'px;height:'+h+'px;margin-left:'+(-w/2)+'px;margin-top:'+(-h/2)+'px;--c:'+col+';transform:translate3d('+x+'px,'+(-ym)+'px,'+z+'px) rotateY('+r+'deg)';
+  par.appendChild(el);
+ });
+}
+
+/* ---------- escena ---------- */
+var gU=grp('und');
+plane(gU,{x:0,z:0,y:-1,w:760,d:560,cls:'ground'});
+plane(gU,{x:0,z:195,y:-.5,w:760,d:80,cls:'street'});
+plane(gU,{x:0,z:-195,y:-.5,w:760,d:80,cls:'street'});
+plane(gU,{x:262,z:0,y:-.5,w:75,d:560,cls:'street'});
+plane(gU,{x:0,z:195,y:-.4,w:760,d:2,cls:'dash'});
+plane(gU,{x:0,z:-195,y:-.4,w:760,d:2,cls:'dash'});
+plane(gU,{x:262,z:0,y:-.4,w:2,d:560,cls:'dash v'});
+[[-260,195,C.f1],[-160,160,C.f1],[-260,-195,C.f2],[-160,-160,C.f2],[270,-100,C.pw],[215,-100,C.pw]].forEach(function(m){
+ plane(gU,{x:m[0],z:m[1],y:.3,w:16,d:16,cls:'mh',css:'--c:'+m[2]});
+});
+box(gU,{x:-350,y:16,z:195,w:22,h:32,d:16,c:'#1b8fb0',e:'rgba(255,255,255,.5)'});
+box(gU,{x:-350,y:16,z:-195,w:22,h:32,d:16,c:'#b0328f',e:'rgba(255,255,255,.5)'});
+box(gU,{x:345,y:35,z:-100,w:6,h:70,d:6,c:'#9aa7b3'});
+box(gU,{x:340,y:60,z:-100,w:14,h:16,d:14,c:'#ff5a4d',e:'rgba(255,255,255,.5)'});
+
+var gS=grp('shell');
+box(gS,{x:0,y:32,z:0,w:400,h:64,d:260,c:'rgba(60,160,220,.09)',e:'rgba(120,220,255,.8)',hide:['tp','bt'],cls:'win'});
+plane(gS,{x:0,z:0,y:.5,w:400,d:260,cls:'plate'});
+function room(x,z,w,d,t,rgb){plane(gS,{x:x,z:z,y:1,w:w,d:d,t:t,css:'background:rgba('+rgb+',.14);border:1px dashed rgba('+rgb+',.85);color:rgb('+rgb+')'});}
+room(-160,97.5,60,55,'ER1','41,211,255');
+room(-160,-97.5,60,55,'ER2','255,88,224');
+room(-70,0,60,60,'MDA','170,130,255');
+room(32.5,0,135,124,'SALA DE SERVIDORES','110,180,255');
+room(150,-92.5,80,65,'SUBESTACIÓN / TGBT','255,100,87');
+room(150,-22.5,80,65,'UPS / BATERÍAS','255,165,52');
+room(150,72.5,80,105,'GRUPO ELECTRÓGENO','255,214,64');
+
+var gE=grp('eq');
+function eq(x,z,w,h,d,c,ex){var o={x:x,y:h/2+1,z:z,w:w,h:h,d:d,c:c,e:'rgba(255,255,255,.45)'};if(ex)for(var k in ex)o[k]=ex[k];return box(gE,o);}
+eq(165,-100,26,22,20,'#e0533f');
+eq(125,-100,30,28,12,'#c9402f');
+eq(125,-50,14,18,10,'#ffb02e');
+eq(165,-28,30,30,20,'#ff8a3b');
+eq(165,-2,34,20,20,'#b8742a');
+eq(150,55,50,26,22,'#e8c32a');
+eq(150,105,50,16,24,'#8d7d26');
+eq(92,-46,8,26,8,'#ff7a5a');
+eq(92,46,8,26,8,'#ff7a5a');
+eq(92,0,12,30,26,'#3aa0c8');
+for(var i=0;i<5;i++){var rx=-10+20*i;eq(rx,-30,16,36,24,'#2b4f7a',{led:'fr'});eq(rx,30,16,36,24,'#2b4f7a',{led:'bk'});}
+eq(-85,-12,14,36,22,'#7a4fd0');eq(-70,-12,14,36,22,'#7a4fd0');eq(-55,-12,14,36,22,'#7a4fd0');
+eq(-85,14,14,36,22,'#3f7fb0');eq(-70,14,14,36,22,'#3f7fb0');eq(-55,14,14,36,22,'#3f7fb0');
+eq(-175,97,20,30,10,'#1fa8c9');
+eq(-175,-97,20,30,10,'#c43aa8');
+eq(-100,-118,10,8,6,'#2ecc71');
+
+var gP=grp('pw');
+path(gP,[[345,-100],[205,-100]],-6,C.pw,{w:6});
+vbar(gP,205,-100,-6,3,C.pw,6);
+path(gP,[[205,-100],[178,-100]],3,C.pw);
+path(gP,[[152,-100],[140,-100]],3,C.pw);
+path(gP,[[125,-94],[125,-55]],3,C.pw);
+path(gP,[[132,-50],[165,-50],[165,-38]],3,C.pw);
+path(gP,[[150,-24],[102,-24],[102,-46],[96,-46]],3,C.pw);
+path(gP,[[102,-24],[102,46],[96,46]],3,C.pw);
+path(gP,[[88,-46],[-16,-46]],3,C.pw,{w:4});
+path(gP,[[88,46],[-16,46]],3,C.pw,{w:4});
+path(gP,[[150,44],[150,22],[112,22],[112,-50],[118,-50]],3,C.gen);
+
+var gF1=grp('f1');
+path(gF1,[[-345,195],[-160,195],[-160,130]],-6,C.f1);
+vbar(gF1,-160,130,-6,3,C.f1);
+path(gF1,[[-160,130],[-160,97],[-120,97],[-120,10],[-100,10]],3,C.f1);
+var gF2=grp('f2');
+path(gF2,[[-345,-195],[-160,-195],[-160,-130]],-6,C.f2);
+vbar(gF2,-160,-130,-6,3,C.f2);
+path(gF2,[[-160,-130],[-160,-97],[-120,-97],[-120,-10],[-100,-10]],3,C.f2);
+
+var gFi=grp('fi');
+vbar(gFi,-40,0,3,46,C.fi);
+path(gFi,[[-40,0],[75,0]],46,C.fi);
+for(var j=0;j<5;j++){var fx=-10+20*j;
+ path(gFi,[[fx,0],[fx,-28]],46,C.fi,{w:3});path(gFi,[[fx,0],[fx,28]],46,C.fi,{w:3});
+ vbar(gFi,fx,-28,37,46,C.fi,3);vbar(gFi,fx,28,37,46,C.fi,3);}
+
+var gG=grp('gnd');
+path(gG,[[-192,-122],[192,-122],[192,122],[-192,122],[-192,-122]],2,C.gr,{w:2,cls:'solid'});
+
+var gB=grp('bld');
+for(var f=2;f<=8;f++){
+ var w=document.createElement('div');w.className='fl';gB.appendChild(w);
+ box(w,{x:0,y:64+(f-2)*40+20,z:0,w:400,h:40,d:260,c:'rgba(70,150,210,.15)',e:'rgba(120,200,255,.5)',cls:'win',hide:f<8?['bt']:['bt']});
+ fls[f]=w;
+}
+
+/* ---------- datos de componentes ---------- */
+var P=[
+{id:'acom',n:1,pos:[270,22,-100],layer:'pw',col:C.pw,t:'Acometida eléctrica (Calle A, lado este)',
+ d:'Es el conjunto de cables que lleva la electricidad desde la red de la empresa distribuidora hasta el edificio. En el caso entra enterrada, por ductos, desde un poste o transformador exterior en la Calle A, pasa por una cámara de registro y atraviesa la cimentación por el lado este.',
+ u:'Alimenta toda la carga crítica del ISP. Para alta disponibilidad conviene una segunda acometida independiente (otro alimentador o subestación). Se separa a propósito de las entradas de fibra: si una obra civil corta un lado, no se pierden ambos servicios.',
+ e:['Cables MT/BT: Nexans, Prysmian, Indeco (Perú)','Celdas de media tensión: Schneider Electric, ABB, Siemens']},
+{id:'sub',n:2,pos:[150,44,-100],layer:'eq',col:C.pw,t:'Subestación y Tablero General (TGBT)',
+ d:'La subestación reduce la tensión de la red mediante un transformador. El TGBT (Tablero General de Baja Tensión) reparte esa energía en circuitos protegidos por interruptores.',
+ u:'Es el punto donde se mide, protege y reparte la energía hacia el datacenter. Se ubica en planta baja, junto a la acometida y al grupo electrógeno, para acortar recorridos. Desde aquí un ducto o shaft eléctrico dedicado lleva la energía a la sala de UPS (en el piso 1 el trayecto es corto; en un piso alto sería una subida vertical larga).',
+ e:['Transformadores: Siemens, ABB, Schneider Electric','Tableros e interruptores: Schneider Electric, ABB, Siemens']},
+{id:'ats',n:3,pos:[125,32,-50],layer:'eq',col:C.gen,t:'ATS – Transferencia automática',
+ d:'El ATS (Automatic Transfer Switch) conmuta de forma automática la carga entre la red eléctrica y el grupo electrógeno.',
+ u:'Si la red falla, detecta la caída, ordena el arranque del generador y transfiere la carga cuando éste es estable; al volver la red, regresa. Evita depender de una maniobra manual.',
+ e:['ASCO (Schneider Electric)','Eaton','ABB','Cummins']},
+{id:'gen',n:4,pos:[150,44,55],layer:'eq',col:C.gen,t:'Grupo electrógeno y tanque de combustible',
+ d:'Motor diésel acoplado a un alternador que genera electricidad cuando la red falla. Incluye tanque de combustible.',
+ u:'Da autonomía de horas o días a todo el datacenter. Va en planta baja o exterior por su peso, escape de gases, ventilación y acceso del camión cisterna.',
+ e:['Caterpillar','Cummins','Perkins','MTU (Rolls-Royce)','Kohler']},
+{id:'ups',n:5,pos:[165,50,-28],layer:'eq',col:C.pw,t:'UPS y banco de baterías',
+ d:'Sistema de alimentación ininterrumpida: convierte y acondiciona la energía y, con baterías, entrega corriente sin cortes cuando la red falla.',
+ u:'Cubre los segundos entre la caída de la red y el arranque del generador, y filtra variaciones de tensión. Las baterías son muy pesadas: otro motivo para preferir pisos bajos.',
+ e:['Vertiv (Liebert)','Schneider Electric (APC)','Eaton','Huawei']},
+{id:'pdu',n:6,pos:[92,44,-46],layer:'eq',col:C.pw,t:'PDU y barras de distribución',
+ d:'La PDU (Power Distribution Unit) reparte la energía del UPS hacia los racks, con protecciones y medición. Las barras o bandejas llevan los circuitos hasta cada fila.',
+ u:'Entrega energía a cada rack (lo habitual es doble alimentación A+B para redundancia) y permite medir el consumo por circuito.',
+ e:['Vertiv','APC (Schneider Electric)','Eaton','Raritan (Legrand)']},
+{id:'racks',n:7,pos:[30,52,-30],layer:'eq',col:'#6fa8ff',t:'Filas de racks (EDA)',
+ d:'Gabinetes de 19 pulgadas donde se montan servidores, switches y equipos del ISP, ordenados en filas con pasillos frío y caliente.',
+ u:'Concentran el equipamiento activo. Cada fila recibe energía por un lado (barra tras los racks) y fibra por otro (bandeja aérea con bajantes).',
+ e:['APC NetShelter (Schneider Electric)','Rittal','Chatsworth (CPI)','Legrand']},
+{id:'crac',n:8,pos:[92,46,0],layer:'eq',col:'#6fa8ff',t:'Enfriamiento de precisión (CRAC/CRAH)',
+ d:'Unidades de aire acondicionado diseñadas para cargas térmicas continuas de un datacenter.',
+ u:'Mantienen temperatura y humedad. Requieren un circuito eléctrico dedicado y una ruta para evacuar el calor (condensadores o chillers).',
+ e:['Vertiv (Liebert)','Schneider Electric (Uniflair)','STULZ','Daikin']},
+{id:'mda',n:9,pos:[-70,52,-12],layer:'eq',col:'#aa82ff',t:'MDA – Main Distribution Area',
+ d:'Área de distribución principal: allí llegan las fibras desde las Entrance Rooms y se ubican routers de núcleo y borde, switches de agregación y paneles de conexión (ODF).',
+ u:'Es el corazón de las comunicaciones del datacenter: desde aquí se reparte la conectividad a las filas de racks. En un ISP concentra los routers que hablan con los operadores.',
+ e:['Routers y switches: Cisco, Juniper, Huawei, Arista, Nokia','Paneles y ODF: Panduit, CommScope, Corning']},
+{id:'er1',n:10,pos:[-175,44,97],layer:'eq',col:C.f1,t:'Entrance Room 1 – Fibra ruta 1 (Calle B, frente)',
+ d:'Sala de entrada: punto donde los cables del operador ingresan al edificio y se conectan con la red interna. Allí se hacen empalmes y se protege la fibra exterior.',
+ u:'Separa la red del operador de la red interna y da un punto de demarcación. Tener dos (ER1 y ER2) permite diversidad: si una ruta se corta, la otra sigue. Las dos entradas deben ir lo más separadas posible (TIA-942 plantea una separación mínima; la cifra exacta debe contrastarse con la edición vigente).',
+ e:['ODF y cajas de empalme: Corning, CommScope, Furukawa, Panduit']},
+{id:'er2',n:11,pos:[-175,44,-97],layer:'eq',col:C.f2,t:'Entrance Room 2 – Fibra ruta 2 (Calle C, posterior)',
+ d:'Segunda sala de entrada, en el lado opuesto del edificio, para recibir la segunda ruta de fibra.',
+ u:'Da redundancia física real: otra calle, otra cámara de registro, otro ducto y, idealmente, otro operador o troncal. Una falla o una obra en la Calle B no la afecta.',
+ e:['ODF y cajas de empalme: Corning, CommScope, Furukawa, Panduit']},
+{id:'mh1',n:12,pos:[-160,20,160],layer:'f1',col:C.f1,t:'Cámaras de registro y ductos (Ruta 1)',
+ d:'Cámaras subterráneas unidas por tuberías (ductos) que protegen la fibra y permiten tenderla y revisarla.',
+ u:'Los ductos subterráneos protegen contra clima, vandalismo y cortes por accidentes en postes; las cámaras permiten empalmes y mantenimiento. Cada ruta usa cámaras y calles distintas para no compartir el mismo punto de falla.',
+ e:['Fibra monomodo: Corning, Prysmian, Furukawa, CommScope','Ductos: Pavco Wavin, Tigre (ejemplos)']},
+{id:'mh2',n:13,pos:[-160,20,-160],layer:'f2',col:C.f2,t:'Cámaras de registro y ductos (Ruta 2)',
+ d:'Cámaras y ductos de la segunda ruta, en la calle posterior.',
+ u:'Mantienen la ruta 2 físicamente independiente de la ruta 1: no comparten calle, cámara ni ducto.',
+ e:['Fibra monomodo: Corning, Prysmian, Furukawa, CommScope','Ductos: Pavco Wavin, Tigre (ejemplos)']},
+{id:'carx',n:14,pos:[-350,44,195],layer:'f1',col:C.f1,t:'Operador / carrier X (Ruta 1)',
+ d:'Proveedor de tránsito IP o transporte que entrega la conectividad al ISP por la ruta 1.',
+ u:'Cada ruta debería venir de un operador (o al menos una troncal) distinto, para que una falla del proveedor no deje al ISP sin salida a Internet.',
+ e:['Ejemplos de operadores en Perú: Telefónica del Perú (Movistar), Entel, América Móvil (Claro), Internexa. Verifica cobertura en el distrito.']},
+{id:'cary',n:15,pos:[-350,44,-195],layer:'f2',col:C.f2,t:'Operador / carrier Y (Ruta 2)',
+ d:'Segundo proveedor de tránsito IP o transporte, por la ruta 2.',
+ u:'Aporta diversidad de proveedor además de diversidad de camino físico.',
+ e:['Ejemplos de operadores en Perú: Telefónica del Perú (Movistar), Entel, América Móvil (Claro), Internexa. Verifica cobertura en el distrito.']},
+{id:'tray',n:16,pos:[35,60,0],layer:'fi',col:C.fi,t:'Bandeja aérea de fibra interna',
+ d:'Canaleta o escalerilla suspendida sobre los racks por donde corre la fibra interna, con bajantes a cada rack.',
+ u:'Protege la fibra y respeta su radio de curvatura. Normalmente va separada de la energía (la fibra por encima de la bandeja eléctrica).',
+ e:['Cablofil (Legrand)','Panduit (FiberRunner)','Chatsworth','Rittal']},
+{id:'spat',n:17,pos:[-100,18,-118],layer:'gnd',col:C.gr,t:'Puesta a tierra (SPAT / BEP)',
+ d:'Sistema que conecta las partes metálicas y los racks a tierra mediante una barra equipotencial (BEP) y un anillo de cobre.',
+ u:'Protege a personas y equipos, drena sobretensiones y descargas y reduce ruido eléctrico. Debe coordinarse entre energía y telecomunicaciones.',
+ e:['Conductores y conectores: Panduit, nVent ERICO','Medición: Fluke']},
+{id:'edif',n:18,pos:[200,200,130],layer:'bld',col:'#9fd8ff',t:'Edificio de 8 pisos',
+ d:'Torre de 8 niveles del ISP. El datacenter ocupa el piso 1; los pisos 2 a 8 son oficinas, NOC y soporte (supuesto del caso).',
+ u:'La decisión clave del ejercicio: el piso elegido determina por dónde pueden entrar la energía y la fibra. Piso 1: cerca de acometidas, generador y acceso de equipos pesados. Se evitan el sótano (inundación) y el último piso (filtraciones y rayos).',
+ e:['No aplica (elemento arquitectónico). Referencias: ANSI/TIA-942 e ISO/IEC 22237; verifica la edición vigente.']}
+];
+P.forEach(function(p){
+ var b=document.createElement('button');b.className='pin';b.textContent=p.n;b.setAttribute('data-t',p.t);
+ b.style.setProperty('--pc',p.col);
+ b.addEventListener('click',function(ev){ev.stopPropagation();openPin(p);});
+ pinsEl.appendChild(b);p.el=b;p.fl=1;
+});
+function lab(t,x,y,z,layer,fl){var s=document.createElement('span');s.className='lbl';s.textContent=t;pinsEl.appendChild(s);P.push({el:s,pos:[x,y,z],layer:layer,fl:fl||1,lbl:true});}
+lab('CALLE A · ENERGÍA',262,6,70,'und');
+lab('CALLE B · FIBRA RUTA 1 (frente)',0,6,195,'und');
+lab('CALLE C · FIBRA RUTA 2 (posterior)',0,6,-195,'und');
+lab('P1 · DATACENTER',-215,32,136,'shell');
+for(var q=2;q<=8;q++)lab('P'+q,-215,64+(q-2)*40+20,136,'bld',q);
+
+/* ---------- cámara y proyección ---------- */
+function rot(p,rx,ry,s){
+ var x=p[0]*s,y=-p[1]*s,z=p[2]*s;
+ var cy=Math.cos(ry*D),sy=Math.sin(ry*D);
+ var x1=x*cy+z*sy,z1=-x*sy+z*cy;
+ var cx=Math.cos(rx*D),sx=Math.sin(rx*D);
+ return [x1,y*cx-z1*sx,y*sx+z1*cx];
+}
+function camFor(o){
+ var s=o.s*K(),r=rot(o.f,o.rx,o.ry,s);
+ return {rx:o.rx,ry:o.ry,s:s,px:-r[0],py:-r[1],ex:o.ex||0};
+}
+function render(){
+ world.style.transform='translate('+cam.px+'px,'+cam.py+'px) rotateX('+cam.rx+'deg) rotateY('+cam.ry+'deg) scale('+cam.s+')';
+ fls.forEach(function(w,i){if(w)w.style.transform='translate3d(0,'+(-(i-1)*cam.ex)+'px,0)';});
+ var W=stage.clientWidth,H=stage.clientHeight;
+ P.forEach(function(p){
+  var y=p.pos[1]+(p.fl>1?(p.fl-1)*cam.ex:0);
+  var r=rot([p.pos[0],y,p.pos[2]],cam.rx,cam.ry,cam.s);
+  var f=PERSP/(PERSP-r[2]);
+  p.el.style.transform='translate('+(W/2+(r[0]+cam.px)*f)+'px,'+(H/2+(r[1]+cam.py)*f)+'px) translate(-50%,-50%)';
+  p.el.style.zIndex=Math.round(1000+r[2]);
+ });
+ var rex=$('#rex');if(+rex.value!==Math.round(cam.ex))rex.value=cam.ex;
+}
+function tweenTo(t,ms){
+ cancelAnimationFrame(anim);ms=ms||1000;
+ var a={rx:cam.rx,ry:cam.ry,s:cam.s,px:cam.px,py:cam.py,ex:cam.ex};
+ t.ry=a.ry+(((t.ry-a.ry)%360+540)%360-180);
+ var t0=performance.now();
+ function step(now){
+  var u=Math.min(1,(now-t0)/ms),e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+  ['rx','ry','s','px','py','ex'].forEach(function(k){cam[k]=a[k]+(t[k]-a[k])*e;});
+  render();if(u<1)anim=requestAnimationFrame(step);
+ }
+ anim=requestAnimationFrame(step);
+}
+var VIEWS={
+ '3d':{rx:-24,ry:-32,s:.8,f:[0,110,0]},
+ plan:{rx:-90,ry:0,s:1,f:[0,0,0]},
+ front:{rx:-6,ry:0,s:.8,f:[0,110,0]},
+ side:{rx:-6,ry:-90,s:.8,f:[0,110,0]}
+};
+
+/* ---------- capas ---------- */
+var LAYL=[['bld','Pisos 2–8','#9fd8ff'],['shell','Piso 1 (muros y salas)','#78dcff'],['eq','Equipos','#6fa8ff'],['pw','Energía','#ff5a4d'],['f1','Fibra ruta 1','#29d3ff'],['f2','Fibra ruta 2','#ff58e0'],['fi','Fibra interna','#ffe14d'],['gnd','Puesta a tierra','#3dff7a'],['und','Terreno y calles','#5b7e99'],['pins','Marcadores','#ffffff']];
+function applyLayers(){
+ LAYL.forEach(function(l){var k=l[0];if(G[k])G[k].style.display=layers[k]?'':'none';var c=$('#ly-'+k);if(c)c.checked=layers[k];});
+ P.forEach(function(p){p.el.style.display=(layers.pins&&layers[p.layer])?'':'none';});
+}
+(function(){
+ var box=$('#layl');
+ LAYL.forEach(function(l){
+  var lb=document.createElement('label');lb.className='lay';
+  lb.innerHTML='<input type="checkbox" id="ly-'+l[0]+'" checked><span class="sw" style="background:'+l[2]+'"></span>'+l[1];
+  lb.firstChild.addEventListener('change',function(e){layers[l[0]]=e.target.checked;applyLayers();});
+  box.appendChild(lb);
+ });
+})();
+function setLayers(list){
+ LAYL.forEach(function(l){if(l[0]!=='pins')layers[l[0]]=list.indexOf(l[0])>-1;});
+ applyLayers();
+}
+
+/* ---------- recorrido guiado ---------- */
+var ALL=['bld','shell','eq','pw','f1','f2','fi','gnd','und'];
+var STEPS=[
+{t:'El edificio del caso',d:'Un ISP ocupa un edificio de 8 pisos y quiere montar su datacenter. Hay dos decisiones encadenadas: primero EN QUÉ PISO va, y después POR DÓNDE entran la energía eléctrica y la fibra óptica. Gira el edificio con el ratón o el dedo.',L:['bld','shell','und','eq'],rx:-22,ry:-35,s:.8,f:[0,120,0],ex:0},
+{t:'Elegir el piso',d:'Mueve el control «Explosión de pisos» para separar los niveles. Sótano: riesgo de inundación y difícil drenaje. Último piso: filtraciones, rayos y mayor exposición térmica y sísmica. Piso 1: cerca de las acometidas, del generador y de la entrada de equipos pesados (baterías, racks). Por eso el caso se resuelve con el datacenter en el piso 1, con muros ciegos hacia la calle. (Criterio de buenas prácticas, inferencia: no es cita de una norma.)',L:['bld','shell','und','eq'],rx:-14,ry:-30,s:.72,f:[0,150,0],ex:34},
+{t:'Piso 1 por dentro',d:'Se quitan los pisos superiores. Lado este: subestación, UPS y generador. Lado oeste: dos Entrance Rooms (ER1 al frente, ER2 atrás) y la MDA. Al centro: la sala de servidores con dos filas de racks y un pasillo de enfriamiento.',L:['shell','eq','und'],rx:-52,ry:-28,s:1.25,f:[0,10,0],ex:0},
+{t:'Acometida eléctrica (Calle A, este)',d:'La energía de la concesionaria llega por un ducto enterrado desde el poste y transformador de la Calle A, pasa por una cámara de registro, atraviesa el muro este y llega a la subestación y al TGBT. Está del lado opuesto a la fibra a propósito.',L:['shell','eq','pw','und'],rx:-32,ry:-62,s:1.3,f:[230,5,-100],ex:0},
+{t:'Respaldo y distribución eléctrica',d:'TGBT → ATS. El ATS elige entre la red y el grupo electrógeno (línea naranja). Del ATS pasa al UPS con baterías y de ahí a las PDU que alimentan cada fila de racks. Si cae la red: el UPS cubre los primeros segundos y el generador toma la carga.',L:['shell','eq','pw'],rx:-55,ry:-30,s:1.9,f:[125,5,-15],ex:0},
+{t:'Fibra ruta 1 (Calle B, frente)',d:'El operador X llega por ducto subterráneo por la calle del frente, entra por la cámara de registro y sube a la ER1, donde se empalma al ODF y se lleva a la MDA.',L:['shell','eq','f1','und'],rx:-35,ry:12,s:1.2,f:[-170,0,150],ex:0},
+{t:'Fibra ruta 2 (Calle C, posterior)',d:'Segunda entrada, físicamente separada: otro operador o troncal, otra calle, otra cámara y otra ER. Si una obra corta la Calle B, la ruta 2 sigue viva. Esto es la «diversidad de rutas».',L:['shell','eq','f2','und'],rx:-35,ry:168,s:1.2,f:[-170,0,-150],ex:0},
+{t:'MDA y distribución a los racks',d:'Desde las dos ER, las fibras convergen en la MDA (routers y switches). De ahí sale la fibra interna (amarillo) por una bandeja aérea y baja a cada rack mediante bajantes.',L:['shell','eq','f1','f2','fi'],rx:-48,ry:-18,s:1.7,f:[-30,15,0],ex:0},
+{t:'Separación entre energía y fibra',d:'Energía por el este; fibra por el frente y por atrás: una obra o un incidente en una sola calle no deja sin ambos servicios. Las dos entradas de fibra deben ir lo más lejos posible entre sí. En verde, la puesta a tierra común.',L:['shell','eq','pw','f1','f2','fi','gnd','und'],rx:-62,ry:-12,s:.95,f:[0,0,0],ex:0},
+{t:'Vista completa',d:'Ahora explora libremente: activa o desactiva capas en la pestaña «Capas», toca los marcadores numerados para ver definición, uso y marcas reales, o usa «Cámara AR» para superponer el modelo a tu entorno (requiere HTTPS y permiso de cámara).',L:ALL,rx:-26,ry:-32,s:.8,f:[0,110,0],ex:0}
+];
+var si=0;
+(function(){
+ var dots=$('#dots');
+ STEPS.forEach(function(s,i){var b=document.createElement('button');b.textContent=i+1;b.title=s.t;b.addEventListener('click',function(){showStep(i);});dots.appendChild(b);});
+})();
+function showStep(i,instant){
+ si=Math.max(0,Math.min(STEPS.length-1,i));var S=STEPS[si];
+ setLayers(S.L);
+ var t=camFor(S);
+ if(instant){for(var k in t)cam[k]=t[k];render();}else tweenTo(t,1000);
+ $('#stepn').textContent='Paso '+(si+1)+' de '+STEPS.length;
+ $('#stept').textContent=S.t;$('#stepd').textContent=S.d;
+ Array.prototype.forEach.call($('#dots').children,function(b,j){b.classList.toggle('on',j===si);});
+}
+$('#prev').onclick=function(){showStep(si-1);};
+$('#next').onclick=function(){showStep(si+1);};
+
+/* ---------- lista de componentes y modal ---------- */
+(function(){
+ var box=$('#compl');
+ P.forEach(function(p){
+  if(p.lbl)return;
+  var b=document.createElement('button');b.className='cl';b.style.setProperty('--pc',p.col);
+  b.innerHTML='<i>'+p.n+'</i><span>'+p.t+'</span>';
+  b.addEventListener('click',function(){openPin(p);focusOn(p);});
+  box.appendChild(b);
+ });
+})();
+var cur=null;
+function openPin(p){
+ cur=p;$('#mt').textContent=p.t;$('#md').textContent=p.d;$('#mu').textContent=p.u;
+ var ul=$('#me');ul.innerHTML='';p.e.forEach(function(x){var li=document.createElement('li');li.textContent=x;ul.appendChild(li);});
+ $('#modal').hidden=false;
+}
+function closeModal(){$('#modal').hidden=true;}
+function focusOn(p){
+ var y=p.pos[1]+(p.fl>1?(p.fl-1)*cam.ex:0);
+ var s=Math.max(cam.s,1.6*K());var r=rot([p.pos[0],y,p.pos[2]],cam.rx,cam.ry,s);
+ if(!layers[p.layer]){layers[p.layer]=true;applyLayers();}
+ tweenTo({rx:cam.rx,ry:cam.ry,s:s,px:-r[0],py:-r[1],ex:cam.ex},800);
+}
+$('#mx').onclick=closeModal;
+$('#modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+$('#mf').onclick=function(){if(cur){closeModal();focusOn(cur);}};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+/* ---------- interacción ---------- */
+var pts={},pinch0=0,s0=1,dragging=false,panMode=false,auto=false;
+function npts(){return Object.keys(pts).length;}
+stage.addEventListener('pointerdown',function(e){
+ if(e.target.closest('.pin,.ctl,#toast'))return;
+ cancelAnimationFrame(anim);
+ try{stage.setPointerCapture(e.pointerId);}catch(_){}
+ pts[e.pointerId]={x:e.clientX,y:e.clientY};
+ if(npts()===2){var a=pts[Object.keys(pts)[0]],b=pts[Object.keys(pts)[1]];pinch0=Math.hypot(a.x-b.x,a.y-b.y);s0=cam.s;}
+ dragging=true;stage.classList.add('drag');
+});
+stage.addEventListener('pointermove',function(e){
+ var p=pts[e.pointerId];if(!p)return;
+ var dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+ if(npts()===2){
+  var k=Object.keys(pts),a=pts[k[0]],b=pts[k[1]],d=Math.hypot(a.x-b.x,a.y-b.y);
+  if(pinch0>0)cam.s=Math.max(.25,Math.min(5,s0*d/pinch0));
+ }else if(e.shiftKey||e.buttons===2||panMode){cam.px+=dx;cam.py+=dy;}
+ else{cam.ry+=dx*.4;cam.rx=Math.max(-90,Math.min(8,cam.rx-dy*.4));}
+ render();
+});
+function up(e){delete pts[e.pointerId];if(!npts()){dragging=false;stage.classList.remove('drag');}}
+stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
+stage.addEventListener('contextmenu',function(e){e.preventDefault();});
+stage.addEventListener('wheel',function(e){
+ e.preventDefault();cancelAnimationFrame(anim);
+ cam.s=Math.max(.25,Math.min(5,cam.s*Math.exp(-e.deltaY*.001)));render();
+},{passive:false});
+window.addEventListener('resize',render);
+
+document.querySelectorAll('[data-v]').forEach(function(b){
+ b.addEventListener('click',function(){var v=VIEWS[b.getAttribute('data-v')];var t=camFor(v);t.ex=cam.ex;tweenTo(t,900);});
+});
+$('#bpan').onclick=function(){panMode=!panMode;this.classList.toggle('on',panMode);};
+$('#bauto').onclick=function(){auto=!auto;this.classList.toggle('on',auto);};
+$('#breset').onclick=function(){setLayers(ALL);showStep(STEPS.length-1);};
+$('#rex').addEventListener('input',function(e){cancelAnimationFrame(anim);cam.ex=+e.target.value;render();});
+(function loop(){if(auto&&!dragging){cam.ry+=.25;render();}requestAnimationFrame(loop);})();
+
+function toast(t){var el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true;},4500);}
+$('#bar').onclick=function(){
+ var v=$('#video'),btn=this;
+ if(stage.classList.contains('ar')){
+  if(v.srcObject)v.srcObject.getTracks().forEach(function(t){t.stop();});
+  v.srcObject=null;stage.classList.remove('ar');btn.classList.remove('on');return;
+ }
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Este navegador o contexto no permite cámara (se requiere HTTPS).');return;}
+ navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false}).then(function(st){
+  v.srcObject=st;return v.play();
+ }).then(function(){stage.classList.add('ar');btn.classList.add('on');})
+ .catch(function(err){toast('No se pudo activar la cámara ('+(err&&err.name?err.name:'error')+'). Revisa el permiso del navegador.');});
+};
+
+/* ---------- pestañas ---------- */
+document.querySelectorAll('.tabs button').forEach(function(b){
+ b.addEventListener('click',function(){
+  document.querySelectorAll('.tabs button').forEach(function(x){x.classList.toggle('on',x===b);});
+  ['tour','layers','comp'].forEach(function(t){$('#tab-'+t).hidden=(t!==b.getAttribute('data-tab'));});
+ });
+});
+
+applyLayers();
+showStep(0,true);
+})();
+</script>
+</body>
+</html>
