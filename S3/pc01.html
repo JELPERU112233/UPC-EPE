@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz de Redes – Semanas 1 a 3</title>
+<style>
+  :root { --bg:#1e1b4b; --bar:#14123a; --ink:#ffffff; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--bg); font-family: Arial, Helvetica, sans-serif; color:var(--ink); }
+  #bar { display:flex; gap:12px; align-items:center; justify-content:center; padding:8px 12px; background:var(--bar); font-size:14px; }
+  #bar input { font:inherit; padding:6px 10px; border-radius:6px; border:1px solid #6b64c9; background:#fff; color:#111; width:min(340px,60vw); }
+  #wrap { display:flex; justify-content:center; }
+  #stage { width:100%; max-width:1280px; height:auto; max-height:calc(100vh - 48px); display:block; user-select:none; }
+  #stage g[role="button"] { cursor:pointer; outline:none; }
+  #stage g[role="button"]:focus-visible .focus-ring { stroke:#fff; stroke-width:5; }
+  #reporte { display:none; }
+  @media print {
+    html, body { background:#fff; color:#000; }
+    #bar, #wrap { display:none !important; }
+    #reporte { display:block; padding:24px; font-size:13px; }
+    #reporte h1 { font-size:20px; margin:0 0 4px; }
+    #reporte table { width:100%; border-collapse:collapse; margin-top:12px; }
+    #reporte th, #reporte td { border:1px solid #999; padding:5px 7px; text-align:left; vertical-align:top; }
+    #reporte th { background:#eee; }
+    #reporte .nota { font-size:40px; font-weight:bold; margin:10px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="bar">
+  <label for="nombre">Estudiante:</label>
+  <input id="nombre" type="text" placeholder="Apellidos y nombres" autocomplete="off">
+</div>
+<div id="wrap">
+  <svg id="stage" viewBox="0 0 1280 720" role="application" aria-label="Quiz de Redes y Comunicación de Datos, semanas 1 a 3"></svg>
+</div>
+<div id="reporte"></div>
+
+<script>
+/* ===== Configuración ===== */
+const TOTAL = 20;          // preguntas por intento
+const NOTA_APROBATORIA = 11; // convención habitual en Perú (escala 0–20); ajustable
+const PUNTOS_POR_ACIERTO = 1;
+const CUOTA = {1:7, 2:7, 3:6}; // 7 + 7 + 6 = 20, extraídas al azar del balotario de 60
+const SEMANAS = {1:"Semana 1", 2:"Semana 2", 3:"Semana 3"};
+
+/* ===== Balotario (60 preguntas, del Excel «Examen_Redes_Semanas_1-3») ===== */
+const BANCO = [{"q": "Según el material de la Semana 1, ¿cómo se define un sistema de cableado estructurado?", "o": ["Sistema de cableado propietario de un solo fabricante, diseñado para un único protocolo de red", "Conjunto de cables de energía eléctrica que alimenta los equipos activos del edificio", "Sistema de comunicación inalámbrica que reemplaza el cableado físico en las oficinas", "Instalación temporal de cables que se reconfigura según el equipo terminal de cada usuario", "Sistema de cableado de telecomunicaciones de edificios comerciales que soporta ambientes multiprotocolo o multifabricante y cumple con los estándares de la industria"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "5", "j": "Definición textual de la lámina 5."}, {"q": "¿Cuál de las siguientes opciones NO es uno de los siete componentes de un sistema de cableado estructurado presentados en clase?", "o": ["Cuartos de telecomunicaciones", "Facilidades de entrada", "Administración", "Sistema de climatización (HVAC)", "Área de trabajo"], "ok": 3, "w": 1, "f": "Sesion_1.pdf", "l": "6", "j": "Los siete componentes son: cableado horizontal, backbone, área de trabajo, cuartos de telecomunicaciones, cuartos de equipos, facilidades de entrada y administración."}, {"q": "¿Cuál es la función de las facilidades de entrada?", "o": ["Terminar mecánicamente el cableado horizontal de cada piso", "Proveer los componentes para conectar los servicios externos al cableado del edificio", "Alojar los equipos de cómputo del usuario final", "Interconectar los distribuidores de piso con el distribuidor de campus", "Etiquetar e identificar cada puerto del patch panel"], "ok": 1, "w": 1, "f": "Sesion_1.pdf", "l": "7", "j": "Lámina 7: componentes para la conexión de los servicios externos al cableado del edificio."}, {"q": "¿Qué diferencia a un cuarto de equipos de un cuarto de telecomunicaciones?", "o": ["El cuarto de equipos sirve a un solo piso, mientras que el de telecomunicaciones sirve a todo el campus", "El cuarto de equipos solo aloja cableado horizontal y el de telecomunicaciones solo backbone", "El cuarto de telecomunicaciones es un ambiente de propósito especial para grandes equipos de todo el edificio", "No existe diferencia: son dos nombres para el mismo espacio", "El cuarto de equipos sirve generalmente a un edificio entero o campus, mientras que el de telecomunicaciones sirve a un piso o a una porción del piso"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "8 y 10", "j": "Lámina 8: los cuartos de equipos sirven a un edificio o campus; un cuarto de telecomunicaciones sirve a un piso o porción de piso."}, {"q": "Respecto del cableado backbone, es correcto afirmar que:", "o": ["Se extiende desde el outlet del área de trabajo hasta el equipo terminal", "Se limita a los patch cords de 5 m del área de trabajo", "Solo comprende el cableado dentro de un mismo piso", "Describe a los cables que manejan el mayor tráfico de información e interconecta cuartos de comunicaciones, cuartos de equipos y facilidades de entrada", "Excluye el cableado entre edificios"], "ok": 3, "w": 1, "f": "Sesion_1.pdf", "l": "9", "j": "Lámina 9: incluye además el cableado entre edificios."}, {"q": "¿Cuál es la función principal del cuarto de telecomunicaciones?", "o": ["Conectar los servicios del proveedor externo con el edificio", "Alojar los equipos terminales del usuario", "Proveer espacio y condiciones ambientales para grandes equipos de todo el campus", "Ser el punto de terminación del cableado horizontal y backbone en el hardware de conexión", "Medir y certificar el cableado instalado"], "ok": 3, "w": 1, "f": "Sesion_1.pdf", "l": "10", "j": "Lámina 10: punto de terminación del cableado horizontal y backbone; puede cumplir la función de distribuidor intermedio."}, {"q": "El cableado horizontal se extiende desde:", "o": ["La facilidad de entrada hasta el cuarto de equipos", "El cuarto de equipos hasta el distribuidor de campus", "El equipo terminal hasta la computadora del usuario", "El área de trabajo (outlet/conector) hasta el cuarto de telecomunicaciones (horizontal cross-connect)", "El distribuidor de edificio hasta el punto de demarcación del proveedor"], "ok": 3, "w": 1, "f": "Sesion_1.pdf", "l": "11", "j": "Lámina 11: porción del sistema que se extiende desde el área de trabajo hasta el cuarto de telecomunicaciones."}, {"q": "¿Cuál es la longitud máxima del patch cord del área de trabajo indicada en la lámina «Área de trabajo»?", "o": ["5 m", "2 m", "10 m", "15 m", "90 m"], "ok": 0, "w": 1, "f": "Sesion_1.pdf", "l": "12", "j": "Lámina 12: 5 metros para el patch cord."}, {"q": "En el enlace de cableado horizontal del laboratorio, ¿qué longitud máxima se indica para el permalink (enlace permanente)?", "o": ["Hasta 5 m", "Hasta 30 m", "Hasta 100 m", "Hasta 150 m", "Hasta 90 m"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "15 y 17", "j": "Láminas 15 y 17: 5 m (patch cord) + 90 m (permalink) + 5 m (patch cord)."}, {"q": "¿Qué es un código, a diferencia de un estándar?", "o": ["Un documento de adopción voluntaria que representa el consenso de la industria", "Una recomendación de un fabricante para sus propios productos", "Una especificación para las pruebas de laboratorio de cables", "Un manual de instalación sin valor normativo", "Un requisito legal obligatorio para las prácticas de instalación, aplicado por lo general mediante regulación gubernamental"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "21 y 22", "j": "Lámina 21 (código = obligatorio) vs. lámina 22 (estándar = adopción voluntaria)."}, {"q": "En el ciclo de desarrollo de normas, ¿qué etapa sigue inmediatamente al borrador?", "o": ["Uso de la norma", "Presentación de la idea ante el cuerpo de consenso", "Votación por consenso", "Revisión de resultados", "Publicación comercial por el fabricante"], "ok": 2, "w": 1, "f": "Sesion_1.pdf", "l": "23", "j": "Orden de la lámina 23: idea → borrador → votación por consenso → revisión de resultados → uso."}, {"q": "¿Qué sigla corresponde a la Unión Internacional de Telecomunicaciones (ONU)?", "o": ["TIA", "IEC", "ITU", "NFPA", "CENELEC"], "ok": 2, "w": 1, "f": "Sesion_1.pdf", "l": "25", "j": "Lámina 25: ITU – Unión Internacional de Telecomunicaciones – ONU."}, {"q": "Dentro de las familias ANSI/TIA (Premises Standards), ¿qué estándar corresponde a centros de datos?", "o": ["ANSI/TIA-570", "ANSI/TIA-1005", "ANSI/TIA-942", "ANSI/TIA-1179", "ANSI/TIA-606"], "ok": 2, "w": 1, "f": "Sesion_1.pdf", "l": "26", "j": "Lámina 26: 570 residencial, 942 centros de datos, 1005 industrial, 1179 salud; 606 es administración (Common Standards)."}, {"q": "¿Cuál de las siguientes normas trata sobre los métodos de medición de la atenuación de fibras ópticas?", "o": ["NTP-ISO/IEC 11801-1:2020", "NTP-ISO/IEC 11801-2:2021", "NTP 264.100:2018", "ANSI/TIA-942", "NTP-IEC 60793-1-40:2020"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "30", "j": "Lámina 30: NTP-IEC 60793-1-40:2020 – Fibras ópticas, métodos de medición de la atenuación."}, {"q": "Según la NTP-ISO/IEC 11801-2, ¿cuál es el orden correcto de la jerarquía de distribuidores, desde el campus hasta el equipo terminal?", "o": ["BD → CD → FD → TO → CP → TE", "FD → BD → CD → CP → TO → TE", "Distribuidor de campus (CD) → distribuidor de edificio (BD) → distribuidor de piso (FD) → punto de consolidación (CP) → salida de telecomunicaciones (TO) → equipo terminal (TE)", "CD → FD → BD → CP → TE → TO", "TE → TO → CP → BD → FD → CD"], "ok": 2, "w": 1, "f": "Sesion_1.pdf", "l": "43", "j": "Lámina 43: CD, BD y FD forman el backbone; CP, TO y TE el cableado horizontal."}, {"q": "Respecto de la salida de telecomunicaciones (TO) en la NTP-ISO/IEC 11801-2, ¿qué enunciado es correcto?", "o": ["Basta con una sola TO de fibra óptica", "Las dos TO deben ser exclusivamente de fibra óptica", "Los adaptadores y balunes deben integrarse dentro de la TO", "La TO no requiere identificación permanente", "Debe haber un mínimo de 2 TO, con identificación permanente, y los balunes o adaptadores deben ser externos"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "44", "j": "Lámina 44 (Requisitos)."}, {"q": "De acuerdo con la lámina «Rendimiento del canal», ¿cuál es la longitud máxima de un canal de cableado horizontal?", "o": ["L ≤ 90 m", "L ≤ 85 m", "L ≤ 5 m", "L ≤ 150 m", "L ≤ 100 m"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "47", "j": "Lámina 47: canal L ≤ 100 m; enlace permanente 15–90 m; enlace CP 15–85 m; cordón de equipo 2–5 m."}, {"q": "¿Qué clase de cableado balanceado se define hasta 500 MHz y se asocia a componentes de Categoría 6A?", "o": ["Clase D", "Clase E", "Clase F", "Clase FA", "Clase EA"], "ok": 4, "w": 1, "f": "Sesion_1.pdf", "l": "36", "j": "Lámina 36: Clase EA = 500 MHz; Categoría 6A = 500 MHz."}, {"q": "¿Cuáles son los tipos de fibra monomodo citados en el cableado de fibra óptica de la NTP-ISO/IEC 11801-1?", "o": ["OM3 y OM4", "OM4 y OM5", "OS1 y OS2", "OM3 y OS1", "OM5 y OS2"], "ok": 2, "w": 1, "f": "Sesion_1.pdf", "l": "38", "j": "Lámina 38: OM3, OM4 y OM5 son multimodo; OS1 y OS2 son monomodo."}, {"q": "¿Qué esquema describe una conexión cruzada (cross-connect)?", "o": ["Equipo → cordón de equipo → patch panel", "Patch panel → cordón de conexión → patch panel", "Distribuidor 1 → cable → punto de consolidación → salida de equipo terminal", "Salida de telecomunicaciones → cordón de equipo → equipo terminal", "Distribuidor de campus → cable troncal → distribuidor de edificio"], "ok": 1, "w": 1, "f": "Sesion_1.pdf", "l": "35", "j": "Lámina 35: la interconexión es equipo → cordón de equipo → patch panel; la conexión cruzada es patch panel → cordón → patch panel."}, {"q": "En la designación XX/YZZ de los cables de pares trenzados, ¿qué significa S/FTP?", "o": ["Malla global (S), lámina por cada par (F) y par trenzado (TP)", "Sin blindaje global, lámina global y par trenzado", "Lámina global (F), malla por par (S) y cuádruple trenzado", "Malla y lámina globales, pares sin blindar y par trenzado", "Sin ningún blindaje y par trenzado"], "ok": 0, "w": 2, "f": "Semana_2.pdf", "l": "5", "j": "Ejemplo textual de la lámina 5."}, {"q": "Según la lámina «Anatomía del cable de cobre», ¿cuál de los siguientes elementos es opcional?", "o": ["Conductor sólido", "Aislamiento termoplástico", "Separador de pares", "Chaqueta externa", "Par trenzado"], "ok": 2, "w": 2, "f": "Semana_2.pdf", "l": "6", "j": "Lámina 6, opcionales: uno o más blindajes, miembro rígido, separador de pares y rip cord."}, {"q": "¿Cuál de los siguientes grupos contiene únicamente materiales de aislamiento NO halógenos?", "o": ["PVC, FEP y ETFE", "Polietileno (PE), poliuretano (PU) y polipropileno (PPE)", "PVC, PE y PU", "FEP, PU y PPE", "ETFE, PE y PPE"], "ok": 1, "w": 2, "f": "Semana_2.pdf", "l": "7", "j": "Lámina 7: halógenos = PVC, FEP, ETFE; no halógenos = PE, PU, PPE."}, {"q": "¿Cuál es el objetivo del trenzado de los pares?", "o": ["Aumentar el diámetro efectivo del conductor", "Minimizar la diafonía y el ruido, mejorando el balance entre los dos conductores del par", "Incrementar la atenuación para evitar interferencias", "Reducir el costo del aislamiento", "Permitir mayor temperatura de operación sin pérdidas"], "ok": 1, "w": 2, "f": "Semana_2.pdf", "l": "8", "j": "Lámina 8."}, {"q": "Respecto de un cable blindado, ¿qué afirmación es correcta?", "o": ["Reduce la capacitancia por unidad de longitud", "Elimina la necesidad de conexión a tierra", "Aumenta la señal radiada desde el cable", "Minimiza el efecto de la EMI externa sobre los conductores", "Reduce el diámetro total del cable"], "ok": 3, "w": 2, "f": "Semana_2.pdf", "l": "10", "j": "Lámina 10: reduce la señal radiada, minimiza el efecto de la EMI externa y aumenta la capacitancia por unidad de longitud."}, {"q": "¿Qué calibre de conductor emplean los cables de Categoría 8?", "o": ["22 AWG", "19 AWG", "23 AWG", "24 AWG", "26 AWG"], "ok": 0, "w": 2, "f": "Semana_2.pdf", "l": "11 y 16", "j": "Lámina 11 (nota) y lámina 16."}, {"q": "¿Cómo influye la temperatura en la atenuación del cable de cobre?", "o": ["La atenuación aumenta con la temperatura; el PVC es el aislamiento más afectado, mientras FEP y ECTFE se mantienen más estables", "La atenuación disminuye con la temperatura; el PVC es el más estable", "La temperatura no influye; solo importa el calibre AWG", "El PVC se mantiene más estable, mientras FEP y ECTFE son los más afectados", "La atenuación aumenta, pero de forma idéntica en todos los aislamientos"], "ok": 0, "w": 2, "f": "Semana_2.pdf", "l": "12", "j": "Lámina 12: PVC ≈ 210 dB (22 °C), 300 dB (40 °C) y 460 dB (60 °C) a 135 MHz."}, {"q": "¿Cuál de los siguientes conectores NO es de estilo RJ45?", "o": ["GG45", "ARJ45", "Tera", "RJ45", "Plug RJ45 con hilo sólido"], "ok": 2, "w": 2, "f": "Semana_2.pdf", "l": "14", "j": "Lámina 14: estilo RJ45 (IEC 60603-7-71): GG45, ARJ45; estilo no RJ45 (IEC 61076-3-104): Tera."}, {"q": "¿Qué frecuencia y qué tasas de datos corresponden a la Categoría 8?", "o": ["500 MHz y 10G", "2 GHz (2000 MHz) y 25G/40GBASE-T", "1 GHz y 10G", "250 MHz y 1G", "600 MHz y 10G"], "ok": 1, "w": 2, "f": "Semana_2.pdf", "l": "15", "j": "Lámina 15."}, {"q": "En cuanto a la topología admitida por el cableado de Categoría 8:", "o": ["Requiere topología cross-connect y no admite interconnect", "Admite indistintamente interconnect y cross-connect", "Solo admite topologías con tres o más conexiones", "Requiere topología interconnect y no admite cross-connect", "No admite ninguna conexión intermedia, ni siquiera interconnect"], "ok": 3, "w": 2, "f": "Semana_2.pdf", "l": "16", "j": "Lámina 16."}, {"q": "Para Categoría 8, Clase I y II, con 2 conexiones, ¿cuál es la longitud total del canal (3 m + enlace + 3 m)?", "o": ["100 m (5 m + 90 m + 5 m)", "90 m", "30 m (3 m + 24 m + 3 m)", "24 m", "50 m"], "ok": 2, "w": 2, "f": "Semana_2.pdf", "l": "16", "j": "Lámina 16."}, {"q": "¿Qué característica de la fibra óptica sustenta su ventaja para realizar enlaces a grandes distancias?", "o": ["Inmunidad al ruido", "Gran ancho de banda", "Pesos y diámetros pequeños", "Baja atenuación", "Estabilidad en medios severos"], "ok": 3, "w": 2, "f": "Semana_2.pdf", "l": "24", "j": "Lámina 24: enlaces a grandes distancias → baja atenuación; calidad de transmisión → inmunidad al ruido; mayor tráfico → gran ancho de banda."}, {"q": "¿Qué conectores corresponden a la Clase 8.2?", "o": ["Solo RJ45", "RJ45 y GG45", "RJ45 y Tera", "GG45, ARJ45 y Tera", "Solo ARJ45"], "ok": 3, "w": 2, "f": "Semana_2.pdf", "l": "17", "j": "Lámina 17: Clase 8.1 = RJ45; Clase 8.2 = GG45, ARJ45 y Tera."}, {"q": "Según TIA-942, ¿qué categoría de cobre se recomienda para el cableado backbone?", "o": ["Categoría 6A o superior", "Categoría 3", "Categoría 5", "Categoría 5e", "Categoría 6"], "ok": 0, "w": 2, "f": "Semana_2.pdf", "l": "18", "j": "Lámina 18."}, {"q": "Según TIA-942, ¿qué fibra multimodo se recomienda en backbone y cableado horizontal?", "o": ["OM4 u OM5", "OM1 u OM2", "OM2 u OM3", "OM1 u OM3", "OS1 u OS2"], "ok": 0, "w": 2, "f": "Semana_2.pdf", "l": "18 y 29", "j": "Lámina 18 y síntesis de la lámina 29."}, {"q": "Según TIA-942, el cable coaxial de 75 Ω tipo 734 y 735 (Telcordia GR-3175) es medio reconocido:", "o": ["Para cualquier aplicación Ethernet de 10 Gbit/s", "Solo para circuitos de voz analógica", "Para enlaces de 40GBASE-T", "Solo para circuitos T-1, T-3, E1 y E-3", "No es un medio reconocido"], "ok": 3, "w": 2, "f": "Semana_2.pdf", "l": "18", "j": "Lámina 18."}, {"q": "¿Cuál de las siguientes aplicaciones está definida para la Clase EA (hasta 500 MHz)?", "o": ["Ethernet 1000BASE-T", "Ethernet 25GBASE-T", "Ethernet 40GBASE-T", "PoE Tipo 3", "Ethernet 10GBASE-T"], "ok": 4, "w": 2, "f": "Semana_2.pdf", "l": "20 a 22", "j": "Lámina 21 (EA: 2.5G, 5G y 10GBASE-T). 1000BASE-T y PoE son Clase D (lámina 20); 25G/40GBASE-T son Clases I y II (lámina 22)."}, {"q": "¿Cuál es la atenuación máxima de la fibra monomodo OS2 en 1310, 1383 y 1550 nm?", "o": ["1,0 dB/km", "1,5 dB/km", "3,0 dB/km", "0,4 dB/km", "3,5 dB/km"], "ok": 3, "w": 2, "f": "Semana_2.pdf", "l": "28", "j": "Lámina 28: OS1a = 1,0 dB/km; OS2 = 0,4 dB/km."}, {"q": "Según la tabla de fibra multimodo, ¿cuál es el alcance de 10GBASE-SR sobre OM4?", "o": ["300 m", "150 m", "100 m", "550 m", "400 m"], "ok": 4, "w": 2, "f": "Semana_2.pdf", "l": "29", "j": "Lámina 29: OM3 = 300 m; OM4 y OM5 = 400 m."}, {"q": "¿Qué tipo de conector emplea el módulo QSFP+ de 40GBASE-SR4?", "o": ["MPO", "SC", "LC", "RJ45", "Tera"], "ok": 0, "w": 2, "f": "Semana_2.pdf", "l": "30", "j": "Lámina 30: GBIC 1000BASE-SX → SC; SFP → LC; QSFP+ 40GBASE-SR4 → MPO."}, {"q": "Respecto de la localización de un espacio de telecomunicaciones, ¿cuál es un criterio correcto?", "o": ["Ubicarlo junto a ventanas exteriores para aprovechar la ventilación natural", "Evitar la cercanía a fuentes de EMI y a ventanas exteriores, y asegurar accesibilidad para grandes equipos", "Colocarlo cerca de motores y transformadores para facilitar la energía", "Permitir el acceso libre a todo el personal del edificio", "Ubicarlo en zonas sin acceso para grandes equipos, por seguridad"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "5", "j": "Lámina 5: acceso limitado a personal autorizado."}, {"q": "¿Cuál es el ancho mínimo de un pasillo en el frente y en la parte trasera de cada rack o gabinete?", "o": ["1 m", "300 mm", "150 mm", "2,3 m", "1,83 m"], "ok": 0, "w": 3, "f": "Semana_3.pdf", "l": "6", "j": "Lámina 6."}, {"q": "¿Cuál es la altura mínima del techo indicada para un espacio de telecomunicaciones?", "o": ["2,4 m", "1,98 m", "2,0 m", "2,3 m", "0,91 m"], "ok": 0, "w": 3, "f": "Semana_3.pdf", "l": "7", "j": "Lámina 7: mínimo 2,4 m; se podría considerar 3 m."}, {"q": "¿Qué dimensiones mínimas debe tener la puerta de un cuarto de telecomunicaciones?", "o": ["0,6 m × 2,6 m", "1,2 m × 1,83 m", "1 m × 2,3 m", "0,91 m × 1,98 m", "3 m × 2,4 m"], "ok": 3, "w": 3, "f": "Semana_3.pdf", "l": "7", "j": "Lámina 7: al menos 0,91 m × 1,98 m."}, {"q": "¿Cuál es el rango de temperatura indicado para cuartos con equipos activos?", "o": ["10 °C – 15 °C", "15 °C – 20 °C", "18 °C – 27 °C", "22 °C – 32 °C", "27 °C – 35 °C"], "ok": 2, "w": 3, "f": "Semana_3.pdf", "l": "8", "j": "Lámina 8."}, {"q": "Para mantener presión positiva en un cuarto con equipos activos, la lámina de condiciones ambientales indica:", "o": ["Un mínimo de cinco cambios de aire por hora", "Un mínimo de un cambio de aire por hora", "Presión negativa con un cambio de aire por día", "Un cambio de aire por minuto", "No se requiere control de presión si existe HVAC"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "8", "j": "Lámina 8."}, {"q": "En el diseño eléctrico de un cuarto de telecomunicaciones, ¿cuántos tomacorrientes dedicados a la carga crítica se requieren como mínimo?", "o": ["1", "2", "4", "6", "8"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "9", "j": "Lámina 9: 2 tomacorrientes como mínimo, dedicados a la carga crítica del cuarto."}, {"q": "¿Qué nivel mínimo de iluminación se indica, medido desde el punto de terminación del cable?", "o": ["538 lux", "50 lux", "100 lux", "250 lux", "1000 lux"], "ok": 0, "w": 3, "f": "Semana_3.pdf", "l": "10", "j": "Lámina 10."}, {"q": "Para un área servida mayor de 740 m² y hasta 929 m², ¿qué dimensiones interiores mínimas debe tener el cuarto de telecomunicaciones?", "o": ["3 m × 2,4 m", "3 m × 3,4 m", "3 m × 2,75 m", "1,2 m × 1,83 m", "6,1 m × 4,6 m"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "11", "j": "Lámina 11: ≤ 460 m² → 3 × 2,4 m; ≤ 740 m² → 3 × 2,75 m; ≤ 929 m² → 3 × 3,4 m."}, {"q": "¿Cuáles son las dimensiones mínimas de un shallow room (cuarto poco profundo)?", "o": ["1,2 m × 1,83 m", "0,6 m de profundidad × 2,6 m de ancho", "3 m × 2,4 m", "2,4 m × 2,4 m", "0,91 m × 1,98 m"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "12 y 17", "j": "Lámina 12 (1,2 × 1,83 m corresponde a walk-in rooms)."}, {"q": "¿A partir de qué área útil de piso se requieren múltiples cuartos de telecomunicaciones?", "o": ["Más de 929 m² (10 000 pies²)", "Más de 460 m²", "Más de 93 m²", "Más de 740 m²", "Más de 9,3 m²"], "ok": 0, "w": 3, "f": "Semana_3.pdf", "l": "13", "j": "Lámina 13 (también cuando el cable horizontal excede 90 m)."}, {"q": "En el paso por muro (sleeve) con pathways y firestops, ¿qué diámetro interior y cuánto sobresale?", "o": ["50 mm y 25 mm", "75 mm y 100 mm", "21 mm y 150 mm", "35 mm y 300 mm", "Diámetro interior de 100 mm (4 trade size) y sobresale 75 mm"], "ok": 4, "w": 3, "f": "Semana_3.pdf", "l": "16", "j": "Lámina 16."}, {"q": "¿Cuál es el tamaño típico del cuarto de equipos del proveedor de acceso (cuarto de entrada) mostrado en los esquemas?", "o": ["3 m × 2,4 m", "6,1 m × 4,6 m", "1,2 m × 1,83 m", "2,4 m × 2,4 m (8 × 8 ft)", "0,6 m × 2,6 m"], "ok": 3, "w": 3, "f": "Semana_3.pdf", "l": "18", "j": "Lámina 18."}, {"q": "¿Qué espesor de backboard de contrachapado se especifica en los esquemas del cuarto de telecomunicaciones?", "o": ["19 mm", "10 mm", "40 mm", "6 mm", "21 mm (¾ trade size)"], "ok": 4, "w": 3, "f": "Semana_3.pdf", "l": "14 y 20", "j": "Lámina 14 (TR: 21 mm). En el cuarto de equipos (lámina 20) es de 19 mm, a prueba de fuego."}, {"q": "En el esquema de tierra de telecomunicaciones, ¿qué significa PBB?", "o": ["Barra de tierra del rack", "Barra principal de bonding", "Conductor de bonding de los equipos", "Instalación de entrada de telecomunicaciones", "Conductor de bonding del backbone"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "21", "j": "Lámina 21: RGB = barra de tierra del rack; TEBC = conductor de bonding de equipos; TEF = instalación de entrada; BBC = conductor de bonding del backbone."}, {"q": "¿Con qué especificaciones debe cumplir la puesta a tierra y el cableado de los espacios de telecomunicaciones?", "o": ["ANSI/TIA-942", "ANSI/TIA-607-C", "ANSI/TIA-569", "ANSI/TIA-606", "ISO/IEC 11801-1"], "ok": 1, "w": 3, "f": "Semana_3.pdf", "l": "9", "j": "Lámina 9."}, {"q": "Respecto de la EMI en el cableado, ¿qué enunciado es correcto?", "o": ["Los cables de fibra óptica son los mayores productores de EMI", "Solo los motores generan EMI", "Los cables eléctricos son los mayores productores y receptores de EMI", "Los equipos de telecomunicaciones no son fuente de EMI", "Las lámparas fluorescentes son la única fuente de EMI"], "ok": 2, "w": 3, "f": "Semana_3.pdf", "l": "26", "j": "Lámina 26 (los equipos de telecomunicaciones figuran entre las fuentes)."}, {"q": "¿Cuál es la separación mínima aproximada entre la canalización de telecomunicaciones y motores o transformadores eléctricos?", "o": ["≈ 600 mm (24 pulg)", "≈ 300 mm (12 pulg)", "≈ 1220 mm (48 pulg)", "≈ 150 mm (6 pulg)", "≈ 125 mm (5 pulg)"], "ok": 2, "w": 3, "f": "Semana_3.pdf", "l": "27", "j": "Lámina 27."}, {"q": "En las vías de cableado, ¿cuántas curvas de 90° (180° en total) se permiten como máximo entre pull boxes, salvo que el tendido sea menor a 10 m?", "o": ["Dos", "Una", "Tres", "Cuatro", "Ninguna"], "ok": 0, "w": 3, "f": "Semana_3.pdf", "l": "31", "j": "Lámina 31: se permite una tercera curva si el tendido es menor a 10 m."}, {"q": "Según la tabla de dimensionamiento de ductos, ¿cuántos cables de 3,3 mm (0,13 in) de diámetro exterior caben como máximo en un conduit de 53 mm (2 in)?", "o": ["26", "22", "30", "45", "20"], "ok": 2, "w": 3, "f": "Semana_3.pdf", "l": "32", "j": "Lámina 32 (ejemplo de lectura de la tabla)."}];
+
+/* ===== Utilidades SVG ===== */
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("stage");
+function E(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in (attrs||{})) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const ctx = document.createElement("canvas").getContext("2d");
+function wrap(text, fs, maxW, weight) {
+  ctx.font = (weight||400) + " " + fs + "px Arial";
+  const words = String(text).split(" "), lines = []; let cur = "";
+  for (const w of words) {
+    const t = cur ? cur + " " + w : w;
+    if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function fitText(parent, text, x, y, w, h, o) {
+  o = Object.assign({max:24, min:11, fill:"#fff", weight:400, anchor:"start", valign:"middle", lh:1.22}, o||{});
+  let fs = o.max, lines;
+  for (; fs >= o.min; fs--) { lines = wrap(text, fs, w, o.weight); if (lines.length*fs*o.lh <= h) break; }
+  const total = lines.length*fs*o.lh;
+  const y0 = o.valign === "middle" ? y + (h-total)/2 : y;
+  const tx = o.anchor === "middle" ? x + w/2 : x;
+  const t = E("text", {"font-family":"Arial, Helvetica, sans-serif","font-size":fs,"font-weight":o.weight,fill:o.fill,"text-anchor":o.anchor}, parent);
+  lines.forEach((ln,i) => { const ts = E("tspan", {x:tx, y:y0 + fs*o.lh*i + fs*0.95}, t); ts.textContent = ln; });
+  return t;
+}
+function btn(parent, x, y, w, h, label, fill, ink, onclick, aria) {
+  const g = E("g", {role:"button", tabindex:0, "aria-label":aria||label}, parent);
+  E("rect", {x:x+4, y:y+6, width:w, height:h, rx:12, fill:"rgba(0,0,0,.35)"}, g);
+  E("rect", {x, y, width:w, height:h, rx:12, fill, class:"focus-ring", stroke:"none"}, g);
+  fitText(g, label, x+10, y, w-20, h, {max:26, min:14, fill:ink, weight:700, anchor:"middle"});
+  g.addEventListener("click", onclick);
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onclick(); } });
+  return g;
+}
+function shape(parent, kind, cx, cy, s, fill) {
+  const g = E("g", {transform:`translate(${cx},${cy})`, "aria-hidden":"true"}, parent);
+  if (kind === 0) E("polygon", {points:`0,${-s} ${s},${s*0.8} ${-s},${s*0.8}`, fill}, g);
+  else if (kind === 1) E("polygon", {points:`0,${-s*1.1} ${s*1.1},0 0,${s*1.1} ${-s*1.1},0`, fill}, g);
+  else if (kind === 2) E("circle", {r:s, fill}, g);
+  else if (kind === 3) E("rect", {x:-s*0.85, y:-s*0.85, width:s*1.7, height:s*1.7, fill}, g);
+  else {
+    const pts = []; for (let i=0;i<10;i++){ const r = i%2? s*0.45 : s*1.1, a = -Math.PI/2 + i*Math.PI/5; pts.push((r*Math.cos(a)).toFixed(1)+","+(r*Math.sin(a)).toFixed(1)); }
+    E("polygon", {points:pts.join(" "), fill}, g);
+  }
+  return g;
+}
+const TILES = [
+  {c:"#E21B3C", ink:"#fff"},
+  {c:"#1368CE", ink:"#fff"},
+  {c:"#F2B705", ink:"#1a1a1a"},
+  {c:"#26890C", ink:"#fff"},
+  {c:"#864CBF", ink:"#fff"}
+];
+
+/* ===== Estado ===== */
+let qs = [], idx = 0, score = 0, resultados = [], raf = 0, bloqueado = false, elegida = null, vistaFinal = false;
+
+function barajar(a) { const r = a.slice(); for (let i=r.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]] = [r[j],r[i]]; } return r; }
+
+function armarIntento() {
+  let sel = [];
+  for (const w of [1,2,3]) sel = sel.concat(barajar(BANCO.filter(p => p.w === w)).slice(0, CUOTA[w]));
+  qs = barajar(sel).map(p => {
+    const orden = barajar([0,1,2,3,4]);
+    return { q:p.q, o:orden.map(i => p.o[i]), ok:orden.indexOf(p.ok), w:p.w, f:p.f, l:p.l, j:p.j };
+  });
+  idx = 0; score = 0; resultados = []; bloqueado = false; elegida = null; vistaFinal = false;
+}
+
+function limpiar() {
+  cancelAnimationFrame(raf);
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  const defs = E("defs", {}, svg);
+  const lg = E("linearGradient", {id:"fondo", x1:0, y1:0, x2:1, y2:1}, defs);
+  E("stop", {offset:"0", "stop-color":"#2a2468"}, lg);
+  E("stop", {offset:"1", "stop-color":"#14123a"}, lg);
+  E("rect", {width:1280, height:720, fill:"url(#fondo)"}, svg);
+  return E("g", {}, svg);
+}
+
+/* ===== Pantalla de inicio ===== */
+function pantallaInicio() {
+  const g = limpiar();
+  for (let i=0;i<5;i++) shape(g, i, 240 + i*200, 120, 34, TILES[i].c);
+  fitText(g, "Quiz de Redes y Comunicación de Datos", 80, 190, 1120, 80, {max:56, min:30, weight:700, anchor:"middle"});
+  fitText(g, "Semanas 1 a 3 · Cableado estructurado, cobre y fibra, espacios y canalización", 120, 285, 1040, 60, {max:26, min:16, fill:"#cfcaff", anchor:"middle"});
+  const reglas = [
+    TOTAL + " preguntas al azar del balotario de 60",
+    "5 alternativas, una sola correcta · sin límite de tiempo",
+    PUNTOS_POR_ACIERTO + " punto por cada respuesta correcta",
+    "Nota final en sistema vigesimal (0 a 20)"
+  ];
+  reglas.forEach((t,i) => {
+    E("rect", {x:300, y:365+i*52, width:680, height:42, rx:10, fill:"rgba(255,255,255,.10)"}, g);
+    fitText(g, t, 320, 365+i*52, 640, 42, {max:20, min:14, fill:"#fff", anchor:"middle"});
+  });
+  btn(g, 460, 600, 360, 76, "Comenzar", "#26890C", "#fff", comenzar, "Comenzar el examen");
+  fitText(g, "Responde con clic o con las teclas 1–5 / A–E. Siguiente pregunta: Enter.", 100, 686, 1080, 28, {max:16, min:12, fill:"#a9a3e8", anchor:"middle"});
+}
+function comenzar() {
+  armarIntento();
+  document.getElementById("nombre").disabled = true;
+  pregunta();
+}
+
+/* ===== Pregunta ===== */
+function pregunta() {
+  const q = qs[idx];
+  bloqueado = false; elegida = null;
+  dibujarPregunta();
+}
+function dibujarPregunta() {
+  const q = qs[idx];
+  const g = limpiar();
+  // barra superior
+  E("rect", {x:0, y:0, width:1280, height:60, fill:"rgba(0,0,0,.35)"}, g);
+  fitText(g, "Pregunta " + (idx+1) + " de " + TOTAL, 24, 0, 400, 60, {max:22, min:14, weight:700});
+  fitText(g, "Puntaje: " + score + " / " + TOTAL, 540, 0, 200, 60, {max:22, min:14, weight:700, anchor:"middle", fill:"#ffe27a"});
+  E("rect", {x:0, y:60, width:1280, height:6, fill:"rgba(255,255,255,.15)"}, g);
+  E("rect", {x:0, y:60, width:1280*(idx + (bloqueado?1:0))/TOTAL, height:6, fill:"#7ee06a"}, g);
+  // enunciado
+  E("rect", {x:40, y:78, width:1200, height:148, rx:16, fill:"#fff"}, g);
+  fitText(g, q.q, 70, 84, 1140, 136, {max:32, min:16, fill:"#1b1b3a", weight:700, anchor:"middle"});
+  // alternativas
+  const pos = [[40,238,592],[648,238,592],[40,374,592],[648,374,592],[40,510,1200]];
+  q.o.forEach((txt, i) => {
+    const [x,y,w] = pos[i], h = 126, t = TILES[i];
+    let opac = 1;
+    if (bloqueado && i !== q.ok) opac = .3;
+    const gt = E("g", {role:"button", tabindex: bloqueado ? -1 : 0, "aria-label":"Alternativa " + "ABCDE"[i] + ": " + txt, opacity:opac}, g);
+    E("rect", {x:x+3, y:y+6, width:w, height:h, rx:12, fill:"rgba(0,0,0,.35)"}, gt);
+    E("rect", {x, y, width:w, height:h, rx:12, fill:t.c, class:"focus-ring"}, gt);
+    shape(gt, i, x+48, y+h/2, 20, t.ink === "#fff" ? "rgba(255,255,255,.95)" : "rgba(26,26,26,.9)");
+    fitText(gt, txt, x+92, y+6, w-92-(bloqueado?70:20), h-12, {max:23, min:12, fill:t.ink, weight:700});
+    if (bloqueado && i === q.ok) {
+      E("rect", {x:x+2, y:y+2, width:w-4, height:h-4, rx:11, fill:"none", stroke:"#fff", "stroke-width":6}, gt);
+      E("circle", {cx:x+w-40, cy:y+h/2, r:24, fill:"#fff"}, gt);
+      E("path", {d:`M${x+w-52},${y+h/2} l9,10 l18,-20`, fill:"none", stroke:"#26890C", "stroke-width":7, "stroke-linecap":"round", "stroke-linejoin":"round"}, gt);
+    }
+    if (bloqueado && i === elegida && i !== q.ok) {
+      E("rect", {x:x+2, y:y+2, width:w-4, height:h-4, rx:11, fill:"none", stroke:"#fff", "stroke-width":6, opacity:1}, gt);
+      gt.setAttribute("opacity", .75);
+      E("circle", {cx:x+w-40, cy:y+h/2, r:24, fill:"#fff"}, gt);
+      E("path", {d:`M${x+w-52},${y+h/2-12} l24,24 M${x+w-28},${y+h/2-12} l-24,24`, fill:"none", stroke:"#E21B3C", "stroke-width":7, "stroke-linecap":"round"}, gt);
+    }
+    if (!bloqueado) {
+      gt.addEventListener("click", () => responder(i));
+      gt.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); responder(i); } });
+    }
+  });
+  // franja inferior (ayuda o retroalimentación)
+  if (!bloqueado) {
+    fitText(g, "Elige con clic o con las teclas 1–5 / A–E", 40, 650, 1200, 60, {max:18, min:12, fill:"#a9a3e8", anchor:"middle"});
+  } else {
+    const ok = elegida === q.ok;
+    E("rect", {x:40, y:648, width:1010, height:66, rx:12, fill: ok ? "#1d6b08" : "#a8132b"}, g);
+    const cab = ok ? "¡Correcto! +" + PUNTOS_POR_ACIERTO + " punto" : "Incorrecto · 0 puntos";
+    fitText(g, cab, 58, 654, 980, 24, {max:19, min:13, weight:700, valign:"top"});
+    fitText(g, q.j + "  (Fuente: " + q.f + ", lám. " + q.l + ")", 58, 679, 980, 33, {max:14, min:10, fill:"#fff", valign:"top", lh:1.15});
+    btn(g, 1066, 648, 174, 66, idx+1 < TOTAL ? "Siguiente ›" : "Ver nota ›", "#fff", "#1e1b4b", siguiente, "Siguiente");
+  }
+}
+function responder(i) {
+  if (bloqueado || vistaFinal) return;
+  bloqueado = true; elegida = i;
+  cancelAnimationFrame(raf);
+  const q = qs[idx];
+  const ok = i === q.ok;
+  if (ok) score += PUNTOS_POR_ACIERTO;
+  resultados.push({ ok, elegida:i, q });
+  dibujarPregunta();
+}
+function siguiente() {
+  if (!bloqueado) return;
+  idx++;
+  if (idx >= TOTAL) finalizar(); else pregunta();
+}
+
+/* ===== Resultado final ===== */
+function fmt(n) { return n.toLocaleString("es-PE", {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function finalizar() {
+  vistaFinal = true;
+  const g = limpiar();
+  const nota = score * (20 / (TOTAL * PUNTOS_POR_ACIERTO)); // con 20 preguntas de 1 punto, nota = puntaje
+  const aprobado = nota >= NOTA_APROBATORIA;
+  const nombre = document.getElementById("nombre").value.trim() || "Estudiante sin nombre";
+  fitText(g, "Resultado final", 40, 24, 1200, 56, {max:44, min:24, weight:700, anchor:"middle"});
+  fitText(g, nombre, 40, 84, 1200, 36, {max:26, min:14, fill:"#cfcaff", anchor:"middle"});
+  // tarjeta de nota
+  E("rect", {x:60, y:136, width:560, height:340, rx:20, fill:"#fff"}, g);
+  fitText(g, "CALIFICACIÓN FINAL (sistema vigesimal)", 80, 150, 520, 34, {max:19, min:12, fill:"#4b4a7a", weight:700, anchor:"middle"});
+  fitText(g, fmt(nota), 80, 188, 520, 150, {max:130, min:60, fill: aprobado ? "#1d6b08" : "#a8132b", weight:700, anchor:"middle"});
+  fitText(g, "sobre 20", 80, 336, 520, 36, {max:26, min:14, fill:"#4b4a7a", anchor:"middle"});
+  E("rect", {x:190, y:388, width:300, height:56, rx:28, fill: aprobado ? "#26890C" : "#E21B3C"}, g);
+  fitText(g, aprobado ? "APROBADO (≥ " + NOTA_APROBATORIA + ")" : "DESAPROBADO (< " + NOTA_APROBATORIA + ")", 200, 388, 280, 56, {max:22, min:12, weight:700, anchor:"middle"});
+  // desglose
+  E("rect", {x:660, y:136, width:560, height:340, rx:20, fill:"rgba(255,255,255,.10)"}, g);
+  fitText(g, "Puntaje: " + score + " de " + TOTAL + " aciertos × " + PUNTOS_POR_ACIERTO + " punto", 680, 148, 520, 34, {max:21, min:12, weight:700, anchor:"middle"});
+  [1,2,3].forEach((w,r) => {
+    const tot = resultados.filter(x => x.q.w === w), okk = tot.filter(x => x.ok).length;
+    fitText(g, SEMANAS[w] + ": " + okk + " / " + tot.length, 700, 196 + r*44, 220, 36, {max:20, min:12});
+    E("rect", {x:930, y:206 + r*44, width:260, height:16, rx:8, fill:"rgba(255,255,255,.18)"}, g);
+    E("rect", {x:930, y:206 + r*44, width:260*(tot.length? okk/tot.length : 0), height:16, rx:8, fill:"#7ee06a"}, g);
+  });
+  fitText(g, "Detalle por pregunta", 680, 338, 520, 28, {max:17, min:12, fill:"#cfcaff", anchor:"middle"});
+  resultados.forEach((r, i) => {
+    const col = i % 10, row = Math.floor(i/10);
+    const cx = 712 + col*50, cy = 392 + row*46;
+    E("circle", {cx, cy, r:19, fill: r.ok ? "#26890C" : "#E21B3C"}, g);
+    fitText(g, String(i+1), cx-19, cy-19, 38, 38, {max:16, min:10, weight:700, anchor:"middle"});
+  });
+  // acciones
+  btn(g, 220, 520, 400, 70, "Imprimir calificación", "#1368CE", "#fff", imprimir);
+  btn(g, 660, 520, 400, 70, "Jugar de nuevo (otras 20)", "#F2B705", "#1a1a1a", () => { document.getElementById("nombre").disabled = false; pantallaInicio(); });
+  fitText(g, "Cada acierto vale 1 punto: con 20 preguntas la nota vigesimal equivale al número de aciertos.", 60, 612, 1160, 60, {max:17, min:12, fill:"#a9a3e8", anchor:"middle"});
+  armarReporte(nombre, nota, aprobado);
+}
+function armarReporte(nombre, nota, aprobado) {
+  const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const fecha = new Date().toLocaleString("es-PE");
+  let h = "<h1>Quiz de Redes y Comunicación de Datos – Semanas 1 a 3</h1>";
+  h += "<div><b>Estudiante:</b> " + esc(nombre) + " &nbsp;·&nbsp; <b>Fecha:</b> " + esc(fecha) + "</div>";
+  h += "<div class='nota'>Calificación final: " + fmt(nota) + " / 20 (" + (aprobado ? "Aprobado" : "Desaprobado") + ")</div>";
+  h += "<div>Aciertos: " + score + " de " + TOTAL + " · 1 punto por pregunta correcta · Aprobatoria: " + NOTA_APROBATORIA + "</div>";
+  h += "<table><tr><th>N.º</th><th>Pregunta</th><th>Resultado</th><th>Respuesta correcta y fuente</th></tr>";
+  resultados.forEach((r, i) => {
+    h += "<tr><td>" + (i+1) + "</td><td>" + esc(r.q.q) + "</td><td>" + (r.ok ? "Correcta (+1)" : "Incorrecta (0)") + "</td><td>" +
+         esc(r.q.o[r.q.ok]) + "<br><small>" + esc(r.q.f) + ", lám. " + esc(r.q.l) + "</small></td></tr>";
+  });
+  h += "</table>";
+  document.getElementById("reporte").innerHTML = h;
+}
+function imprimir() { window.print(); }
+
+/* ===== Teclado ===== */
+document.addEventListener("keydown", e => {
+  if (document.activeElement && document.activeElement.id === "nombre") return;
+  const k = e.key.toLowerCase();
+  if (!vistaFinal && qs.length && !bloqueado && idx < TOTAL) {
+    const m = {"1":0,"2":1,"3":2,"4":3,"5":4,"a":0,"b":1,"c":2,"d":3,"e":4};
+    if (k in m) { e.preventDefault(); responder(m[k]); }
+  } else if (bloqueado && (k === "enter" || k === "arrowright") && document.activeElement.getAttribute("role") !== "button") {
+    siguiente();
+  }
+});
+
+pantallaInicio();
+</script>
+</body>
+</html>
