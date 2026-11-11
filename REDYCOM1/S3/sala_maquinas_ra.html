@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sala de Máquinas 3D – Maqueta con Realidad Aumentada</title>
+<style>
+:root{--bg:#0b1220;--tx:#e2e8f0;--dim:#94a3b8;--ln:rgba(148,163,184,.2)}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);overflow:hidden}
+#app{display:flex;height:100%;width:100%}
+#stage{position:relative;flex:1;min-width:0;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#1b2740 0%,#111b2e 55%,#0b1220 100%);touch-action:none}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#stage.ar{background:#000}#stage.ar #cam{display:block}#stage.ar .grid{display:none}
+#svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#svg.drag{cursor:grabbing}
+#svg text{font-family:Arial,Helvetica,sans-serif;pointer-events:none}
+.fx{position:absolute;inset:0;pointer-events:none}
+.grid{background-image:linear-gradient(rgba(148,163,184,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.05) 1px,transparent 1px);background-size:46px 46px;-webkit-mask-image:radial-gradient(ellipse at 50% 55%,#000 25%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 55%,#000 25%,transparent 75%)}
+.corner{position:absolute;width:22px;height:22px;border:2px solid rgba(148,163,184,.45);pointer-events:none}
+.tl{top:10px;left:10px;border-right:0;border-bottom:0}.tr{top:10px;right:10px;border-left:0;border-bottom:0}
+.bl{bottom:10px;left:10px;border-right:0;border-top:0}.br{bottom:10px;right:10px;border-left:0;border-top:0}
+#title{position:absolute;top:18px;left:26px;pointer-events:none}
+#title h1{margin:0;font-size:16px;letter-spacing:1.5px;color:#f1f5f9}
+#title p{margin:4px 0 0;font-size:12px;color:var(--dim)}
+#badge{position:absolute;top:16px;right:26px;font-size:11px;color:#34d399;background:rgba(15,23,42,.7);border:1px solid rgba(52,211,153,.35);padding:4px 10px;border-radius:999px;pointer-events:none}
+#readout{position:absolute;left:26px;bottom:112px;font-size:11px;color:var(--dim);pointer-events:none;line-height:1.5}
+#toolbar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;width:96%;z-index:5}
+.row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.btn{background:rgba(15,23,42,.88);color:#cbd5e1;border:1px solid rgba(148,163,184,.25);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35);backdrop-filter:blur(6px)}
+.btn:hover{background:rgba(51,65,85,.95);color:#fff}
+.btn.on{background:#2563eb;border-color:#3b82f6;color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.45)}
+#toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);max-width:88%;background:rgba(15,23,42,.96);border:1px solid rgba(148,163,184,.3);color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9;text-align:center}
+#toast.show{opacity:1}
+/* ventana emergente */
+#pop{position:absolute;left:0;top:0;width:320px;max-width:calc(100% - 16px);background:rgba(15,23,42,.97);border:1px solid rgba(148,163,184,.3);border-top:3px solid var(--c);border-radius:10px;box-shadow:0 16px 44px rgba(0,0,0,.6);z-index:7;display:none;font-size:13px;line-height:1.45}
+#pop.show{display:block}
+.ph{display:flex;align-items:center;gap:9px;padding:10px 10px 8px 12px;cursor:move;touch-action:none;border-bottom:1px solid var(--ln)}
+.ph b{flex:1;font-size:13.5px;color:#f8fafc;line-height:1.3}
+.pn{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:bold;font-size:12px;border:1.5px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent)}
+.px{flex:none;background:transparent;border:0;color:#94a3b8;font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+.px:hover{color:#fff}
+.pb{padding:4px 12px 12px;overflow:auto;max-height:min(52vh,420px)}
+.pb p{margin:2px 0 4px;color:#dbe4ee}
+.tagb{display:inline-block;font-size:10px;letter-spacing:.5px;padding:2px 6px;border-radius:4px;margin:9px 0 3px;border:1px solid}
+.b1{color:#7fb2f0;border-color:#3b6ea8}.b2{color:#e0a458;border-color:#8a6430}.b3{color:#b9c6d0;border-color:#8798a6}
+/* panel */
+#panel{width:350px;flex:none;background:#0f172a;border-left:1px solid var(--ln);display:flex;flex-direction:column;min-height:0}
+#detail{padding:14px 14px 8px;overflow-y:auto;max-height:46%;flex:none;border-bottom:1px solid var(--ln);font-size:13px;line-height:1.45}
+#detail h2{margin:0 0 8px;font-size:15px;color:#f8fafc}
+#detail ul{padding-left:18px;margin:6px 0}#detail li{margin:5px 0}
+#detail small{color:var(--dim);display:block;margin-top:8px;font-size:11px}
+#listwrap{overflow-y:auto;padding:8px 12px 14px;flex:1;min-height:0}
+#listwrap h3{margin:4px 0 6px;font-size:12px;letter-spacing:1.5px;color:var(--dim)}
+.it{display:flex;gap:9px;align-items:center;padding:6px 8px;border:1px solid rgba(148,163,184,.14);border-radius:7px;margin:4px 0;cursor:pointer;font-size:13px;background:rgba(255,255,255,.03)}
+.it:hover{background:rgba(255,255,255,.07)}
+.it .n{flex:none;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-weight:bold;font-size:12px;border:1.5px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 18%,transparent)}
+.it.sel{background:rgba(255,255,255,.09);border-color:var(--c)}
+@media (max-width:860px){
+ #app{flex-direction:column}
+ #panel{width:100%;height:38%;border-left:0;border-top:1px solid var(--ln)}
+ #detail{max-height:45%}
+ #title h1{font-size:13px}#title p,#readout{display:none}
+ .btn{padding:6px 8px;font-size:11px}
+ #pop{width:min(300px,calc(100% - 16px))}
+}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="stage">
+  <video id="cam" playsinline muted></video>
+  <div class="fx grid"></div>
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <filter id="sh" x="-10%" y="-10%" width="125%" height="130%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000" flood-opacity=".38"/></filter>
+    <filter id="sh2" x="-40%" y="-40%" width="180%" height="190%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".5"/></filter>
+   </defs>
+   <g id="scene" filter="url(#sh)"></g>
+   <g id="overlay"></g>
+  </svg>
+  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  <div id="title"><h1>SALA DE MÁQUINAS · CENTRO DE DATOS</h1><p>Maqueta 3D interactiva · Realidad aumentada · toque un número</p></div>
+  <div id="badge">● RA HOLOGRÁFICA</div>
+  <div id="readout"></div>
+  <div id="pop"></div>
+  <div id="toolbar">
+   <div class="row">
+    <button class="btn" data-v="iso">Isométrica</button>
+    <button class="btn" data-v="front">Frontal (puerta)</button>
+    <button class="btn" data-v="top">Planta</button>
+    <button class="btn" data-v="right">Lado tableros</button>
+    <button class="btn" data-v="left">Lado pantalla</button>
+   </div>
+   <div class="row">
+    <button class="btn" data-a="auto">Auto-giro</button>
+    <button class="btn" data-a="dims">Cotas</button>
+    <button class="btn" data-a="flow">Flujos</button>
+    <button class="btn" data-a="labels">Etiquetas</button>
+    <button class="btn" data-a="ceil">Techo</button>
+    <button class="btn" data-a="shadow">Sombras</button>
+    <button class="btn" data-a="ar">Cámara AR</button>
+    <button class="btn" data-a="gyro" id="bgyro">Giroscopio</button>
+    <button class="btn" data-a="zout">−</button>
+    <button class="btn" data-a="zin">+</button>
+    <button class="btn" data-a="reset">Restablecer</button>
+   </div>
+  </div>
+  <div id="toast"></div>
+ </div>
+ <aside id="panel">
+  <div id="detail"></div>
+  <div id="listwrap"><h3>COMPONENTES · TOQUE PARA ABRIR SU VENTANA</h3><div id="list"></div></div>
+ </aside>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const $=s=>document.querySelector(s);
+const stage=$('#stage'),svg=$('#svg'),sceneG=$('#scene'),ovG=$('#overlay'),vid=$('#cam'),pop=$('#pop');
+let W=800,H=600;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- paleta sobria ---------- */
+const C={wall:'#8fa8c4',floor:'#9aaabf',rack:'#6ea8fe',tray:'#e0a458',light:'#f2d98d',smoke:'#f0707f',panel:'#e2e8f0',ups:'#6ea8fe',cable:'#a58df0',door:'#9cc7f0',tv:'#6ea8fe',cond:'#b9a6f5',load:'#e8c547',cab:'#7fdcb8',dim:'#cbd5e1',perf:'#cbd5e1',under:'#7fdcb8'};
+const BG=[15,23,42];
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+
+/* ---------- estado ---------- */
+const st={dims:true,flow:true,labels:false,ceil:true,shadow:true,auto:true};
+const HOME={yaw:.55,pitch:.5,zoom:.95,px:0,py:-34,tx:0,ty:1.3,tz:0};
+const cam=Object.assign({D:16},HOME);
+const tgt=Object.assign({},HOME);
+let T=0,sel=null,hov=null,dragging=false,popOff={x:0,y:0},popW=320,popH=300;
+
+/* ---------- primitivas ---------- */
+const items=[],labels=[];
+const mk=(t,a)=>{const e=document.createElementNS(NS,t);if(a)for(const k in a)e.setAttribute(k,a[k]);return e};
+function reg(o,el){o.el=el;o._a={};sceneG.appendChild(el);items.push(o);return o}
+function setA(o,k,v){if(o._a[k]!==v){o._a[k]=v;o.el.setAttribute(k,v)}}
+function addPoly(o){o.type='poly';o.layer=o.layer??3;o.k=o.k??.12;o.op=o.op??1;o.sw=(o.sw??1)*.85;o.so=o.so??.9;o.sub=o.sub||0;o.rgb=hex(o.c);return reg(o,mk('polygon',{'stroke-linejoin':'round'}))}
+function addLine(o){o.type='line';o.layer=o.layer??3;o.sw=o.sw??1.5;o.so=o.so??.9;o.sub=o.sub||0;return reg(o,mk('path',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round'}))}
+function addDot(o){o.type='dot';o.layer=o.layer??3;o.sub=o.sub||0;return reg(o,mk('circle',{}))}
+function addLabel(o){o.el=mk('text',{'text-anchor':'middle','font-size':12,fill:o.c||C.dim,stroke:'#0b1220','stroke-width':3,'paint-order':'stroke'});o.el.textContent=o.text;ovG.insertBefore(o.el,ovG.firstChild);labels.push(o);return o}
+function addBox(x0,x1,y0,y1,z0,z1,o){
+ const F=[
+  {n:[1,0,0],p:[[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],[x1,y0,z1]]},
+  {n:[-1,0,0],p:[[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],[x0,y0,z0]]},
+  {n:[0,1,0],p:[[x0,y1,z0],[x0,y1,z1],[x1,y1,z1],[x1,y1,z0]]},
+  {n:[0,-1,0],p:[[x0,y0,z1],[x0,y0,z0],[x1,y0,z0],[x1,y0,z1]]},
+  {n:[0,0,1],p:[[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]]},
+  {n:[0,0,-1],p:[[x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0]]}];
+ F.forEach((f,i)=>{const s=o.face?o.face(i):{};if(s===false)return;const p=Object.assign({},o,s,{pts:f.p,n:f.n});delete p.face;addPoly(p)});
+}
+function ring(c,u,v,r,n=22){const a=[];for(let i=0;i<n;i++){const t=i/n*Math.PI*2,cs=Math.cos(t)*r,sn=Math.sin(t)*r;a.push([c[0]+u[0]*cs+v[0]*sn,c[1]+u[1]*cs+v[1]*sn,c[2]+u[2]*cs+v[2]*sn])}return a}
+function rectPts(c,u,v,w,h){const a=w/2,b=h/2;return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([s,t])=>[c[0]+u[0]*s*a+v[0]*t*b,c[1]+u[1]*s*a+v[1]*t*b,c[2]+u[2]*s*a+v[2]*t*b])}
+const plate=(c,u,v,w,h,n,o)=>addPoly(Object.assign({pts:rectPts(c,u,v,w,h),n},o));
+function crom(P,s=6){const out=[],n=P.length;for(let i=0;i<n-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(n-1,i+2)];for(let j=0;j<s;j++){const t=j/s,t2=t*t,t3=t2*t;out.push([0,1,2].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)))}}out.push(P[n-1]);return out}
+let seed=5;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const UP=[0,1,0];
+
+/* =====================  ESCENA  ===================== */
+function build(){
+ /* base y piso técnico (losetas de 0.6 m) */
+ addPoly({pts:[[-4,-.06,-6],[-4,-.06,6],[4,-.06,6],[4,-.06,-6]],n:UP,c:C.wall,k:.05,sw:1,so:.3,layer:-1});
+ addPoly({pts:[[-3,0,-4.5],[-3,0,4.5],[3,0,4.5],[3,0,-4.5]],n:UP,c:C.floor,k:.36,sw:1.2,so:.8,layer:0});
+ for(let i=0;i<=10;i++){const x=-3+i*.6;addLine({pts:[[x,0,-4.5],[x,0,4.5]],c:'#cbd5e1',sw:1,so:.2,layer:.1})}
+ for(let i=0;i<=15;i++){const z=-4.5+i*.6;addLine({pts:[[-3,0,z],[3,0,z]],c:'#cbd5e1',sw:1,so:.2,layer:.1})}
+
+ /* muros */
+ const wall=(x0,x1,y0,y1,z0,z1,inner)=>addBox(x0,x1,y0,y1,z0,z1,{layer:1,c:C.wall,k:.13,sw:1.3,so:.9,face:i=>i===inner?{}:i===3?false:i===2?{layer:4,op:.16,k:.3,so:.95,sw:1.4}:{layer:4,op:.06,k:.15,sw:.9,so:.5}});
+ wall(-3.15,-.91,0,3,-4.65,-4.5,4);wall(.91,3.15,0,3,-4.65,-4.5,4);wall(-.91,.91,1.98,3,-4.65,-4.5,4);
+ wall(-3.15,-3,0,3,-4.5,4.5,0);
+ wall(3,3.15,0,3,-4.5,4.5,1);
+ wall(-3.15,3.15,0,3,4.5,4.65,5);
+
+ /* techo (cielo raso, vidrio + trama de losetas) */
+ addPoly({pts:[[-3,3,-4.5],[-3,3,4.5],[3,3,4.5],[3,3,-4.5]],n:UP,c:C.wall,k:.2,op:.07,sw:1,so:.3,layer:4,group:'ceil'});
+ for(let i=0;i<=10;i++){const x=-3+i*.6;addLine({pts:[[x,3,-4.5],[x,3,4.5]],c:C.wall,sw:1,so:.2,layer:4.1,group:'ceil'})}
+ for(let i=0;i<=15;i++){const z=-4.5+i*.6;addLine({pts:[[-3,3,z],[3,3,z]],c:C.wall,sw:1,so:.2,layer:4.1,group:'ceil'})}
+
+ /* puerta doble: 0.91 × 1.98 m por hoja */
+ [[-.91,-.01],[.01,.91]].forEach(([a,b],i)=>{
+  const dp=[(a+b)/2,1,-4.58],xs=(a+b)/2;
+  addBox(a,b,0,1.98,-4.6,-4.56,{layer:2.6,c:C.door,k:.3,sw:1.2,so:1,tag:'door',dp,face:j=>j===3?false:{}});
+  plate([xs,1.45,-4.558],[1,0,0],UP,.12,.55,[0,0,1],{layer:2.6,c:'#0f172a',k:1,sw:1,so:.9,tag:'door',dp,sub:1});
+  addDot({p:[i?a+.07:b-.07,1.0,-4.553],r:.02,c:'#e2e8f0',n:[0,0,1],tag:'door',layer:2.6,dp,sub:2});
+ });
+
+ /* bandejas portacables y conductos en el techo */
+ const tray=x=>{
+  const dp=[x,2.78,0],y=2.78;
+  [-.225,.225].forEach(o=>addLine({pts:[[x+o,y,-4.2],[x+o,y,3.6]],c:C.tray,sw:1.8,so:.95,tag:'tray',dp,sub:0}));
+  for(let z=-4.2;z<=3.61;z+=.4)addLine({pts:[[x-.225,y,z],[x+.225,y,z]],c:C.tray,sw:1,so:.6,tag:'tray',dp,sub:0});
+  for(let z=-3.8;z<=3.2;z+=1.6)[-.225,.225].forEach(o=>addLine({pts:[[x+o,y,z],[x+o,3,z]],c:C.tray,sw:1,so:.45,tag:'tray',dp,sub:0}));
+  [-.1,0,.1].forEach(o=>addLine({pts:[[x+o,y+.02,-4.1],[x+o,y+.02,3.5]],c:'#64748b',sw:2.4,so:.85,tag:'tray',dp,sub:1}));
+ };
+ tray(-1.5);tray(1.4);
+ addLine({pts:[[-.3,2.92,-4.4],[-.3,2.92,4.2]],c:C.cond,sw:3.6,so:.9,tag:'tray'});
+
+ /* iluminación lineal suspendida */
+ [[-3.8,-2.2],[-1.3,.3],[1.4,3.0]].forEach(([z0,z1])=>{
+  const x=.25,zc=(z0+z1)/2,dp=[x,2.6,zc];
+  addBox(x-.07,x+.07,2.57,2.65,z0,z1,{layer:3,c:C.light,k:.6,sw:1,so:.95,tag:'light',dp,face:i=>i===3?false:{}});
+  [z0+.2,z1-.2].forEach(z=>addLine({pts:[[x,2.65,z],[x,3,z]],c:C.light,sw:1,so:.55,tag:'light',dp,sub:1}));
+ });
+
+ /* detector en el techo (observado, sin etiqueta) */
+ addDot({p:[.9,2.97,-3.4],r:.09,c:C.smoke,tag:'smoke',layer:3.2});
+ addDot({p:[.9,2.97,-3.4],r:.045,c:'#fff',tag:'smoke',layer:3.21});
+
+ /* racks */
+ const KD={f:['#f0707f',.34],p:['#4cc9a0',.26],s:['#5bc0eb',.3],v:['#6ea8fe',.32],u:['#e8c547',.26],b:['#2a3a50',.25]};
+ const LAY=[
+  ['f2','p1','p1','s1','p1','p1','s1','p1','p1','s1','p1','p1','s1','b2','v2','v2','b1','u4'],
+  ['p1','p1','s1','p1','p1','s1','p1','p1','s1','p1','p1','s1','p1','p1','s1','b1','v1','v1','v2','u3','u3'],
+  ['f2','f2','s1','s1','b1','v2','v2','v2','v2','v2','v2','b1','u3','u3'],
+  ['p1','s1','p1','s1','p1','s1','b2','v2','v2','v2','v2','b1','u4','u4']];
+ function rack(xc,zc,dir,li){
+  const dp=[xc,1.05,zc],tag='rack',xf=xc+dir*.503,nf=[dir,0,0];
+  addBox(xc-.5,xc+.5,0,2.1,zc-.3,zc+.3,{layer:3,c:C.rack,k:.07,sw:1.4,so:1,tag,dp,sub:0,face:i=>i===3?false:{}});
+  let y=.14;
+  LAY[li%4].forEach(code=>{
+   const kd=code[0],u=+code.slice(1),h=u*.056,y0=y,y1=y+h;y=y1+.007;
+   const z0=zc-.25,z1=zc+.25,ym=(y0+y1)/2,xl=xf+dir*.002;
+   addPoly({pts:[[xf,y0,z0],[xf,y0,z1],[xf,y1,z1],[xf,y1,z0]],n:nf,c:KD[kd][0],k:KD[kd][1],sw:.9,so:.85,tag,dp,sub:1});
+   if(kd==='p')addLine({pts:[[xl,ym,zc-.21],[xl,ym,zc+.21]],n:nf,c:'#4cc9a0',sw:3,so:.85,dash:'1.4 2.4',tag,dp,sub:2});
+   if(kd==='s')for(let i=0;i<8;i++)addDot({p:[xl,ym,zc-.18+i*.05],r:.0075,c:rnd()>.8?'#f0a73a':'#4cc9a0',n:nf,blink:{sp:2+rnd()*6,ph:rnd()*6},tag,dp,sub:3});
+   if(kd==='v')for(let i=0;i<3;i++)addDot({p:[xl,ym,zc+.2-i*.04],r:.008,c:i?'#4cc9a0':'#5bc0eb',n:nf,blink:{sp:1+rnd()*3,ph:rnd()*6},tag,dp,sub:3});
+   if(kd==='u')for(let i=0;i<2;i++)addDot({p:[xl,ym,zc+.19-i*.05],r:.01,c:i?'#f0a73a':'#4cc9a0',n:nf,blink:{sp:.8,ph:i},tag,dp,sub:3});
+   if(kd==='f')for(let i=0;i<4;i++)addDot({p:[xl,ym,zc-.15+i*.1],r:.009,c:'#f0707f',n:nf,blink:{sp:3+rnd()*3,ph:rnd()*6},tag,dp,sub:3});
+  });
+ }
+ [-3.4,-2.75,-2.1,-1.45,-.8].forEach((z,i)=>rack(-1.5,z,1,i));
+ [1.0,1.65].forEach((z,i)=>rack(1.4,z,-1,i+1));
+ /* panel lateral ciego junto a la hilera derecha */
+ addBox(.9,1.9,0,2.1,2.0,2.6,{layer:3,c:C.rack,k:.05,sw:1.3,so:.9,tag:'rack',dp:[1.4,1.05,2.3],face:i=>i===3?false:{}});
+
+ /* gabinete alto lateral (pared izquierda) */
+ (()=>{const dp=[-2.7,1,.7];
+  addBox(-3,-2.4,0,2.0,.2,1.2,{layer:3,c:C.cab,k:.1,sw:1.3,so:.95,tag:'cab',dp,face:i=>i===3?false:{}});
+  addLine({pts:[[-2.397,.05,.7],[-2.397,1.95,.7]],n:[1,0,0],c:C.cab,sw:1.2,so:.9,tag:'cab',dp,sub:1});
+  [.45,.95].forEach(z=>addDot({p:[-2.396,1.0,z],r:.02,c:'#e2e8f0',n:[1,0,0],tag:'cab',dp,sub:2}));
+  for(let i=0;i<5;i++)addLine({pts:[[-2.397,1.7-i*.06,.3],[-2.397,1.7-i*.06,.6]],n:[1,0,0],c:C.cab,sw:1,so:.6,tag:'cab',dp,sub:1});
+ })();
+
+ /* pantalla sobre pedestal */
+ (()=>{const dp=[-2.8,1.2,3.3];
+  addBox(-3,-2.35,0,.06,2.7,3.9,{layer:3,c:'#64748b',k:.3,sw:1.1,so:.9,tag:'tv',dp});
+  [3.0,3.6].forEach(z=>addBox(-2.84,-2.8,.06,.95,z-.02,z+.02,{layer:3,c:'#94a3b8',k:.4,sw:1,so:.9,tag:'tv',dp}));
+  addBox(-2.86,-2.8,.95,1.95,2.5,4.1,{layer:3,c:C.tv,k:.12,sw:1.2,so:1,tag:'tv',dp,face:i=>i===3?false:{}});
+  plate([-2.797,1.45,3.3],[0,0,1],UP,1.5,.9,[1,0,0],{layer:3,c:'#1e3a8a',k:.75,sw:1,so:.9,tag:'tv',dp,sub:1});
+  [[1.7,.9],[1.55,1.1],[1.4,.7],[1.25,.5]].forEach(([y,w],i)=>addLine({pts:[[-2.795,y,2.7],[-2.795,y,2.7+w]],n:[1,0,0],c:'#93c5fd',sw:2.2-i*.3,so:.85,tag:'tv',dp,sub:2}));
+  addPoly({pts:[[-2.795,1.1,3.55],[-2.795,1.1,3.95],[-2.795,1.55,3.95],[-2.795,1.55,3.55]],n:[1,0,0],c:'#3b82f6',k:.6,sw:1,so:.8,tag:'tv',dp,sub:2});
+ })();
+
+ /* tableros eléctricos, repisa, UPS y conductos – pared derecha */
+ addBox(2.75,3,.85,.92,.15,2.75,{layer:2.5,c:'#94a3b8',k:.3,sw:1,so:.9,tag:'panel',dp:[2.9,.88,1.4],face:i=>i===3?false:{}});
+ [.6,1.4].forEach(z=>{
+  const dp=[2.95,1.55,z];
+  addBox(2.9,3,1.1,2.0,z-.3,z+.3,{layer:2.5,c:C.panel,k:.35,sw:1.2,so:1,tag:'panel',dp,face:i=>i===1?{ghost:true}:i===3?false:{}});
+  plate([2.897,1.55,z],[0,0,1],UP,.5,.8,[-1,0,0],{layer:2.5,c:C.panel,k:.12,sw:1,so:.7,tag:'panel',dp,sub:1});
+  plate([2.896,1.93,z],[0,0,1],UP,.3,.05,[-1,0,0],{layer:2.5,c:'#f0707f',k:.7,sw:1,so:.9,tag:'panel',dp,sub:2});
+  addDot({p:[2.895,1.5,z+.2],r:.02,c:'#94a3b8',n:[-1,0,0],tag:'panel',layer:2.5,dp,sub:2});
+ });
+ (()=>{const dp=[2.85,1.45,2.35];
+  addBox(2.7,3,.95,1.95,2.0,2.7,{layer:2.5,c:'#64748b',k:.3,sw:1.3,so:1,tag:'ups',dp,face:i=>i===1?{ghost:true}:i===3?false:{}});
+  plate([2.697,1.7,2.35],[0,0,1],UP,.3,.16,[-1,0,0],{layer:2.5,c:'#3b82f6',k:.8,sw:1,so:.9,tag:'ups',dp,sub:1});
+  [0,1,2].forEach(i=>addDot({p:[2.696,1.45,2.2+i*.12],r:.016,c:i?'#4cc9a0':'#e8c547',n:[-1,0,0],blink:{sp:1.2,ph:i},tag:'ups',layer:2.5,dp,sub:2}));
+  for(let i=0;i<5;i++)addLine({pts:[[2.696,1.25-i*.07,2.1],[2.696,1.25-i*.07,2.6]],n:[-1,0,0],c:'#94a3b8',sw:1,so:.6,tag:'ups',layer:2.5,dp,sub:1});
+ })();
+ [-1.7,-1.55,-1.4].forEach(z=>addBox(2.93,2.98,0,3,z-.025,z+.025,{layer:2.5,c:C.cond,k:.45,sw:1,so:.95,tag:'conduit',dp:[2.95,1.5,z],face:i=>i===3?false:{}}));
+ addBox(2.93,2.98,2.3,2.35,-1.7,.3,{layer:2.5,c:C.cond,k:.45,sw:1,so:.95,tag:'conduit',dp:[2.95,2.3,-.6],face:i=>i===3?false:{}});
+
+ /* losetas perforadas en el pasillo */
+ [[-.3,-3],[.3,-3],[-.3,-1.8],[.3,-1.8],[-.3,-.6],[.3,-.6],[-.3,.6],[.3,.6]].forEach(([x,z])=>{
+  const dp=[x,0,z];
+  plate([x,.004,z],[1,0,0],[0,0,-1],.56,.56,UP,{layer:.3,c:C.perf,k:.55,sw:1,so:.85,tag:'perf',dp});
+  for(let o=-.2;o<=.21;o+=.1)addLine({pts:[[x-.2,.006,z+o],[x+.2,.006,z+o]],c:'#0f172a',sw:2.2,so:.8,layer:.35,tag:'perf',dp});
+ });
+ /* aperturas de piso con cables debajo */
+ [[-.3,2.4],[.3,3.0]].forEach(([x,z],k)=>{
+  const dp=[x,0,z];
+  plate([x,.004,z],[1,0,0],[0,0,-1],.5,.5,UP,{layer:.25,c:'#020617',k:1,sw:1.2,so:.9,tag:'under',dp});
+  [[-.15,.1],[0,0],[.15,-.1]].forEach(([a,b])=>addLine({pts:crom([[x+a*.6,.008,z+b],[x+.15+a,.01,z-.3],[x+.5,.01,z-.6],[.9+k*.0,.01,1.65]],6),c:'#1e293b',sw:3.2,so:.95,layer:.4,tag:'under',dp}));
+ });
+
+ /* carga del piso: báscula con equipo */
+ (()=>{const dp=[.3,.2,2.2];
+  addBox(.05,.55,0,.06,1.95,2.45,{layer:3,c:'#94a3b8',k:.4,sw:1.1,so:.95,tag:'load',dp,face:i=>i===3?false:{}});
+  addBox(.28,.32,.06,.5,2.18,2.22,{layer:3,c:'#94a3b8',k:.4,sw:1,so:.9,tag:'load',dp,sub:1});
+  addPoly({pts:ring([.3,.52,2.225],[1,0,0],UP,.12,24),n:[0,0,1],c:'#f8fafc',k:.6,sw:1.1,so:.95,tag:'load',dp,sub:2});
+  addLine({pts:[[.3,.52,2.23],[.37,.58,2.23]],c:C.smoke,sw:1.6,so:1,n:[0,0,1],tag:'load',dp,sub:3});
+  addBox(.14,.46,.06,.2,2.05,2.35,{layer:3,c:C.load,k:.4,sw:1,so:.95,tag:'load',dp,sub:1,face:i=>i===3?false:{}});
+ })();
+
+ /* flujos ilustrativos */
+ const FL=(pts,c,sp)=>addLine({pts:crom(pts,6),c,sw:1.7,so:.85,dash:'6 7',flow:true,speed:sp||32,group:'flow',layer:5,tag:'perf'});
+ [-3,-1.8,-.6,.6].forEach((z,i)=>{
+  FL([[-.3,.03,z],[-.55,.5,z],[-.85,.95,z],[-.98,1.4,z]],'#8ab6ff',30+i*3);
+  FL([[.3,.03,z],[.5,.5,z],[.72,.95,z],[.88,1.4,z]],'#8ab6ff',26+i*3);
+ });
+ FL([[-1.5,2.8,-3.9],[-1.5,2.5,-3.9],[-1.5,2.2,-3.7],[-1.5,2.1,-3.4]],'#e0a458',22);
+ FL([[1.4,2.8,-.5],[1.4,2.5,.3],[1.4,2.2,.9],[1.4,2.1,1.0]],'#e0a458',22);
+ FL([[-.3,0.01,2.4],[-.1,.02,1.6],[-.6,.02,.2],[-1.0,.02,-.7]],'#b9a6f5',28);
+
+ /* cotas de altura del techo (2.4 m mínimo / 3 m) y puerta */
+ const dl=(pts)=>addLine({pts,c:C.dim,sw:1.6,so:.95,group:'dims',layer:5,tag:'dim'});
+ dl([[-3.5,0,-4],[-3.5,3,-4]]);
+ [0,2.4,3].forEach(y=>dl([[-3.6,y,-4],[-3.4,y,-4]]));
+ addLine({pts:[[-3.5,2.4,-4],[-3,2.4,-4]],c:C.dim,sw:1,so:.6,dash:'3 4',group:'dims',layer:5,tag:'dim'});
+ addLine({pts:[[-3.5,3,-4],[-3,3,-4]],c:C.dim,sw:1,so:.6,dash:'3 4',group:'dims',layer:5,tag:'dim'});
+ addLabel({pos:[-3.5,2.4,-4],text:'2.4 m mínimo',c:C.dim,group:'dims',dy:-6});
+ addLabel({pos:[-3.5,3,-4],text:'3 m (posible)',c:C.dim,group:'dims',dy:-8});
+ addLabel({pos:[0,2.15,-4.5],text:'0.91 × 1.98 m por hoja',c:C.dim,group:'dims',dy:-4});
+}
+
+/* =====================  COMPONENTES  ===================== */
+const HS=[
+ {id:'alt',name:'Altura del techo',short:'Altura del techo',c:C.dim,tags:['dim'],a:[-3.5,2.4,-4],n:null,
+  dato:'«Altura del Techo: Mínimo 2.4 m. Se podría considerar 3 m.» La etiqueta aparece dos veces; la segunda está cortada («Se podría considerar…»). La imagen no indica desde dónde se mide.',
+  ctx:'Más altura facilita pasar bandejas, luminarias suspendidas y cableado por encima de los racks.',
+  geo:'En la maqueta el techo está a 3 m; las cotas de 2.4 m y 3 m se dibujan junto a la esquina posterior izquierda.'},
+ {id:'door',name:'Puerta de acceso',short:'Puerta 0.91 × 1.98 m',c:C.door,tags:['door'],a:[0,1.5,-4.55],n:[0,0,1],
+  dato:'«Puerta: Al menos 0.91 m × 1.98 m. En el caso de un ER se recomienda doble puerta.» La etiqueta se repite en la imagen.',
+  ctx:'«ER» suele significar Entrance Room (sala de entrada de telecomunicaciones); es una interpretación mía, la imagen no lo define.',
+  geo:'Se dibuja una puerta doble de 0.91 m por hoja y 1.98 m de alto, con ventanillas, como en la ilustración.'},
+ {id:'tray',name:'Bandejas y conductos dentro del techo',short:'Bandejas y conductos',c:C.tray,tags:['tray'],a:[-1.5,2.78,-1],n:[0,1,0],
+  dato:'«Bandejas y conductos dentro del techo: deben sobresalir en la habitación o una distancia de 25 mm 50 mm … y por encima de 2.4 m de altura.» El texto de la imagen es parcialmente ilegible e inconsistente (posible error de generación de la imagen).',
+  ctx:'Las bandejas portacables aéreas llevan el cableado sobre racks y pasillos sin ocupar el piso. Verifique la distancia exacta contra la norma antes de usarla.',
+  geo:'Dos bandejas tipo escalera de 0.45 m y un conducto redondo; trazado y ancho ilustrativos.'},
+ {id:'light',name:'Iluminación',short:'Iluminación',c:C.light,tags:['light'],a:[.25,2.62,-.5],n:[0,1,0],
+  dato:'«Iluminación: No debe ser provista del mismo panel.» La frase queda incompleta en la imagen (probablemente «…que los equipos»; es interpretación).',
+  ctx:'Alimentar la iluminación desde un panel distinto al de los equipos evita que una falla de equipo deje la sala a oscuras.',
+  geo:'Tres luminarias lineales suspendidas sobre el pasillo; posición supuesta.'},
+ {id:'smoke',name:'Detector en el techo (sin etiqueta)',short:'Detector (observado)',c:C.smoke,tags:['smoke'],a:[.9,2.97,-3.4],n:[0,1,0],
+  dato:'La imagen muestra un círculo rojo en el cielo raso, junto a la bandeja central. No tiene etiqueta.',
+  ctx:'Podría ser un detector de humo o similar; es una hipótesis mía.',
+  geo:'Posición aproximada.'},
+ {id:'rack',name:'Gabinetes (racks) de servidores',short:'Racks de servidores',c:C.rack,tags:['rack'],a:[-1.5,2.1,-2.1],n:[0,1,0],
+  dato:'Una hilera de cinco gabinetes a la izquierda y dos gabinetes grandes más un panel lateral a la derecha, con equipos visibles. No tienen etiquetas ni medidas.',
+  ctx:'Alojan servidores, switches y patch panels. Las hileras enfrentan un pasillo con losetas perforadas (disposición típica de pasillo frío; no está indicada en la imagen).',
+  geo:'Cantidad por hilera, medidas (0.6 × 1.0 × 2.1 m), orden de equipos y LEDs parpadeantes son ilustrativos.'},
+ {id:'cab',name:'Gabinete alto lateral (sin etiqueta)',short:'Gabinete lateral',c:C.cab,tags:['cab'],a:[-2.4,1.8,.7],n:[1,0,0],
+  dato:'Armario alto oscuro de dos hojas junto a la pared izquierda; no tiene etiqueta.',
+  ctx:'Podría ser almacenamiento o equipo auxiliar; es una hipótesis mía.',
+  geo:'Medidas supuestas.'},
+ {id:'perf',name:'Piso técnico con losetas perforadas (sin etiqueta)',short:'Losetas perforadas',c:C.perf,tags:['perf'],a:[.3,.02,-.6],n:UP,
+  dato:'Piso de losetas cuadradas con varias losetas con rejilla alineadas por el pasillo; sin etiqueta.',
+  ctx:'Las losetas perforadas dejan subir el aire frío hasta los frentes de los racks; el piso elevado también aloja cableado.',
+  geo:'Loseta de 0.6 m (medida habitual, no indicada en la imagen). Las flechas azules de «Flujos» son ilustrativas, no una simulación.'},
+ {id:'under',name:'Cables bajo el piso elevado (sin etiqueta)',short:'Cables bajo piso',c:C.under,tags:['under'],a:[-.3,.02,2.4],n:UP,
+  dato:'Aperturas en el piso con cables negros visibles debajo; sin etiqueta.',
+  ctx:'Son pasos de cableado entre el espacio bajo piso y los gabinetes.',
+  geo:'Número y trazado de cables ilustrativos.'},
+ {id:'load',name:'Carga del piso',short:'Carga del piso',c:C.load,tags:['load'],a:[.3,.58,2.2],n:[0,0,1],
+  dato:'«Carga del piso: De acuerdo a los equipos (50 –290 lbf/ft²).» La cifra se lee con dificultad; confirme el rango en la fuente original.',
+  ctx:'El piso debe soportar el peso de racks y equipos. Conversión: 1 lbf/ft² ≈ 47.88 Pa, es decir 50–290 lbf/ft² ≈ 2.4–13.9 kPa.',
+  geo:'La báscula y la caja sobre ella son un recurso gráfico de la imagen; en la maqueta son ilustrativas.'},
+ {id:'panel',name:'Tableros eléctricos',short:'Tableros eléctricos',c:C.panel,tags:['panel'],a:[2.9,1.55,.6],n:[-1,0,0],
+  dato:'«Tableros eléctricos y …: Deben considerarse en el diseño.» El rótulo aparece dos veces (una cortada); dos tableros grises sobre una repisa en la pared derecha.',
+  ctx:'Alimentan los circuitos de equipos, climatización e iluminación.',
+  geo:'Tamaño, altura y repisa supuestos.'},
+ {id:'ups',name:'UPS',short:'UPS',c:C.ups,tags:['ups'],a:[2.7,1.5,2.35],n:[-1,0,0],
+  dato:'«Tableros eléctricos y UPS: Deben considerarse en el diseño.» El UPS es la unidad negra montada en la pared derecha.',
+  ctx:'Mantiene la alimentación ante cortes y acondiciona la energía de los equipos.',
+  geo:'Tamaño supuesto; pantalla y LEDs ilustrativos.'},
+ {id:'conduit',name:'Conductos eléctricos verticales (sin etiqueta)',short:'Conductos eléctricos',c:C.cond,tags:['conduit'],a:[2.96,2.3,-1.55],n:[-1,0,0],
+  dato:'Tres tuberías verticales sobre la pared derecha; sin etiqueta.',
+  ctx:'Probablemente canalizaciones eléctricas hacia los tableros (hipótesis mía).',
+  geo:'Cantidad, diámetro y recorrido supuestos.'},
+ {id:'tv',name:'Pantalla informativa',short:'Pantalla (Tema 1)',c:C.tv,tags:['tv'],a:[-2.8,1.45,3.3],n:[1,0,0],
+  dato:'Pantalla sobre pedestal con el texto «Diseño de arquitectura – TEMA 1 – ESPACIOS»; el resto del texto no se lee.',
+  ctx:'Forma parte de la escena didáctica de la imagen; no es un componente de la sala.',
+  geo:'Tamaño y posición supuestos.'}
+];
+
+/* ---------- overlay: hotspots ---------- */
+const hsG=mk('g',{filter:'url(#sh2)'});ovG.appendChild(hsG);
+const chipG=mk('g',{filter:'url(#sh2)'});ovG.appendChild(chipG);
+const leadG=mk('g',{});ovG.appendChild(leadG);
+const leadP=mk('path',{fill:'none','stroke-width':1.3,opacity:.9});const leadD=mk('circle',{r:3.5});leadG.append(leadP,leadD);leadG.style.display='none';
+HS.forEach((h,i)=>{
+ h.i=i;h.k=i+1;
+ h.g=mk('g',{class:'hs',style:'cursor:pointer'});
+ h.chip=mk('g',{style:'pointer-events:none'});
+ h.lead=mk('path',{fill:'none',stroke:h.c,'stroke-width':1.2,opacity:.8});
+ h.rect=mk('rect',{rx:5,ry:5,height:22,fill:'#0f172a',stroke:h.c,'stroke-width':1.2});
+ h.txt=mk('text',{'font-size':11.5,fill:'#fff'});h.txt.textContent=h.k+'. '+h.short;
+ h.w=h.short.length*6.1+30;h.rect.setAttribute('width',h.w);
+ h.chip.append(h.lead,h.rect,h.txt);
+ h.ring=mk('circle',{r:12,fill:'none',stroke:h.c,'stroke-width':1.5});
+ h.dot=mk('circle',{r:11,fill:'#0f172a',stroke:h.c,'stroke-width':1.8});
+ h.num=mk('text',{'font-size':11.5,'font-weight':'bold','text-anchor':'middle',y:4.2,fill:h.c});h.num.textContent=h.k;
+ h.hit=mk('circle',{r:16,fill:'transparent'});
+ h.g.append(h.ring,h.dot,h.num,h.hit);
+ h.g.addEventListener('click',e=>{e.stopPropagation();select(sel===h?null:h)});
+ h.g.addEventListener('mouseenter',()=>hov=h);
+ h.g.addEventListener('mouseleave',()=>{if(hov===h)hov=null});
+ hsG.append(h.g);chipG.append(h.chip);
+});
+
+/* ---------- panel lateral ---------- */
+const listEl=$('#list'),detEl=$('#detail');
+HS.forEach(h=>{
+ const d=document.createElement('div');d.className='it';d.style.setProperty('--c',h.c);
+ d.innerHTML='<span class="n">'+h.k+'</span><span>'+h.name+'</span>';
+ d.onclick=()=>select(sel===h?null:h);h.li=d;listEl.append(d);
+});
+detEl.innerHTML='<h2>Cómo usar la maqueta</h2><ul><li><b>Arrastre</b> para rotar 360°; <b>rueda</b> o <b>pellizco</b> para zoom.</li><li><b>Clic derecho</b>, <b>Shift + arrastre</b> o <b>dos dedos</b> para mover.</li><li>Toque un <b>número</b> (o un elemento de la lista) para abrir su <b>ventana emergente</b>; puede arrastrarla por el encabezado.</li><li><b>Doble clic</b> restablece la vista.</li><li><b>Cámara AR</b> superpone la maqueta sobre la imagen de su cámara.</li></ul><small><b>Origen de la información:</b> «Lo que dice la imagen» es lo leído de la fotografía que adjuntó. Esa imagen parece generada por IA y varios textos son ilegibles o inconsistentes; se indica en cada ventana. «Contexto general» es conocimiento del modelo, no verificado en la web; puede ser incompleto o inexacto. «Maqueta» son supuestos de la geometría 3D (medidas de la sala, posiciones, equipos).</small>';
+
+/* ---------- ventana emergente ---------- */
+function openPop(h){
+ pop.style.setProperty('--c',h.c);
+ pop.innerHTML='<div class="ph"><span class="pn">'+h.k+'</span><b>'+h.name+'</b><button class="px" aria-label="Cerrar">×</button></div><div class="pb"><span class="tagb b1">LO QUE DICE LA IMAGEN</span><p>'+h.dato+'</p><span class="tagb b2">CONTEXTO GENERAL · no verificado</span><p>'+h.ctx+'</p><span class="tagb b3">MAQUETA · SUPUESTOS</span><p>'+h.geo+'</p></div>';
+ pop.classList.add('show');popOff={x:0,y:0};
+ popW=pop.offsetWidth;popH=pop.offsetHeight;
+ leadP.setAttribute('stroke',h.c);leadD.setAttribute('fill',h.c);leadG.style.display='';
+}
+function closePop(){pop.classList.remove('show');leadG.style.display='none'}
+let pd=null;
+pop.addEventListener('pointerdown',e=>{
+ if(e.target.closest('.px')){select(null);return}
+ if(e.target.closest('.ph')){pd={x:e.clientX,y:e.clientY,id:e.pointerId};pop.setPointerCapture(e.pointerId)}
+});
+pop.addEventListener('pointermove',e=>{if(pd&&e.pointerId===pd.id){popOff.x+=e.clientX-pd.x;popOff.y+=e.clientY-pd.y;pd.x=e.clientX;pd.y=e.clientY}});
+pop.addEventListener('pointerup',()=>{pd=null});pop.addEventListener('pointercancel',()=>{pd=null});
+pop.addEventListener('wheel',e=>e.stopPropagation());
+
+/* ---------- selección y vistas ---------- */
+const near=(cur,a)=>a+Math.round((cur-a)/(Math.PI*2))*Math.PI*2;
+function select(h){
+ sel=h;st.auto=false;
+ HS.forEach(x=>x.li.classList.toggle('sel',x===h));
+ if(h){
+  if(h.id==='alt'&&!st.dims)st.dims=true;
+  if(Math.abs(h.a[1])>-1){
+   tgt.tx=h.a[0];tgt.ty=h.a[1];tgt.tz=h.a[2];tgt.px=0;tgt.py=-10;
+   if(h.n){tgt.zoom=2.0;if(Math.abs(h.n[1])>.5){tgt.pitch=1.1}else{tgt.yaw=near(cam.yaw,Math.atan2(-h.n[0],h.n[2]));tgt.pitch=.3}}
+   else{tgt.zoom=1.3;tgt.yaw=near(cam.yaw,.9);tgt.pitch=.45;tgt.tx=-1.5;tgt.ty=1.4;tgt.tz=-2}
+  }
+  openPop(h);
+ }else{Object.assign(tgt,{tx:0,ty:1.3,tz:0,zoom:1,px:0,py:-34});closePop()}
+ syncBtns();
+}
+const VIEWS={iso:{yaw:.55,pitch:.5},front:{yaw:0,pitch:.12},top:{yaw:0,pitch:1.5},right:{yaw:1.45,pitch:.3},left:{yaw:-1.45,pitch:.3}};
+function view(n){select(null);st.auto=false;const v=VIEWS[n];Object.assign(tgt,{tx:0,ty:1.3,tz:0,px:0,py:-34,zoom:n==='top'?1.25:1,pitch:v.pitch,yaw:near(cam.yaw,v.yaw)});syncBtns()}
+
+/* ---------- barra de botones ---------- */
+let stream=null,gyro=false,g0=null,gBase=0,gTimer=0;
+function toast(m,ms=4200){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),ms)}
+function syncBtns(){
+ document.querySelectorAll('[data-a]').forEach(b=>{const a=b.dataset.a;let on=false;if(a in st)on=st[a];if(a==='ar')on=stage.classList.contains('ar');if(a==='gyro')on=gyro;b.classList.toggle('on',on)});
+ sceneG.setAttribute('filter',st.shadow?'url(#sh)':'none');
+}
+async function toggleAR(){
+ if(stage.classList.contains('ar')){stopAR();return}
+ try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('sin API');
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+  vid.srcObject=stream;await vid.play();
+  stage.classList.add('ar');$('#badge').textContent='● RA CÁMARA ACTIVA';
+  toast('Realidad aumentada activa: la maqueta flota sobre la imagen de su cámara. Arrastre para rotarla o use el giroscopio.');
+ }catch(e){toast('No se pudo abrir la cámara (permiso denegado o dispositivo sin cámara). Abra el archivo en el navegador de su teléfono o PC y acepte el permiso; mientras tanto se mantiene el modo holográfico.',7000)}
+ syncBtns();
+}
+function stopAR(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}vid.srcObject=null;stage.classList.remove('ar');$('#badge').textContent='● RA HOLOGRÁFICA';syncBtns()}
+function onOri(e){
+ if(e.alpha==null)return;g0=g0===null?e.alpha:g0;gTimer=1;
+ const y=gBase-(e.alpha-g0)*Math.PI/180,p=clamp((90-(e.beta??45))*Math.PI/180,.05,1.5);
+ cam.yaw=tgt.yaw=y;cam.pitch=tgt.pitch=p;
+}
+async function toggleGyro(){
+ if(gyro){gyro=false;window.removeEventListener('deviceorientation',onOri);syncBtns();return}
+ try{
+  if(typeof DeviceOrientationEvent==='undefined')throw 0;
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted')throw 0}
+  gyro=true;g0=null;gTimer=0;gBase=cam.yaw;st.auto=false;window.addEventListener('deviceorientation',onOri);
+  setTimeout(()=>{if(gyro&&!gTimer){toast('Este dispositivo no entrega datos de giroscopio (normal en PC). Use el arrastre para rotar.');gyro=false;window.removeEventListener('deviceorientation',onOri);syncBtns()}},1500);
+  toast('Giroscopio activo: mueva el dispositivo para rodear la maqueta.');
+ }catch(e){toast('Giroscopio no disponible o permiso denegado.')}
+ syncBtns();
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b||b.classList.contains('px'))return;
+ if(b.dataset.v){view(b.dataset.v);return}
+ const a=b.dataset.a;if(!a)return;
+ if(a in st){st[a]=!st[a];if(a==='auto'&&st.auto)select(null)}
+ else if(a==='ar')toggleAR();
+ else if(a==='gyro')toggleGyro();
+ else if(a==='zin')tgt.zoom=clamp(tgt.zoom*1.3,.35,6);
+ else if(a==='zout')tgt.zoom=clamp(tgt.zoom/1.3,.35,6);
+ else if(a==='reset'){select(null);Object.assign(tgt,HOME,{yaw:near(cam.yaw,HOME.yaw)});st.auto=false}
+ syncBtns();
+});
+if(!('DeviceOrientationEvent' in window))$('#bgyro').style.display='none';
+
+/* ---------- puntero ---------- */
+const ptrs=new Map();let panMode=false,lastPinch=0,lastMid=null;
+const syncTgt=()=>{tgt.yaw=cam.yaw;tgt.pitch=cam.pitch;tgt.zoom=cam.zoom;tgt.px=cam.px;tgt.py=cam.py};
+svg.addEventListener('pointerdown',e=>{
+ if(e.target.closest('.hs'))return;
+ svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});dragging=true;svg.classList.add('drag');
+ panMode=e.button===2||e.shiftKey||e.ctrlKey;
+ if(ptrs.size===2){const [a,b]=[...ptrs.values()];lastPinch=Math.hypot(a.x-b.x,a.y-b.y)||1;lastMid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+});
+svg.addEventListener('pointermove',e=>{
+ const p=ptrs.get(e.pointerId);if(!p)return;
+ const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+ if(ptrs.size===1){if(panMode){cam.px+=dx;cam.py+=dy}else{cam.yaw+=dx*.008;cam.pitch=clamp(cam.pitch+dy*.006,.04,1.52)}}
+ else if(ptrs.size===2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};cam.zoom=clamp(cam.zoom*d/lastPinch,.35,6);lastPinch=d;cam.px+=mid.x-lastMid.x;cam.py+=mid.y-lastMid.y;lastMid=mid}
+ syncTgt();
+});
+const endP=e=>{ptrs.delete(e.pointerId);if(!ptrs.size){dragging=false;svg.classList.remove('drag')}};
+svg.addEventListener('pointerup',endP);svg.addEventListener('pointercancel',endP);
+svg.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=clamp(cam.zoom*Math.exp(-e.deltaY*.0016),.35,6);tgt.zoom=cam.zoom},{passive:false});
+svg.addEventListener('contextmenu',e=>e.preventDefault());
+svg.addEventListener('dblclick',e=>{if(e.target.closest('.hs'))return;select(null);Object.assign(tgt,HOME,{yaw:near(cam.yaw,HOME.yaw)})});
+window.addEventListener('keydown',e=>{
+ const k=e.key;
+ if(k==='ArrowLeft')cam.yaw-=.12;else if(k==='ArrowRight')cam.yaw+=.12;else if(k==='ArrowUp')cam.pitch=clamp(cam.pitch-.08,.04,1.52);else if(k==='ArrowDown')cam.pitch=clamp(cam.pitch+.08,.04,1.52);
+ else if(k==='+'||k==='=')tgt.zoom=clamp(tgt.zoom*1.2,.35,6);else if(k==='-')tgt.zoom=clamp(tgt.zoom/1.2,.35,6);else if(k==='Escape')select(null);else return;
+ syncTgt();
+});
+
+/* ---------- render ---------- */
+function resize(){W=stage.clientWidth||800;H=stage.clientHeight||600;svg.setAttribute('viewBox','0 0 '+W+' '+H);if(sel){popW=pop.offsetWidth;popH=pop.offsetHeight}}
+window.addEventListener('resize',resize);
+const LD=(()=>{const l=[-.35,.8,.5],m=Math.hypot(...l);return l.map(x=>x/m)})();
+function hide(o){if(o.shown!==false){o.el.style.display='none';o.shown=false}}
+function show(o){if(o.shown===false){o.el.style.display='';o.shown=true}}
+const res=v=>typeof v==='function'?v():v;
+
+function render(){
+ const ca=Math.cos(cam.yaw),sa=Math.sin(cam.yaw),cb=Math.cos(cam.pitch),sb=Math.sin(cam.pitch);
+ const S=Math.min(W/11.5,H/8.6)*cam.zoom,D=cam.D,cx=W/2+cam.px,cy=H/2+cam.py;
+ const V=p=>{const x=p[0]-cam.tx,y=p[1]-cam.ty,z=p[2]-cam.tz,x1=x*ca+z*sa,z1=-x*sa+z*ca;return [x1,y*cb-z1*sb,y*sb+z1*cb]};
+ const N=n=>{const z1=-n[0]*sa+n[2]*ca;return [n[0]*ca+n[2]*sa,n[1]*cb-z1*sb,n[1]*sb+z1*cb]};
+ const P=v=>{const k=D/Math.max(.5,D-v[2]);return [cx+v[0]*S*k,cy-v[1]*S*k,k]};
+ const facing=(n,v0)=>{const nv=N(res(n));return nv[0]*(-v0[0])+nv[1]*(-v0[1])+nv[2]*(D-v0[2])>0};
+ const pulse=1+.15*Math.sin(T*5);
+ const ord=[];let idx=0;
+ for(const o of items){
+  idx++;
+  if(o.group&&!st[o.group]){hide(o);ord.push([-1e9+idx,o]);continue}
+  const isSel=sel&&o.tag&&sel.tags.indexOf(o.tag)>=0;
+  const dimF=(sel&&!isSel&&o.layer>=2&&o.layer<4)?.35:1;
+  if(o.type==='poly'){
+   const v=res(o.pts).map(V);
+   let ghost=false;
+   if(o.n&&!facing(o.n,v[0])){if(o.ghost)ghost=true;else{hide(o);ord.push([-1e9+idx,o]);continue}}
+   let z=0;if(o.dp){z=V(res(o.dp))[2]}else{for(const q of v)z+=q[2];z/=v.length}
+   ord.push([(ghost?4.5:o.layer)*100+z+o.sub*.001,o]);show(o);
+   let s='';for(const q of v){const p=P(q);s+=p[0].toFixed(1)+','+p[1].toFixed(1)+' '}
+   setA(o,'points',s);
+   if(ghost){setA(o,'fill','none');setA(o,'stroke',o.c);setA(o,'stroke-opacity',isSel?.9:.3);setA(o,'stroke-width',isSel?1.6:.9);setA(o,'opacity',1)}
+   else{
+    let lum=.5;if(o.n){const n=res(o.n);lum=Math.max(0,n[0]*LD[0]+n[1]*LD[1]+n[2]*LD[2])}
+    const m=clamp(o.k*(.7+1.1*lum)*1.25*(isSel?2.2:1),0,1);
+    setA(o,'fill','rgb('+Math.round(BG[0]+(o.rgb[0]-BG[0])*m)+','+Math.round(BG[1]+(o.rgb[1]-BG[1])*m)+','+Math.round(BG[2]+(o.rgb[2]-BG[2])*m)+')');
+    setA(o,'fill-opacity',o.op);setA(o,'stroke',o.c);setA(o,'stroke-opacity',isSel?1:o.so);
+    setA(o,'stroke-width',(isSel?o.sw*2.1*pulse:o.sw).toFixed(2));setA(o,'opacity',dimF);
+   }
+  }else if(o.type==='line'){
+   const v=res(o.pts).map(V);
+   if(o.n&&!facing(o.n,v[0])){hide(o);ord.push([-1e9+idx,o]);continue}
+   let z=0;if(o.dp){z=V(res(o.dp))[2]}else{for(const q of v)z+=q[2];z/=v.length}
+   ord.push([o.layer*100+z+o.sub*.001,o]);show(o);
+   let d='';v.forEach((q,i)=>{const p=P(q);d+=(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)});
+   setA(o,'d',d);setA(o,'stroke',o.c);setA(o,'stroke-opacity',isSel?1:o.so);setA(o,'stroke-width',(isSel?o.sw*1.7:o.sw).toFixed(2));setA(o,'opacity',dimF);
+   if(o.dash){setA(o,'stroke-dasharray',o.dash);if(o.flow)o.el.setAttribute('stroke-dashoffset',(-(T*o.speed)%1000).toFixed(1))}
+  }else{
+   const v=V(res(o.p));
+   if(o.n&&!facing(o.n,v)){hide(o);ord.push([-1e9+idx,o]);continue}
+   let z=v[2];if(o.dp)z=V(res(o.dp))[2];
+   ord.push([o.layer*100+z+o.sub*.001,o]);show(o);
+   const p=P(v),r=Math.max(1.1,o.r*S*p[2]);
+   setA(o,'cx',p[0].toFixed(1));setA(o,'cy',p[1].toFixed(1));setA(o,'r',r.toFixed(2));setA(o,'fill',o.c);
+   const bo=o.blink?(Math.sin(T*o.blink.sp+o.blink.ph)>-.25?1:.2):1;
+   setA(o,'opacity',(bo*dimF).toFixed(2));
+  }
+ }
+ ord.sort((a,b)=>a[0]-b[0]);
+ let ch=sceneG.firstChild;
+ for(const e of ord){const el=e[1].el;if(ch===el)ch=ch.nextSibling;else sceneG.insertBefore(el,ch)}
+
+ for(const l of labels){
+  if(!st[l.group]){if(l.on!==false){l.el.style.display='none';l.on=false}continue}
+  if(l.on===false){l.el.style.display='';l.on=true}
+  const p=P(V(l.pos));l.el.setAttribute('x',p[0].toFixed(1));l.el.setAttribute('y',(p[1]+l.dy).toFixed(1));
+ }
+ for(const h of HS){
+  const v=V(h.a),p=P(v);h.sx=p[0];h.sy=p[1];
+  let vis=1;if(h.n&&!facing(h.n,v))vis=.4;
+  const act=sel===h||hov===h;
+  h.g.setAttribute('transform','translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+')');
+  h.g.setAttribute('opacity',sel&&sel!==h?vis*.65:vis);
+  const ph=(T*9+h.i*2.3)%10;
+  h.ring.setAttribute('r',(12+ph*(act?1.6:1)).toFixed(1));h.ring.setAttribute('stroke-opacity',(.35*(1-ph/10)).toFixed(2));
+  h.dot.setAttribute('stroke-width',act?3:1.8);
+  const showChip=(st.labels||hov===h)&&sel!==h;
+  h.chip.style.display=showChip?'':'none';
+  if(showChip){
+   const side=p[0]>cx?1:-1,off=st.labels&&hov!==h?-18-(h.i%4)*22:-30,x=side>0?24:-24-h.w;
+   h.chip.setAttribute('transform','translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+')');
+   h.rect.setAttribute('x',x);h.rect.setAttribute('y',off);h.txt.setAttribute('x',x+10);h.txt.setAttribute('y',off+15);
+   h.lead.setAttribute('d','M'+(side*11)+' -4L'+(side*24)+' '+(off+11));
+   h.chip.setAttribute('opacity',vis<1?.55:1);
+  }
+ }
+ /* ventana emergente anclada al componente */
+ if(sel){
+  const narrow=W<640;
+  let left,top;
+  if(narrow){left=(W-popW)/2;top=60}
+  else{const side=sel.sx>W/2?-1:1;left=side>0?sel.sx+44:sel.sx-44-popW;top=sel.sy-popH/2}
+  left=clamp(left+popOff.x,8,Math.max(8,W-popW-8));
+  top=clamp(top+popOff.y,56,Math.max(56,H-popH-120));
+  pop.style.transform='translate('+left.toFixed(0)+'px,'+top.toFixed(0)+'px)';
+  const qx=clamp(sel.sx,left,left+popW),qy=clamp(sel.sy,top,top+popH);
+  leadP.setAttribute('d','M'+sel.sx.toFixed(1)+' '+sel.sy.toFixed(1)+'L'+qx.toFixed(1)+' '+qy.toFixed(1));
+  leadD.setAttribute('cx',qx.toFixed(1));leadD.setAttribute('cy',qy.toFixed(1));
+ }
+}
+
+let last=performance.now(),rc=0;
+function loop(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+ const k=1-Math.exp(-dt*5);
+ if(!dragging){
+  if(st.auto&&!gyro){cam.yaw+=dt*.2;tgt.yaw=cam.yaw}else if(!gyro)cam.yaw+=(tgt.yaw-cam.yaw)*k;
+  for(const key of ['pitch','zoom','px','py','tx','ty','tz'])if(!gyro||key!=='pitch')cam[key]+=(tgt[key]-cam[key])*k;
+ }
+ render();
+ if(++rc%8===0)$('#readout').innerHTML='Rotación '+Math.round(((cam.yaw*180/Math.PI)%360+360)%360)+'° · Inclinación '+Math.round(cam.pitch*180/Math.PI)+'° · Zoom '+cam.zoom.toFixed(2)+'×<br>Maqueta ilustrativa basada en la imagen adjunta';
+ requestAnimationFrame(loop);
+}
+resize();build();syncBtns();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
