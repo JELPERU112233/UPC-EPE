@@ -1,1 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sala de Telecomunicaciones 3D – Maqueta con Realidad Aumentada</title>
+<style>
+:root{--bg:#02050d;--cy:#8fa8c4;--mg:#f0707f;--gr:#4cc9a0;--ye:#e8c547;--tx:#d6f4ff;--dim:#86adc4}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);overflow:hidden}
+#app{display:flex;height:100%;width:100%}
+#stage{position:relative;flex:1;min-width:0;overflow:hidden;background:radial-gradient(ellipse at 50% 58%,#0b2342 0%,#050d1c 55%,#02050d 100%);touch-action:none}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#stage.ar{background:#000}
+#stage.ar #cam{display:block}
+#stage.ar .fx.grid,#stage.ar .fx.vig{display:none}
+#svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#svg.drag{cursor:grabbing}
+#svg text{font-family:Arial,Helvetica,sans-serif;pointer-events:none}
+.fx{position:absolute;inset:0;pointer-events:none}
+.grid{background-image:linear-gradient(rgba(25,230,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(25,230,255,.07) 1px,transparent 1px);background-size:46px 46px;-webkit-mask-image:radial-gradient(ellipse at 50% 58%,#000 25%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 58%,#000 25%,transparent 75%)}
+.scan{background:linear-gradient(to bottom,rgba(25,230,255,0),rgba(25,230,255,.13) 50%,rgba(25,230,255,0));background-size:100% 200px;background-repeat:no-repeat;animation:sc 6s linear infinite}
+@keyframes sc{from{background-position:0 -200px}to{background-position:0 calc(100% + 200px)}}
+.vig{background:repeating-linear-gradient(to bottom,rgba(255,255,255,.018) 0 1px,transparent 1px 3px)}
+.corner{position:absolute;width:34px;height:34px;border:2px solid var(--cy);box-shadow:0 0 10px var(--cy);pointer-events:none;opacity:.8}
+.tl{top:10px;left:10px;border-right:0;border-bottom:0}.tr{top:10px;right:10px;border-left:0;border-bottom:0}
+.bl{bottom:10px;left:10px;border-right:0;border-top:0}.br{bottom:10px;right:10px;border-left:0;border-top:0}
+#title{position:absolute;top:18px;left:24px;pointer-events:none}
+#title h1{margin:0;font-size:17px;letter-spacing:2px;color:#fff;text-shadow:0 0 6px var(--cy),0 0 16px var(--cy),0 0 30px var(--cy)}
+#title p{margin:4px 0 0;font-size:12px;color:var(--cy);text-shadow:0 0 8px rgba(25,230,255,.7)}
+#badge{position:absolute;top:20px;right:26px;font-size:12px;color:var(--gr);text-shadow:0 0 8px var(--gr);letter-spacing:1px;pointer-events:none;animation:bl 1.6s infinite}
+@keyframes bl{50%{opacity:.45}}
+#readout{position:absolute;left:24px;bottom:104px;font-size:11px;color:var(--dim);pointer-events:none;line-height:1.5}
+#toolbar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;width:96%;z-index:5}
+.row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.btn{background:rgba(4,18,38,.82);color:var(--cy);border:1px solid rgba(25,230,255,.6);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;box-shadow:0 0 9px rgba(25,230,255,.28),inset 0 0 9px rgba(25,230,255,.08);text-shadow:0 0 6px rgba(25,230,255,.8);transition:.15s}
+.btn:hover{background:rgba(25,230,255,.18);color:#fff}
+.btn.on{background:rgba(25,230,255,.26);color:#fff;box-shadow:0 0 16px rgba(25,230,255,.8),inset 0 0 10px rgba(25,230,255,.25)}
+.btn.v{border-color:rgba(255,45,149,.65);color:#cbd5e1;text-shadow:0 0 6px rgba(255,45,149,.8);box-shadow:0 0 9px rgba(255,45,149,.25)}
+#toast{position:absolute;left:50%;top:70px;transform:translateX(-50%);max-width:88%;background:rgba(4,18,38,.94);border:1px solid var(--cy);color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;box-shadow:0 0 18px rgba(25,230,255,.5);opacity:0;pointer-events:none;transition:opacity .3s;z-index:6;text-align:center}
+#toast.show{opacity:1}
+#panel{width:355px;flex:none;background:rgba(3,10,22,.95);border-left:1px solid rgba(25,230,255,.4);box-shadow:-6px 0 26px rgba(25,230,255,.12);display:flex;flex-direction:column;min-height:0}
+#detail{padding:14px 14px 8px;overflow-y:auto;max-height:52%;flex:none;border-bottom:1px solid rgba(25,230,255,.2);font-size:13px;line-height:1.45}
+#detail h2{margin:0 0 8px;font-size:15px;color:#fff;text-shadow:0 0 8px var(--c),0 0 18px var(--c)}
+#detail .card{border-left:3px solid var(--c);padding-left:10px;box-shadow:-8px 0 14px -10px var(--c)}
+.tagb{display:inline-block;font-size:10px;letter-spacing:.5px;padding:2px 6px;border-radius:4px;margin:8px 0 3px;border:1px solid}
+.b1{color:#8fa8c4;border-color:#8fa8c4}.b2{color:#e0a458;border-color:#e0a458}.b3{color:#b9c6d0;border-color:#8798a6}
+#detail p{margin:2px 0}
+#detail .help li{margin:5px 0;color:var(--tx)}
+#detail ul{padding-left:18px;margin:6px 0}
+#detail small{color:var(--dim);display:block;margin-top:8px;font-size:11px}
+#listwrap{overflow-y:auto;padding:8px 12px 14px;flex:1;min-height:0}
+#listwrap h3{margin:4px 0 6px;font-size:12px;letter-spacing:1.5px;color:var(--cy)}
+.it{display:flex;gap:9px;align-items:center;padding:6px 8px;border:1px solid rgba(255,255,255,.09);border-radius:7px;margin:4px 0;cursor:pointer;font-size:13px;color:var(--tx);background:rgba(255,255,255,.02)}
+.it:hover{background:rgba(255,255,255,.07)}
+.it .n{flex:none;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-weight:bold;font-size:12px;border:1.5px solid var(--c);color:var(--c);box-shadow:0 0 8px var(--c),inset 0 0 6px var(--c)}
+.it.sel{background:rgba(255,255,255,.1);border-color:var(--c);box-shadow:0 0 12px -2px var(--c)}
+@media (max-width:860px){
+ #app{flex-direction:column}
+ #panel{width:100%;height:42%;border-left:0;border-top:1px solid rgba(25,230,255,.4)}
+ #detail{max-height:55%}
+ #title h1{font-size:13px}#title p{display:none}
+ #readout{display:none}
+ .btn{padding:6px 8px;font-size:11px}
+}
+
+:root{--bg:#0b1220;--cy:#7fa6d6;--tx:#e2e8f0;--dim:#94a3b8;--ac:#3b82f6}
+#stage{background:radial-gradient(ellipse at 50% 45%,#1b2740 0%,#111b2e 55%,#0b1220 100%)!important}
+.grid{background-image:linear-gradient(rgba(148,163,184,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.05) 1px,transparent 1px)!important}
+.scan,.vig{display:none!important}
+.corner{border-color:rgba(148,163,184,.45)!important;box-shadow:none!important;opacity:1!important;width:22px;height:22px}
+#title h1{font-weight:bold;letter-spacing:1.5px;font-size:16px;color:#f1f5f9!important;text-shadow:none!important}
+#title p{color:#94a3b8!important;text-shadow:none!important}
+#badge{color:#34d399!important;text-shadow:none!important;animation:none!important;font-size:11px;background:rgba(15,23,42,.7);border:1px solid rgba(52,211,153,.35);padding:4px 10px;border-radius:999px;top:16px}
+.btn{background:rgba(15,23,42,.88)!important;color:#cbd5e1!important;border:1px solid rgba(148,163,184,.25)!important;border-radius:8px!important;box-shadow:0 2px 8px rgba(0,0,0,.35)!important;text-shadow:none!important;backdrop-filter:blur(6px)}
+.btn:hover{background:rgba(51,65,85,.95)!important;color:#fff!important}
+.btn.on{background:#2563eb!important;border-color:#3b82f6!important;color:#fff!important;box-shadow:0 2px 10px rgba(37,99,235,.45)!important}
+.btn.v{color:#cbd5e1!important;border-color:rgba(148,163,184,.25)!important;box-shadow:0 2px 8px rgba(0,0,0,.35)!important;text-shadow:none!important}
+#toast{border:1px solid rgba(148,163,184,.3)!important;box-shadow:0 8px 24px rgba(0,0,0,.45)!important;background:rgba(15,23,42,.96)!important}
+#panel{background:#0f172a!important;border-left:1px solid rgba(148,163,184,.15)!important;box-shadow:none!important}
+#detail{border-bottom:1px solid rgba(148,163,184,.15)!important}
+#detail h2{text-shadow:none!important;color:#f8fafc!important}
+#detail .card{box-shadow:none!important;border-left:3px solid var(--c)}
+.b1{color:#7fb2f0!important;border-color:#3b6ea8!important}.b2{color:#e0a458!important;border-color:#8a6430!important}
+#listwrap h3{color:#94a3b8!important;font-weight:bold}
+.it{background:rgba(255,255,255,.03)!important;border:1px solid rgba(148,163,184,.14)!important}
+.it .n{box-shadow:none!important;background:color-mix(in srgb,var(--c) 18%,transparent)}
+.it.sel{box-shadow:none!important;background:rgba(255,255,255,.08)!important}
+@media (max-width:860px){#title h1{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="stage">
+  <video id="cam" playsinline muted></video>
+  <div class="fx grid"></div>
+  <div class="fx scan"></div>
+  <div class="fx vig"></div>
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <filter id="glow" x="-10%" y="-10%" width="125%" height="130%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000" flood-opacity=".38"/></filter>
+    <filter id="glow2" x="-40%" y="-40%" width="180%" height="190%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".5"/></filter>
+   </defs>
+   <g id="scene" filter="url(#glow)"></g>
+   <g id="overlay"></g>
+  </svg>
+  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  <div id="title"><h1>SALA DE TELECOMUNICACIONES</h1><p>Maqueta 3D interactiva · 3 m × 2.4 m · Realidad aumentada</p></div>
+  <div id="badge">● RA HOLOGRÁFICA</div>
+  <div id="readout"></div>
+  <div id="toolbar">
+   <div class="row" id="rowv">
+    <button class="btn v" data-v="iso">Isométrica</button>
+    <button class="btn v" data-v="front">Frontal</button>
+    <button class="btn v" data-v="top">Planta</button>
+    <button class="btn v" data-v="side">Lateral</button>
+    <button class="btn v" data-v="back">Trasera</button>
+   </div>
+   <div class="row" id="rowt">
+    <button class="btn" data-a="auto">Auto-giro</button>
+    <button class="btn" data-a="dims">Cotas</button>
+    <button class="btn" data-a="flow">Flujos</button>
+    <button class="btn" data-a="labels">Etiquetas</button>
+    <button class="btn" data-a="neon">Sombras</button>
+    <button class="btn" data-a="door">Puerta</button>
+    <button class="btn" data-a="ar">Cámara AR</button>
+    <button class="btn" data-a="gyro" id="bgyro">Giroscopio</button>
+    <button class="btn" data-a="zout">−</button>
+    <button class="btn" data-a="zin">+</button>
+    <button class="btn" data-a="reset">Restablecer</button>
+   </div>
+  </div>
+  <div id="toast"></div>
+ </div>
+ <aside id="panel">
+  <div id="detail"></div>
+  <div id="listwrap"><h3>COMPONENTES · TOQUE PARA INSPECCIONAR</h3><div id="list"></div></div>
+ </aside>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const $=s=>document.querySelector(s);
+const stage=$('#stage'),svg=$('#svg'),sceneG=$('#scene'),ovG=$('#overlay'),vid=$('#cam');
+let W=800,H=600;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- colores neón ---------- */
+const C={wall:'#8fa8c4',ply:'#e0a458',hvac:'#6ea8fe',pow:'#e8c547',fire:'#f0707f',cond:'#a58df0',rack:'#4cc9a0',grd:'#a3d96b',stat:'#e2e8f0',lv:'#4fd1c5',door:'#9cc7f0',dim:'#cbd5e1'};
+const BG=[15,23,42];
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+
+/* ---------- estado ---------- */
+const st={dims:true,flow:true,labels:false,neon:true,auto:true};
+const cam={yaw:-0.62,pitch:0.5,zoom:1.0,px:0,py:-34,tx:0,ty:1.3,tz:0,D:9};
+const tgt=Object.assign({},cam);
+const HOME={yaw:-0.62,pitch:0.5,zoom:1.0,px:0,py:-34,tx:0,ty:1.3,tz:0};
+let T=0,sel=null,hov=null,dragging=false,doorTarget=0,doorAng=0,doorG=null;
+
+/* ---------- registro de primitivas ---------- */
+const items=[],labels=[];
+const mk=(t,a)=>{const e=document.createElementNS(NS,t);if(a)for(const k in a)e.setAttribute(k,a[k]);return e};
+function reg(o,el){o.el=el;o._a={};sceneG.appendChild(el);items.push(o);return o}
+function setA(o,k,v){if(o._a[k]!==v){o._a[k]=v;o.el.setAttribute(k,v)}}
+function addPoly(o){o.type='poly';o.layer=o.layer??3;o.k=o.k??.12;o.op=o.op??1;o.sw=(o.sw??1)*.85;o.so=o.so??.9;o.sub=o.sub||0;o.rgb=hex(o.c);return reg(o,mk('polygon',{'stroke-linejoin':'round'}))}
+function addLine(o){o.type='line';o.layer=o.layer??3;o.sw=o.sw??1.5;o.so=o.so??.9;o.sub=o.sub||0;o.rgb=hex(o.c);return reg(o,mk('path',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round'}))}
+function addDot(o){o.type='dot';o.layer=o.layer??3;o.sub=o.sub||0;return reg(o,mk('circle',{}))}
+function addLabel(o){o.el=mk('text',{'text-anchor':'middle','font-size':12,fill:o.c||C.dim,stroke:'#02050d','stroke-width':3,'paint-order':'stroke'});o.el.textContent=o.text;ovG.insertBefore(o.el,ovG.firstChild);labels.push(o);return o}
+
+function addBox(x0,x1,y0,y1,z0,z1,o){
+ const F=[
+  {n:[1,0,0],p:[[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],[x1,y0,z1]]},
+  {n:[-1,0,0],p:[[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],[x0,y0,z0]]},
+  {n:[0,1,0],p:[[x0,y1,z0],[x0,y1,z1],[x1,y1,z1],[x1,y1,z0]]},
+  {n:[0,-1,0],p:[[x0,y0,z1],[x0,y0,z0],[x1,y0,z0],[x1,y0,z1]]},
+  {n:[0,0,1],p:[[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]]},
+  {n:[0,0,-1],p:[[x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0]]}];
+ F.forEach((f,i)=>{const s=o.face?o.face(i):{};if(s===false)return;const p=Object.assign({},o,s,{pts:f.p,n:f.n});delete p.face;addPoly(p)});
+}
+function ring(c,u,v,r,n=22){const a=[];for(let i=0;i<n;i++){const t=i/n*Math.PI*2,cs=Math.cos(t)*r,sn=Math.sin(t)*r;a.push([c[0]+u[0]*cs+v[0]*sn,c[1]+u[1]*cs+v[1]*sn,c[2]+u[2]*cs+v[2]*sn])}return a}
+function rectPts(c,u,v,w,h){const a=w/2,b=h/2;return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([s,t])=>[c[0]+u[0]*s*a+v[0]*t*b,c[1]+u[1]*s*a+v[1]*t*b,c[2]+u[2]*s*a+v[2]*t*b])}
+const plate=(c,u,v,w,h,n,o)=>addPoly(Object.assign({pts:rectPts(c,u,v,w,h),n},o));
+const circ=(c,u,v,r,n,o,seg)=>addPoly(Object.assign({pts:ring(c,u,v,r,seg||22),n},o));
+function crom(P,s=6){const out=[],n=P.length;for(let i=0;i<n-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(n-1,i+2)];for(let j=0;j<s;j++){const t=j/s,t2=t*t,t3=t2*t;out.push([0,1,2].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)))}}out.push(P[n-1]);return out}
+let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+
+/* =====================  ESCENA  ===================== */
+function build(){
+ /* plataforma holográfica */
+ addPoly({pts:[[-2.7,-.03,-2.2],[-2.7,-.03,2.2],[2.7,-.03,2.2],[2.7,-.03,-2.2]],n:[0,1,0],c:C.wall,k:.035,sw:1,so:.45,layer:-1});
+ for(let x=-2.5;x<=2.51;x+=.5)addLine({pts:[[x,-.03,-2.2],[x,-.03,2.2]],c:C.wall,sw:1,so:.16,layer:-.9});
+ for(let z=-2;z<=2.01;z+=.5)addLine({pts:[[-2.7,-.03,z],[2.7,-.03,z]],c:C.wall,sw:1,so:.16,layer:-.9});
+ const rp=[];for(let i=0;i<=80;i++){const t=i/80*Math.PI*2;rp.push([Math.cos(t)*3.2,-.02,Math.sin(t)*3.2])}
+ addLine({pts:rp,c:C.wall,sw:1.4,so:.55,dash:'3 10',flow:true,speed:14,layer:-.8});
+
+ /* piso */
+ addPoly({pts:[[-1.5,0,-1.2],[-1.5,0,1.2],[1.5,0,1.2],[1.5,0,-1.2]],n:[0,1,0],c:C.wall,k:.08,sw:1.4,so:.9,layer:0});
+ for(let x=-1.2;x<1.49;x+=.3)addLine({pts:[[x,0,-1.2],[x,0,1.2]],c:C.wall,sw:1,so:.2,layer:.1});
+ for(let z=-.9;z<1.19;z+=.3)addLine({pts:[[-1.5,0,z],[1.5,0,z]],c:C.wall,sw:1,so:.2,layer:.1});
+
+ /* muros (cara interior sólida / cara exterior cristal) */
+ const wall=(x0,x1,y0,y1,z0,z1,inner)=>addBox(x0,x1,y0,y1,z0,z1,{layer:1,c:C.wall,k:.1,sw:1.3,so:.9,face:i=>i===inner?{}:i===3?false:i===2?{layer:4,op:.16,k:.3,so:.95,sw:1.5}:{layer:4,op:.06,k:.15,sw:.9,so:.5}});
+ wall(-1.65,1.65,0,3,-1.35,-1.2,4);        /* fondo */
+ wall(-1.65,-1.5,0,3,-1.2,1.2,0);          /* izquierda */
+ wall(1.5,1.65,0,3,-1.2,.25,1);            /* derecha A */
+ wall(1.5,1.65,2.1,3,.25,1.15,1);          /* dintel */
+ wall(1.5,1.65,0,3,1.15,1.2,1);            /* derecha B */
+ wall(-1.65,1.65,0,3,1.2,1.35,5);          /* frontal */
+
+ /* paredes de madera contrachapada 21 mm, altura 2.4 m */
+ const ply=(x0,x1,z0,z1,skip)=>addBox(x0,x1,0,2.4,z0,z1,{layer:2,c:C.ply,k:.2,sw:1.1,so:.95,tag:'ply',face:i=>(i===3||i===skip)?false:{}});
+ ply(-1.5,1.5,-1.2,-1.179,5);
+ ply(-1.5,-1.479,-1.179,1.179,1);
+ ply(1.479,1.5,-1.179,.25,0);
+ ply(-1.479,-.55,1.179,1.2,4);
+
+ /* racks */
+ const rackX=[-.95,-.32,.31,.94];
+ const KD={f:['#f0707f',.34],p:['#4cc9a0',.26],s:['#5bc0eb',.32],v:['#6ea8fe',.34],u:['#e8c547',.28],b:['#2a4a5c',.22]};
+ const LAY=[
+  ['f2','p1','p1','s1','p1','p1','s1','p1','p1','s1','p1','p1','s1','b2','v2','v2','b1','u4'],
+  ['p1','p1','s1','p1','p1','s1','p1','p1','s1','p1','p1','s1','p1','p1','s1','b1','v1','v1','v2','u3','u3'],
+  ['f2','f2','s1','s1','b1','v2','v2','v2','v2','v2','v2','b1','u3','u3'],
+  ['p1','s1','p1','s1','p1','s1','b2','v2','v2','v2','v2','b1','u4','u4']];
+ rackX.forEach((xc,ri)=>{
+  const dp=[xc,1.05,0];
+  addBox(xc-.3,xc+.3,0,2.1,-.3,.3,{layer:3,c:C.rack,k:.07,sw:1.5,so:1,tag:'rack',dp,sub:0,face:i=>i===3?false:{}});
+  let y=.14;
+  LAY[ri].forEach(code=>{
+   const kd=code[0],u=+code.slice(1),h=u*.056,y0=y,y1=y+h;y=y1+.007;
+   const z=.303,x0=xc-.25,x1=xc+.25;
+   addPoly({pts:[[x0,y0,z],[x1,y0,z],[x1,y1,z],[x0,y1,z]],n:[0,0,1],c:KD[kd][0],k:KD[kd][1],sw:.9,so:.85,tag:'rack',dp,sub:1});
+   const ym=(y0+y1)/2;
+   if(kd==='p')addLine({pts:[[xc-.21,ym,z+.001],[xc+.21,ym,z+.001]],n:[0,0,1],c:'#4cc9a0',sw:3,so:.85,dash:'1.4 2.4',tag:'rack',dp,sub:2});
+   if(kd==='s'){for(let i=0;i<10;i++)addDot({p:[xc-.2+i*.0445,ym,z+.002],r:.0075,c:rnd()>.82?'#f0a73a':'#4cc9a0',n:[0,0,1],blink:{sp:2+rnd()*6,ph:rnd()*6},tag:'rack',dp,sub:3})}
+   if(kd==='v'){for(let i=0;i<3;i++)addDot({p:[xc+.2-i*.04,ym,z+.002],r:.008,c:i?'#4cc9a0':'#5bc0eb',n:[0,0,1],blink:{sp:1+rnd()*3,ph:rnd()*6},tag:'rack',dp,sub:3})}
+   if(kd==='u'){for(let i=0;i<2;i++)addDot({p:[xc+.19-i*.05,ym,z+.002],r:.01,c:i?'#f0a73a':'#4cc9a0',n:[0,0,1],blink:{sp:.8,ph:i},tag:'rack',dp,sub:3})}
+   if(kd==='f'){for(let i=0;i<4;i++)addDot({p:[xc-.15+i*.1,ym,z+.002],r:.009,c:'#f0707f',n:[0,0,1],blink:{sp:3+rnd()*3,ph:rnd()*6},tag:'rack',dp,sub:3})}
+  });
+  [-.17,0,.17].forEach((o,j)=>{const x=xc+o;addPoly({pts:[[x-.02,.15,-.303],[x+.02,.15,-.303],[x+.02,1.9,-.303],[x-.02,1.9,-.303]],n:[0,0,-1],c:['#f0707f','#4cc9a0','#5bc0eb'][j],k:.4,sw:.8,so:.8,tag:'rack',dp,sub:1})});
+ });
+
+ /* HVAC (fondo y frente) a 2.6 m SFP */
+ const hvac=(z,n)=>{
+  const c=[0,2.74,z],dp=[0,2.74,z];
+  plate(c,[1,0,0],[0,1,0],.44,.24,n,{layer:2.5,c:C.hvac,k:.32,sw:1.4,so:1,tag:'hvac',ghost:true,dp,sub:0});
+  for(let i=-2;i<=2;i++)addLine({pts:[[-.18,2.74+i*.04,z],[.18,2.74+i*.04,z]],n,c:C.hvac,sw:1.3,so:.9,tag:'hvac',layer:2.5,dp,sub:1});
+  const s=n[2]>0?1:-1;
+  [-.12,0,.12].forEach(x=>addLine({pts:crom([[x,2.66,z+.01*s],[x*1.3,2.56,z+.35*s],[x*2,2.3,z+.7*s],[x*2.6,2.0,z+.95*s]],6),c:'#8ab6ff',sw:1.6,so:.8,dash:'4 8',flow:true,speed:42,group:'flow',layer:5,tag:'hvac'}));
+ };
+ hvac(-1.196,[0,0,1]);hvac(1.196,[0,0,-1]);
+
+ /* receptáculos twist-lock 20 A a 2.6 m */
+ [-.8,-.15].forEach(x=>{
+  const dp=[x,2.6,-1.196];
+  plate([x,2.6,-1.196],[1,0,0],[0,1,0],.12,.12,[0,0,1],{layer:2.5,c:C.pow,k:.3,sw:1.3,so:1,tag:'tw',ghost:true,dp,sub:0});
+  circ([x,2.6,-1.194],[1,0,0],[0,1,0],.034,[0,0,1],{layer:2.5,c:C.pow,k:.6,sw:1.3,so:1,tag:'tw',dp,sub:1});
+  [[-.012,.008],[.012,.008],[0,-.014]].forEach(q=>addDot({p:[x+q[0],2.6+q[1],-1.192],r:.005,c:C.pow,n:[0,0,1],tag:'tw',layer:2.5,dp,sub:2}));
+ });
+
+ /* vías de paso con sellado cortafuegos – fondo */
+ [-1.2,-1.0].forEach(x=>{
+  const dp=[x,2.7,-1.2];
+  circ([x,2.7,-1.196],[1,0,0],[0,1,0],.075,[0,0,1],{layer:2.5,c:C.fire,k:.3,sw:1.5,so:1,tag:'fire',ghost:true,dp,sub:0});
+  circ([x,2.7,-1.194],[1,0,0],[0,1,0],.048,[0,0,1],{layer:2.5,c:C.wall,k:.6,sw:1.2,so:1,tag:'fire',dp,sub:1});
+  [.048,-.048].forEach(o=>addLine({pts:[[x,2.7+o,-1.2],[x,2.7+o,-1.6]],c:C.fire,sw:1.2,so:.6,tag:'fire',layer:2.6,dp,sub:2}));
+ });
+ /* vías de paso – pared derecha */
+ [[-.55,.5],[-.35,.62]].forEach(([z,y])=>{
+  const dp=[1.5,y,z];
+  circ([1.475,y,z],[0,0,1],[0,1,0],.075,[-1,0,0],{layer:2.5,c:C.fire,k:.3,sw:1.5,so:1,tag:'fire',ghost:true,dp,sub:0});
+  circ([1.473,y,z],[0,0,1],[0,1,0],.048,[-1,0,0],{layer:2.5,c:C.wall,k:.6,sw:1.2,so:1,tag:'fire',dp,sub:1});
+  [.048,-.048].forEach(o=>addLine({pts:[[1.5,y+o,z],[1.9,y+o,z]],c:C.fire,sw:1.2,so:.6,tag:'fire',layer:2.6,dp,sub:2}));
+ });
+ /* ducto de interconexión 75 mm, con sellado cortafuegos – pared izquierda */
+ (()=>{const dp=[-1.5,.3,.9];
+  circ([-1.475,.3,.9],[0,0,1],[0,1,0],.07,[1,0,0],{layer:2.5,c:C.fire,k:.3,sw:1.4,so:1,tag:'fire',ghost:true,dp,sub:0});
+  circ([-1.473,.3,.9],[0,0,1],[0,1,0],.0375,[1,0,0],{layer:2.5,c:C.cond,k:.7,sw:1.6,so:1,tag:'cond',ghost:true,dp,sub:1});
+  [.0375,-.0375].forEach(o=>addLine({pts:[[-1.5,.3+o,.9],[-2.0,.3+o,.9]],c:C.cond,sw:1.4,so:.8,tag:'cond',layer:2.6,dp,sub:2}));
+ })();
+ /* manguitos de piso */
+ [-1,-.85,-.7,-.55].forEach(x=>{
+  const dp=[x,0,1.0];
+  circ([x,.004,1.0],[1,0,0],[0,0,-1],.065,[0,1,0],{layer:.3,c:C.fire,k:.3,sw:1.2,so:.95,tag:'fire',dp,sub:0});
+  circ([x,.07,1.0],[1,0,0],[0,0,-1],.045,[0,1,0],{layer:.35,c:C.cond,k:.7,sw:1.5,so:1,tag:'sleeve',dp,sub:1});
+  [-.045,.045].forEach(o=>addLine({pts:[[x+o,.004,1.0],[x+o,.07,1.0]],c:C.cond,sw:1.2,so:.8,tag:'sleeve',layer:.34,dp,sub:1}));
+ });
+
+ /* termostato, TGB y EDP – pared frontal */
+ (()=>{const z=1.196,n=[0,0,-1],u=[1,0,0],v=[0,1,0];
+  let dp=[.55,1.4,z];
+  plate([.55,1.4,z],u,v,.1,.13,n,{layer:2.5,c:C.stat,k:.3,sw:1.3,so:1,tag:'stat',ghost:true,dp,sub:0});
+  circ([.55,1.4,z-.003],u,v,.03,n,{layer:2.5,c:C.stat,k:.6,sw:1.2,so:1,tag:'stat',dp,sub:1});
+  dp=[.95,.4,z];
+  plate([.95,.4,z],u,v,.3,.05,n,{layer:2.5,c:C.grd,k:.4,sw:1.4,so:1,tag:'tgb',ghost:true,dp,sub:0});
+  for(let i=0;i<5;i++)addDot({p:[.95-.11+i*.055,.4,z-.003],r:.008,c:C.grd,n,tag:'tgb',layer:2.5,dp,sub:1});
+  addLine({pts:[[.95,.375,z-.002],[.95,.02,z-.002]],n,c:C.grd,sw:1.6,so:.8,dash:'5 4',flow:true,speed:25,tag:'tgb',layer:2.5,dp,sub:1});
+  dp=[1.25,1.25,z];
+  plate([1.25,1.25,z],u,v,.36,.58,n,{layer:2.5,c:C.pow,k:.2,sw:1.5,so:1,tag:'edp',ghost:true,dp,sub:0});
+  plate([1.25,1.25,z-.002],u,v,.3,.5,n,{layer:2.5,c:C.pow,k:.08,sw:1,so:.7,tag:'edp',dp,sub:1});
+  for(let i=0;i<6;i++)addLine({pts:[[1.13,1.43-i*.07,z-.004],[1.37,1.43-i*.07,z-.004]],n,c:C.pow,sw:2,so:.7,tag:'edp',layer:2.5,dp,sub:2});
+  addDot({p:[1.37,1.5,z-.005],r:.01,c:'#4cc9a0',n,blink:{sp:2,ph:0},tag:'edp',layer:2.5,dp,sub:3});
+ })();
+
+ /* backboard otro sistema de baja tensión + salida telecom – pared derecha */
+ (()=>{const x=1.475,n=[-1,0,0],u=[0,0,1],v=[0,1,0];
+  let dp=[x,1.45,-.55];
+  plate([x,1.45,-.55],u,v,.6,.9,n,{layer:2.5,c:C.lv,k:.18,sw:1.5,so:1,tag:'lv',ghost:true,dp,sub:0});
+  plate([x-.002,1.45,-.55],u,v,.5,.8,n,{layer:2.5,c:C.lv,k:.08,sw:1,so:.7,tag:'lv',dp,sub:1});
+  [-.25,0,.25].forEach(o=>addLine({pts:[[x-.004,1.45+o,-.78],[x-.004,1.45+o,-.32]],n,c:C.lv,sw:2,so:.6,tag:'lv',layer:2.5,dp,sub:2}));
+  dp=[x,1.25,.1];
+  plate([x,1.25,.1],u,v,.1,.14,n,{layer:2.5,c:C.rack,k:.3,sw:1.3,so:1,tag:'outlet',ghost:true,dp,sub:0});
+  addPoly({pts:[[x-.004,1.25+.03,.1-.03],[x-.004,1.25+.03,.1+.03],[x-.004,1.25-.035,.1]],n,c:C.rack,k:.9,sw:1.2,so:1,tag:'outlet',layer:2.5,dp,sub:1});
+ })();
+
+ /* puerta (animada) */
+ const DW=.9,DH=2.05,DT=.02,HX=1.575,HZ=1.15;
+ doorGeoFn=()=>{const s=Math.sin(doorAng),c=Math.cos(doorAng),d=[s,-c],t=[c,s];
+  const a=[HX-t[0]*DT,HZ-t[1]*DT],b=[HX+t[0]*DT,HZ+t[1]*DT],e=[a[0]+d[0]*DW,a[1]+d[1]*DW],f=[b[0]+d[0]*DW,b[1]+d[1]*DW];return{a,b,e,f,d,t}};
+ const side=(p,q,nk)=>({pts:()=>{const g=doorG;return [[g[p][0],0,g[p][1]],[g[q][0],0,g[q][1]],[g[q][0],DH,g[q][1]],[g[p][0],DH,g[p][1]]]},n:()=>{const g=doorG,v=nk==='-t'?g.t.map(x=>-x):nk==='+t'?g.t:nk==='+d'?g.d:g.d.map(x=>-x);return [v[0],0,v[1]]}});
+ const dcol={c:C.door,k:.22,op:.85,sw:1.4,so:1,tag:'door',layer:3,ghost:true};
+ addPoly(Object.assign({},dcol,side('a','e','-t')));
+ addPoly(Object.assign({},dcol,side('b','f','+t')));
+ addPoly(Object.assign({},dcol,side('e','f','+d')));
+ addPoly(Object.assign({},dcol,side('a','b','-d')));
+ addPoly(Object.assign({},dcol,{pts:()=>{const g=doorG;return [[g.a[0],DH,g.a[1]],[g.b[0],DH,g.b[1]],[g.f[0],DH,g.f[1]],[g.e[0],DH,g.e[1]]]},n:[0,1,0]}));
+ addDot({p:()=>{const g=doorG;return [g.b[0]+g.d[0]*.78*DW+g.t[0]*.012,1.0,g.b[1]+g.d[1]*.78*DW+g.t[1]*.012]},r:.018,c:'#fff',n:()=>{const g=doorG;return [g.t[0],0,g.t[1]]},tag:'door',layer:3.01});
+
+ /* flujos de cableado (ilustrativos) */
+ const FL=(pts,c,sp)=>addLine({pts:crom(pts,6),c,sw:1.8,so:.85,dash:'6 7',flow:true,speed:sp||34,group:'flow',layer:5,tag:'rack'});
+ FL([[-1.2,2.7,-1.45],[-1.2,2.7,-1.0],[-1.1,2.4,-.6],[-.95,2.15,-.3],[-.95,2.1,0]],'#f08aa0');
+ FL([[-1.0,2.7,-1.45],[-1.0,2.7,-1.0],[-.8,2.45,-.7],[-.4,2.2,-.3],[-.32,2.1,0]],'#f08aa0',28);
+ FL([[1.9,.5,-.55],[1.5,.5,-.55],[1.25,.3,-.55],[1.05,.03,-.45],[.94,.03,-.3]],'#b9a6f5');
+ FL([[1.9,.62,-.35],[1.5,.62,-.35],[1.0,.3,-.5],[.5,.03,-.45],[.31,.03,-.3]],'#b9a6f5',26);
+ FL([[-1.95,.3,.9],[-1.5,.3,.9],[-1.2,.1,.7],[-1.0,.03,.45],[-.95,.03,.3]],'#b9a6f5',30);
+ [-1,-.85,-.7,-.55].forEach((x,i)=>FL([[x,.07,1.0],[x,.03,.75],[rackX[i],.12,.32]],'#7fdcb8',22+i*4));
+
+ /* cotas */
+ const dl=(a,b,tk)=>{addLine({pts:[a,b],c:C.dim,sw:1.6,so:.95,group:'dims',layer:5,tag:'dim'});tk.forEach(t=>addLine({pts:t,c:C.dim,sw:1.6,so:.95,group:'dims',layer:5,tag:'dim'}))};
+ dl([-1.5,.01,1.55],[1.5,.01,1.55],[[[-1.5,.01,1.45],[-1.5,.01,1.65]],[[1.5,.01,1.45],[1.5,.01,1.65]]]);
+ dl([-1.95,.01,-1.2],[-1.95,.01,1.2],[[[-2.05,.01,-1.2],[-1.85,.01,-1.2]],[[-2.05,.01,1.2],[-1.85,.01,1.2]]]);
+ dl([-1.95,0,-1.45],[-1.95,2.4,-1.45],[[[-2.05,0,-1.45],[-1.85,0,-1.45]],[[-2.05,2.4,-1.45],[-1.85,2.4,-1.45]]]);
+ dl([1.95,0,-1.45],[1.95,2.6,-1.45],[[[1.85,0,-1.45],[2.05,0,-1.45]],[[1.85,2.6,-1.45],[2.05,2.6,-1.45]]]);
+ addLine({pts:[[1.95,2.6,-1.45],[1.5,2.6,-1.2]],c:C.dim,sw:1,so:.7,dash:'3 4',group:'dims',layer:5,tag:'dim'});
+ addLabel({pos:[0,.01,1.78],text:'3 m (10 pies)',c:C.dim,group:'dims',dy:0});
+ addLabel({pos:[-2.15,.01,0],text:'2.4 m (8 pies)',c:C.dim,group:'dims',dy:0});
+ addLabel({pos:[-2.12,1.2,-1.45],text:'2.4 m (8 pies)',c:C.dim,group:'dims',dy:-6});
+ addLabel({pos:[-2.12,1.2,-1.45],text:'pared de madera',c:C.dim,group:'dims',dy:8});
+ addLabel({pos:[2.1,1.3,-1.45],text:'2.6 m (8.5 pies)',c:C.dim,group:'dims',dy:-6});
+ addLabel({pos:[2.1,1.3,-1.45],text:'SFP mínimo',c:C.dim,group:'dims',dy:8});
+
+ /* escáner AR */
+ const scanPts=()=>{const y=((T*.45)%1)*3.1;return [[-1.85,y,-1.5],[1.85,y,-1.5],[1.85,y,1.5],[-1.85,y,1.5],[-1.85,y,-1.5]]};
+ addLine({pts:scanPts,c:'#7fb2f0',sw:1.5,so:.35,layer:5});
+}
+let doorGeoFn=null;
+
+/* =====================  HOTSPOTS  ===================== */
+const HS=[
+ {id:'dim',name:'Dimensiones generales',short:'Dimensiones 3 m × 2.4 m',c:C.dim,tags:['dim'],a:[0,.01,1.55],n:null,
+  dato:'Ancho de 3 m (10 pies) y profundidad de 2.4 m (8 pies). En la vista 3D, 2.4 m (8 pies) aparece también como altura de las paredes de madera, y 2.6 m (8.5 pies) como altura mínima SFP (sobre el piso final) de HVAC y receptáculos.',
+  ctx:'Es un cuarto compacto; el tamaño definitivo en un proyecto real depende de la cantidad de equipos y de la normativa aplicable.',
+  geo:'La altura total de muros (3 m) y su espesor (15 cm) son supuestos de la maqueta.'},
+ {id:'ply',name:'Paredes de madera contrachapada (backboard)',short:'Madera 21 mm (3/4 comercial)',c:C.ply,tags:['ply'],a:[-.7,1.9,-1.175],n:[0,0,1],
+  dato:'Madera contrachapada de 21 mm (tamaño comercial 3/4) en las paredes laterales y del fondo, con un tramo en la pared frontal; altura de 2.4 m (8 pies).',
+  ctx:'Sirve de superficie de fijación para equipos, paneles y organizadores de cable sin perforar directamente el muro.',
+  geo:'Los tramos exactos de cada pared se interpretaron a partir del plano.'},
+ {id:'hvac',name:'HVAC: suministro o retorno de aire',short:'HVAC a 2.6 m SFP mín.',c:C.hvac,tags:['hvac'],a:[0,2.74,-1.196],n:[0,0,1],
+  dato:'Suministro o retorno de HVAC a 2.6 m (8.5 pies) SFP como mínimo. El plano dibuja dos aberturas: una en la pared del fondo y otra en la pared frontal.',
+  ctx:'La climatización mantiene temperatura y humedad estables para el equipo activo. Las líneas azules animadas son una representación ilustrativa del aire, no una simulación.',
+  geo:'Tamaño de las rejillas supuesto.'},
+ {id:'tw',name:'Receptáculos de bloqueo (twist-lock) de 20 A',short:'Twist-lock 20 A a 2.6 m',c:C.pow,tags:['tw'],a:[-.475,2.6,-1.196],n:[0,0,1],
+  dato:'Dos receptáculos de bloqueo por giro (twist-lock) de 20 A, a 2.6 m (8.5 pies) SFP.',
+  ctx:'El bloqueo por giro evita desconexiones accidentales; es habitual para alimentar regletas/PDU o equipos desde arriba.',
+  geo:'En el plano aparecen sobre el área central del cuarto; en la maqueta se montan en la pared del fondo para verlos con claridad.'},
+ {id:'fire',name:'Vías de paso con sellado cortafuegos',short:'Paso con sellado cortafuegos',c:C.fire,tags:['fire'],a:[-1.1,2.7,-1.196],n:[0,0,1],
+  dato:'Vías de paso con sellado cortafuegos: arriba a la izquierda en la pared del fondo, en la pared derecha, junto al piso y alrededor del ducto de interconexión del armario.',
+  ctx:'El sellado cortafuegos restablece la resistencia al fuego del muro o la losa cuando son atravesados por cables o ductos.',
+  geo:'Posiciones y diámetros aproximados.'},
+ {id:'cond',name:'Ducto de interconexión del armario (75 mm)',short:'Ducto 75 mm (tamaño 3)',c:C.cond,tags:['cond'],a:[-1.475,.3,.9],n:[1,0,0],
+  dato:'Ducto de interconexión del armario de 75 mm (tamaño comercial 3) como mínimo, con vías de paso y sellados cortafuegos.',
+  ctx:'Comunica este cuarto con otro armario o cuarto adyacente para el paso de cableado entre ambos.',
+  geo:'En el plano se ubica en la pared izquierda, cerca del frente; la altura de 0.3 m es supuesta.'},
+ {id:'sleeve',name:'Manguitos de paso de cables (piso)',short:'Manguitos de piso',c:'#b9a6f5',tags:['sleeve'],a:[-.775,.07,1.0],n:[0,1,0],
+  dato:'Manguitos de paso de cables en el piso: la vista 3D dibuja cuatro; el plano muestra una fila de círculos cerca de la pared frontal.',
+  ctx:'Permiten subir o bajar cable a través de la losa.',
+  geo:'Ubicación, cantidad exacta y diámetro en la maqueta son ilustrativos.'},
+ {id:'stat',name:'Termostato',short:'Termostato (T)',c:C.stat,tags:['stat'],a:[.55,1.4,1.196],n:[0,0,-1],
+  dato:'Termostato (T) en la pared frontal, entre el HVAC y el tablero eléctrico.',
+  ctx:'Regula el funcionamiento de la climatización del cuarto.',
+  geo:'Altura de montaje (1.4 m) supuesta.'},
+ {id:'tgb',name:'TGB: barra de conexión a tierra de telecomunicaciones',short:'TGB (barra de tierra)',c:C.grd,tags:['tgb'],a:[.95,.4,1.196],n:[0,0,-1],
+  dato:'Barra de conexión a tierra de telecomunicaciones (TGB) en la pared frontal.',
+  ctx:'Es el punto donde se conectan las tierras y el bonding de racks y equipos hacia el sistema de puesta a tierra de telecomunicaciones del edificio.',
+  geo:'Altura y largo supuestos.'},
+ {id:'edp',name:'EDP: tablero de distribución eléctrica',short:'EDP (tablero eléctrico)',c:C.pow,tags:['edp'],a:[1.25,1.3,1.196],n:[0,0,-1],
+  dato:'Tablero de distribución eléctrica (EDP) en la pared frontal, cerca de la puerta.',
+  ctx:'Distribuye los circuitos dedicados del cuarto (por ejemplo, los de los receptáculos de equipos).',
+  geo:'Tamaño y altura supuestos.'},
+ {id:'lv',name:'Backboard para otro sistema de baja tensión',short:'Backboard baja tensión',c:C.lv,tags:['lv'],a:[1.475,1.45,-.55],n:[-1,0,0],
+  dato:'Backboard (panel de respaldo) reservado para otro sistema de baja tensión, en la pared derecha.',
+  ctx:'Ejemplos habituales: control de accesos, CCTV o automatización (no se especifican en el diagrama).',
+  geo:'Tamaño y altura supuestos.'},
+ {id:'outlet',name:'Salida/conector de telecomunicaciones (▼)',short:'Salida telecom ▼',c:C.rack,tags:['outlet'],a:[1.475,1.25,.1],n:[-1,0,0],
+  dato:'Salida/conector de telecomunicaciones (símbolo ▼) en la pared derecha.',
+  ctx:'Punto de conexión para un servicio o equipo del propio cuarto.',
+  geo:'Posición exacta y altura supuestas.'},
+ {id:'rack',name:'Racks / gabinetes de equipos',short:'Racks de equipos',c:'#4cc9a0',tags:['rack'],a:[0,2.1,0],n:[0,1,0],
+  dato:'La vista 3D muestra cuatro gabinetes en fila al centro del cuarto; el plano los representa como una hilera de equipos.',
+  ctx:'Los racks alojan patch panels, switches, servidores y UPS.',
+  geo:'Medidas (0.6 × 0.6 × 2.1 m), orden de equipos y LEDs parpadeantes son ilustrativos: no vienen en el diagrama. Los flujos animados de «Flujos» muestran recorridos de cableado de forma conceptual.'},
+ {id:'door',name:'Puerta de acceso',short:'Puerta (abre hacia afuera)',c:C.door,tags:['door'],a:[1.575,2.05,.7],n:[0,1,0],
+  dato:'El plano dibuja la puerta en la pared derecha, cerca de la esquina frontal, con el arco de giro hacia el exterior.',
+  ctx:'Use el botón «Puerta» para abrirla o cerrarla.',
+  geo:'Ancho 0.9 m y alto 2.05 m supuestos.'}
+];
+
+/* ---------- overlay de hotspots ---------- */
+const hsG=mk('g',{filter:'url(#glow2)'});ovG.appendChild(hsG);
+HS.forEach((h,i)=>{
+ h.i=i;h.k=i+1;
+ h.g=mk('g',{class:'hs',style:'cursor:pointer'});
+ h.chip=mk('g',{style:'pointer-events:none'});
+ h.lead=mk('path',{fill:'none',stroke:h.c,'stroke-width':1.2,opacity:.8});
+ h.rect=mk('rect',{rx:5,ry:5,height:22,fill:'#0f172a',stroke:h.c,'stroke-width':1.2});
+ h.txt=mk('text',{'font-size':11.5,fill:'#fff',y:15});h.txt.textContent=h.k+'. '+h.short;
+ h.w=h.short.length*6.1+30;h.rect.setAttribute('width',h.w);
+ h.chip.append(h.lead,h.rect,h.txt);
+ h.ring=mk('circle',{r:12,fill:'none',stroke:h.c,'stroke-width':1.5});
+ h.dot=mk('circle',{r:11,fill:'#0f172a',stroke:h.c,'stroke-width':1.8});
+ h.num=mk('text',{'font-size':11.5,'font-weight':'bold','text-anchor':'middle',y:4.2,fill:h.c});h.num.textContent=h.k;
+ h.hit=mk('circle',{r:16,fill:'transparent'});
+ h.g.append(h.ring,h.dot,h.num,h.hit);
+ h.g.addEventListener('click',e=>{e.stopPropagation();select(sel===h?null:h)});
+ h.g.addEventListener('mouseenter',()=>hov=h);
+ h.g.addEventListener('mouseleave',()=>{if(hov===h)hov=null});
+ hsG.append(h.g);
+});
+const chipG=mk('g',{filter:'url(#glow2)'});ovG.appendChild(chipG);
+HS.forEach(h=>chipG.append(h.chip));
+
+/* ---------- panel ---------- */
+const listEl=$('#list'),detEl=$('#detail');
+HS.forEach(h=>{
+ const d=document.createElement('div');d.className='it';d.style.setProperty('--c',h.c);
+ d.innerHTML='<span class="n">'+h.k+'</span><span>'+h.name+'</span>';
+ d.onclick=()=>select(sel===h?null:h);h.li=d;listEl.append(d);
+});
+const SRC='<small><b>Origen de la información:</b> «Del diagrama» = leído de las dos imágenes adjuntas (parecen corresponder a una guía tipo ANSI/TIA-569; es una inferencia, no está confirmado). «Contexto» = conocimiento general del modelo, no verificado en la web; puede ser incompleto o inexacto. «Geometría» = supuestos e ilustraciones de la maqueta.</small>';
+function renderPanel(){
+ HS.forEach(h=>h.li.classList.toggle('sel',h===sel));
+ if(!sel){
+  detEl.innerHTML='<div class="card" style="--c:#8fa8c4"><h2>Cómo usar la maqueta</h2><ul class="help"><li><b>Arrastre</b> para rotar la maqueta 360°.</li><li><b>Rueda del ratón</b> o <b>pellizco</b> para acercar/alejar.</li><li><b>Clic derecho</b>, <b>Shift + arrastre</b> o <b>dos dedos</b> para mover.</li><li><b>Doble clic</b> restablece la vista.</li><li>Toque un <b>número</b> en el modelo o en la lista para ver su descripción.</li><li><b>Cámara AR</b> superpone la maqueta sobre la imagen de su cámara.</li></ul><small><b>Glosario:</b> SFP = sobre el piso final (AFF) · HVAC = calefacción, ventilación y aire acondicionado · EDP = tablero de distribución eléctrica · TGB = barra de conexión a tierra de telecomunicaciones · ▼ = salida/conector de telecomunicaciones.</small></div>'+SRC;
+ }else{
+  detEl.innerHTML='<div class="card" style="--c:'+sel.c+'"><h2>'+sel.k+'. '+sel.name+'</h2><span class="tagb b1">DEL DIAGRAMA</span><p>'+sel.dato+'</p><span class="tagb b2">CONTEXTO GENERAL (no verificado)</span><p>'+sel.ctx+'</p><span class="tagb b3">GEOMETRÍA / SUPUESTOS</span><p>'+sel.geo+'</p></div>'+SRC;
+ }
+ detEl.scrollTop=0;
+}
+
+/* ---------- selección y vistas ---------- */
+const near=(cur,a)=>a+Math.round((cur-a)/(Math.PI*2))*Math.PI*2;
+function select(h){
+ sel=h;st.auto=false;
+ if(h){
+  if(h.id==='dim'&&!st.dims)st.dims=true;
+  if(h.id==='door')doorTarget=1.55;
+  if(h.n){
+   tgt.tx=h.a[0];tgt.ty=h.a[1];tgt.tz=h.a[2];tgt.zoom=1.8;tgt.px=0;tgt.py=-20;
+   if(Math.abs(h.n[1])>.5){tgt.pitch=1.1}else{tgt.yaw=near(cam.yaw,Math.atan2(-h.n[0],h.n[2]));tgt.pitch=.3}
+  }else{Object.assign(tgt,HOME,{yaw:near(cam.yaw,0),pitch:.9,zoom:1.1})}
+ }else{Object.assign(tgt,{tx:0,ty:1.3,tz:0,zoom:1.0,px:0,py:-34})}
+ renderPanel();syncBtns();
+}
+const VIEWS={iso:{yaw:-.62,pitch:.5},front:{yaw:0,pitch:.12},top:{yaw:0,pitch:1.5},side:{yaw:-1.5,pitch:.3},back:{yaw:Math.PI,pitch:.3}};
+function view(n){sel=null;st.auto=false;const v=VIEWS[n];Object.assign(tgt,{tx:0,ty:1.3,tz:0,px:0,py:-34,zoom:n==='top'?1.2:1.0,pitch:v.pitch,yaw:near(cam.yaw,v.yaw)});renderPanel();syncBtns()}
+
+/* ---------- toolbar ---------- */
+let stream=null,gyro=false,g0=null,gBase=0,gTimer=0;
+function toast(m,ms=4200){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),ms)}
+function syncBtns(){
+ document.querySelectorAll('[data-a]').forEach(b=>{const a=b.dataset.a;let on=false;
+  if(a in st)on=st[a];if(a==='door')on=doorTarget>0;if(a==='ar')on=stage.classList.contains('ar');if(a==='gyro')on=gyro;b.classList.toggle('on',on)});
+ sceneG.setAttribute('filter',st.neon?'url(#glow)':'none');
+}
+async function toggleAR(){
+ if(stage.classList.contains('ar')){stopAR();return}
+ try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('sin API');
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+  vid.srcObject=stream;await vid.play();
+  stage.classList.add('ar');$('#badge').textContent='● RA CÁMARA ACTIVA';
+  toast('Realidad aumentada activa: la maqueta flota sobre la imagen de su cámara. Arrastre para rotarla o use el giroscopio.');
+ }catch(e){toast('No se pudo abrir la cámara (permiso denegado o dispositivo sin cámara). Si abre el archivo desde el navegador del teléfono o PC y acepta el permiso, funcionará; mientras tanto se mantiene el modo holográfico.',7000)}
+ syncBtns();
+}
+function stopAR(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}vid.srcObject=null;stage.classList.remove('ar');$('#badge').textContent='● RA HOLOGRÁFICA';syncBtns()}
+function onOri(e){
+ if(e.alpha==null)return;g0=g0===null?e.alpha:g0;gTimer=1;
+ const y=gBase-(e.alpha-g0)*Math.PI/180,p=clamp((90-(e.beta??45))*Math.PI/180,.05,1.5);
+ cam.yaw=tgt.yaw=y;cam.pitch=tgt.pitch=p;
+}
+async function toggleGyro(){
+ if(gyro){gyro=false;window.removeEventListener('deviceorientation',onOri);syncBtns();return}
+ try{
+  if(typeof DeviceOrientationEvent==='undefined')throw 0;
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted')throw 0}
+  gyro=true;g0=null;gTimer=0;gBase=cam.yaw;st.auto=false;window.addEventListener('deviceorientation',onOri);
+  setTimeout(()=>{if(gyro&&!gTimer){toast('Este dispositivo no entrega datos de giroscopio (normal en PC). Use el arrastre para rotar.');gyro=false;window.removeEventListener('deviceorientation',onOri);syncBtns()}},1500);
+  toast('Giroscopio activo: mueva el dispositivo para rodear la maqueta.');
+ }catch(e){toast('Giroscopio no disponible o permiso denegado.')}
+ syncBtns();
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.v){view(b.dataset.v);return}
+ const a=b.dataset.a;if(!a)return;
+ if(a in st){st[a]=!st[a];if(a==='auto'&&st.auto){sel=null;tgt.tx=0;tgt.ty=1.3;tgt.tz=0;renderPanel()}}
+ else if(a==='door')doorTarget=doorTarget>0?0:1.55;
+ else if(a==='ar')toggleAR();
+ else if(a==='gyro')toggleGyro();
+ else if(a==='zin')tgt.zoom=clamp(tgt.zoom*1.3,.35,5);
+ else if(a==='zout')tgt.zoom=clamp(tgt.zoom/1.3,.35,5);
+ else if(a==='reset'){sel=null;doorTarget=0;Object.assign(tgt,HOME,{yaw:near(cam.yaw,HOME.yaw)});st.auto=false;renderPanel()}
+ syncBtns();
+});
+if(!('DeviceOrientationEvent' in window))$('#bgyro').style.display='none';
+
+/* ---------- interacción con el puntero ---------- */
+const ptrs=new Map();let panMode=false,lastPinch=0,lastMid=null;
+const syncTgt=()=>{tgt.yaw=cam.yaw;tgt.pitch=cam.pitch;tgt.zoom=cam.zoom;tgt.px=cam.px;tgt.py=cam.py};
+svg.addEventListener('pointerdown',e=>{
+ if(e.target.closest('.hs'))return;
+ svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});dragging=true;svg.classList.add('drag');
+ panMode=e.button===2||e.shiftKey||e.ctrlKey;
+ if(ptrs.size===2){const [a,b]=[...ptrs.values()];lastPinch=Math.hypot(a.x-b.x,a.y-b.y)||1;lastMid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+});
+svg.addEventListener('pointermove',e=>{
+ const p=ptrs.get(e.pointerId);if(!p)return;
+ const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+ if(ptrs.size===1){
+  if(panMode){cam.px+=dx;cam.py+=dy}else{cam.yaw+=dx*.008;cam.pitch=clamp(cam.pitch+dy*.006,.04,1.52)}
+ }else if(ptrs.size===2){
+  const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  cam.zoom=clamp(cam.zoom*d/lastPinch,.35,5);lastPinch=d;cam.px+=mid.x-lastMid.x;cam.py+=mid.y-lastMid.y;lastMid=mid;
+ }
+ syncTgt();
+});
+const endP=e=>{ptrs.delete(e.pointerId);if(!ptrs.size){dragging=false;svg.classList.remove('drag')}};
+svg.addEventListener('pointerup',endP);svg.addEventListener('pointercancel',endP);
+svg.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=clamp(cam.zoom*Math.exp(-e.deltaY*.0016),.35,5);tgt.zoom=cam.zoom},{passive:false});
+svg.addEventListener('contextmenu',e=>e.preventDefault());
+svg.addEventListener('dblclick',e=>{if(e.target.closest('.hs'))return;sel=null;Object.assign(tgt,HOME,{yaw:near(cam.yaw,HOME.yaw)});renderPanel()});
+window.addEventListener('keydown',e=>{
+ const k=e.key;
+ if(k==='ArrowLeft')cam.yaw-=.12;else if(k==='ArrowRight')cam.yaw+=.12;else if(k==='ArrowUp')cam.pitch=clamp(cam.pitch-.08,.04,1.52);else if(k==='ArrowDown')cam.pitch=clamp(cam.pitch+.08,.04,1.52);
+ else if(k==='+'||k==='=')tgt.zoom=clamp(tgt.zoom*1.2,.35,5);else if(k==='-')tgt.zoom=clamp(tgt.zoom/1.2,.35,5);else if(k==='Escape')select(null);else return;
+ syncTgt();
+});
+
+/* ---------- render ---------- */
+function resize(){W=stage.clientWidth||800;H=stage.clientHeight||600;svg.setAttribute('viewBox','0 0 '+W+' '+H)}
+window.addEventListener('resize',resize);
+
+const LD=(()=>{const l=[-.35,.8,.5],m=Math.hypot(...l);return l.map(x=>x/m)})();
+function hide(o){if(o.shown!==false){o.el.style.display='none';o.shown=false}}
+function show(o){if(o.shown===false){o.el.style.display='';o.shown=true}}
+const res=v=>typeof v==='function'?v():v;
+
+function render(){
+ const ca=Math.cos(cam.yaw),sa=Math.sin(cam.yaw),cb=Math.cos(cam.pitch),sb=Math.sin(cam.pitch);
+ const S=Math.min(W/6.8,H/6.0)*cam.zoom,D=cam.D,cx=W/2+cam.px,cy=H/2+cam.py;
+ const V=p=>{const x=p[0]-cam.tx,y=p[1]-cam.ty,z=p[2]-cam.tz,x1=x*ca+z*sa,z1=-x*sa+z*ca;return [x1,y*cb-z1*sb,y*sb+z1*cb]};
+ const N=n=>{const z1=-n[0]*sa+n[2]*ca;return [n[0]*ca+n[2]*sa,n[1]*cb-z1*sb,n[1]*sb+z1*cb]};
+ const P=v=>{const k=D/Math.max(.5,D-v[2]);return [cx+v[0]*S*k,cy-v[1]*S*k,k]};
+ const facing=(n,v0)=>{const nv=N(res(n));return nv[0]*(-v0[0])+nv[1]*(-v0[1])+nv[2]*(D-v0[2])>0};
+ const pulse=1+.15*Math.sin(T*5);
+ const ord=[];let idx=0;
+ for(const o of items){
+  idx++;
+  if(o.group&&!st[o.group]){hide(o);ord.push([-1e9+idx,o]);continue}
+  const isSel=sel&&o.tag&&sel.tags.indexOf(o.tag)>=0;
+  const dimF=(sel&&!isSel&&o.layer>=2&&o.layer<4)?.3:1;
+  if(o.type==='poly'){
+   const v=res(o.pts).map(V);
+   let ghost=false;
+   if(o.n&&!facing(o.n,v[0])){if(o.ghost)ghost=true;else{hide(o);ord.push([-1e9+idx,o]);continue}}
+   let z=0;if(o.dp){z=V(res(o.dp))[2]}else{for(const q of v)z+=q[2];z/=v.length}
+   ord.push([(ghost?4.5:o.layer)*100+z+o.sub*.001,o]);show(o);
+   let s='';for(const q of v){const p=P(q);s+=p[0].toFixed(1)+','+p[1].toFixed(1)+' '}
+   setA(o,'points',s);
+   if(ghost){setA(o,'fill','none');setA(o,'stroke',o.c);setA(o,'stroke-opacity',isSel?.9:.3);setA(o,'stroke-width',isSel?1.6:.9);setA(o,'opacity',1)}
+   else{
+    let lum=.5;if(o.n){const n=res(o.n);lum=Math.max(0,n[0]*LD[0]+n[1]*LD[1]+n[2]*LD[2])}
+    const m=clamp(o.k*(.7+1.1*lum)*1.25*(isSel?2.2:1),0,1);
+    setA(o,'fill','rgb('+Math.round(BG[0]+(o.rgb[0]-BG[0])*m)+','+Math.round(BG[1]+(o.rgb[1]-BG[1])*m)+','+Math.round(BG[2]+(o.rgb[2]-BG[2])*m)+')');
+    setA(o,'fill-opacity',o.op);setA(o,'stroke',o.c);setA(o,'stroke-opacity',isSel?1:o.so);
+    setA(o,'stroke-width',(isSel?o.sw*2.1*pulse:o.sw).toFixed(2));setA(o,'opacity',dimF);
+   }
+  }else if(o.type==='line'){
+   const raw=res(o.pts);const v=raw.map(V);
+   if(o.n&&!facing(o.n,v[0])){hide(o);ord.push([-1e9+idx,o]);continue}
+   let z=0;if(o.dp){z=V(res(o.dp))[2]}else{for(const q of v)z+=q[2];z/=v.length}
+   ord.push([o.layer*100+z+o.sub*.001,o]);show(o);
+   let d='';v.forEach((q,i)=>{const p=P(q);d+=(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)});
+   setA(o,'d',d);setA(o,'stroke',o.c);setA(o,'stroke-opacity',isSel?1:o.so);setA(o,'stroke-width',(isSel?o.sw*1.7:o.sw).toFixed(2));
+   setA(o,'opacity',dimF);
+   if(o.dash){setA(o,'stroke-dasharray',o.dash);if(o.flow)o.el.setAttribute('stroke-dashoffset',(-(T*o.speed)%1000).toFixed(1))}
+  }else{ /* dot */
+   const p3=res(o.p),v=V(p3);
+   if(o.n&&!facing(o.n,v)){hide(o);ord.push([-1e9+idx,o]);continue}
+   let z=v[2];if(o.dp)z=V(res(o.dp))[2];
+   ord.push([o.layer*100+z+o.sub*.001,o]);show(o);
+   const p=P(v);const r=Math.max(1.1,o.r*S*p[2]);
+   setA(o,'cx',p[0].toFixed(1));setA(o,'cy',p[1].toFixed(1));setA(o,'r',r.toFixed(2));setA(o,'fill',o.c);
+   const bo=o.blink?(Math.sin(T*o.blink.sp+o.blink.ph)>-.25?1:.2):1;
+   setA(o,'opacity',(bo*dimF).toFixed(2));
+  }
+ }
+ ord.sort((a,b)=>a[0]-b[0]);
+ let ch=sceneG.firstChild;
+ for(const e of ord){const el=e[1].el;if(ch===el)ch=ch.nextSibling;else sceneG.insertBefore(el,ch)}
+
+ /* etiquetas 3D de cotas */
+ for(const l of labels){
+  if(!st[l.group]){if(l.on!==false){l.el.style.display='none';l.on=false}continue}
+  if(l.on===false){l.el.style.display='';l.on=true}
+  const p=P(V(l.pos));l.el.setAttribute('x',p[0].toFixed(1));l.el.setAttribute('y',(p[1]+l.dy).toFixed(1));
+ }
+ /* hotspots */
+ for(const h of HS){
+  const v=V(h.a),p=P(v);
+  let vis=1;if(h.n&&!facing(h.n,v))vis=.4;
+  const act=sel===h||hov===h;
+  h.g.setAttribute('transform','translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+')');
+  h.g.setAttribute('opacity',sel&&sel!==h?vis*.65:vis);
+  const ph=(T*9+h.i*2.3)%10;
+  h.ring.setAttribute('r',(12+ph*(act?1.6:1)).toFixed(1));h.ring.setAttribute('stroke-opacity',(.35*(1-ph/10)).toFixed(2));
+  h.dot.setAttribute('stroke-width',act?3:1.8);
+  const showChip=st.labels||act;
+  h.chip.style.display=showChip?'':'none';
+  if(showChip){
+   const side=p[0]>cx?1:-1,off=st.labels&&!act?-18-(h.i%4)*22:-30;
+   const x=side>0?24:-24-h.w;
+   h.chip.setAttribute('transform','translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+')');
+   h.rect.setAttribute('x',x);h.rect.setAttribute('y',off);h.txt.setAttribute('x',x+10);h.txt.setAttribute('y',off+15);
+   h.lead.setAttribute('d','M'+(side*11)+' '+(-4)+'L'+(side*24)+' '+(off+11));
+   h.chip.setAttribute('opacity',vis<1?.55:1);
+  }
+ }
+}
+
+let last=performance.now(),rc=0;
+function loop(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+ const k=1-Math.exp(-dt*5);
+ if(!dragging){
+  if(st.auto&&!gyro){cam.yaw+=dt*.2;tgt.yaw=cam.yaw}else if(!gyro)cam.yaw+=(tgt.yaw-cam.yaw)*k;
+  for(const key of ['pitch','zoom','px','py','tx','ty','tz'])if(!gyro||key!=='pitch')cam[key]+=(tgt[key]-cam[key])*k;
+ }
+ doorAng+=(doorTarget-doorAng)*(1-Math.exp(-dt*4));
+ doorG=doorGeoFn();
+ render();
+ if(++rc%8===0)$('#readout').innerHTML='Rotación '+Math.round(((cam.yaw*180/Math.PI)%360+360)%360)+'° · Inclinación '+Math.round(cam.pitch*180/Math.PI)+'° · Zoom '+cam.zoom.toFixed(2)+'×<br>Maqueta ilustrativa basada en los diagramas adjuntos';
+ requestAnimationFrame(loop);
+}
+resize();build();doorG=doorGeoFn();renderPanel();syncBtns();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
 
